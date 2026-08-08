@@ -62,7 +62,17 @@ class AbsensiSiswa extends Model
      */
     public static function siswaAlfaHariIni(?int $kelasId = null)
     {
-        $query = static::whereDate('tanggal', now()->toDateString())
+        return static::siswaAlfaHariIniByTanggal($kelasId, now()->toDateString());
+    }
+
+    /**
+     * Sama seperti siswaAlfaHariIni(), tapi untuk tanggal manapun (bukan
+     * hanya hari ini) — dipakai NotifikasiAlfaDispatcher setelah guru mapel
+     * menyimpan absensi untuk tanggal tsb.
+     */
+    public static function siswaAlfaHariIniByTanggal(?int $kelasId, string $tanggal)
+    {
+        $query = static::whereDate('tanggal', $tanggal)
             ->with(['siswa', 'kelas', 'jurnal.mapel', 'jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir']);
 
         if ($kelasId) {

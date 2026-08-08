@@ -20,7 +20,7 @@
 
     <div class="card p-5" x-show="showForm" x-cloak x-transition>
         <p class="font-bold text-slate-800 mb-4">Tambah Siswa</p>
-        <form method="POST" action="{{ route('siswa.store') }}" class="grid sm:grid-cols-5 gap-3 items-end">
+        <form method="POST" action="{{ route('siswa.store') }}" class="grid sm:grid-cols-6 gap-3 items-end">
             @csrf
             <input type="text" name="nis" placeholder="NIS" required class="input">
             <input type="text" name="nisn" placeholder="NISN (opsional)" class="input">
@@ -33,6 +33,7 @@
                 <option value="">Pilih Kelas</option>
                 @foreach($kelasList as $k)<option value="{{ $k->id }}">{{ $k->nama_kelas }}</option>@endforeach
             </select>
+            <input type="text" name="no_hp_ortu" placeholder="No. WA Orang Tua (62...)" class="input sm:col-span-2">
             <button type="submit" class="btn-primary h-[38px]">Simpan</button>
         </form>
     </div>
@@ -64,7 +65,7 @@
                     </tr>
                     <tr x-show="editing" x-cloak>
                         <td colspan="6" class="bg-brand-50/40">
-                            <form method="POST" action="{{ route('siswa.update', $s) }}" class="grid sm:grid-cols-7 gap-3 items-end py-2">
+                            <form method="POST" action="{{ route('siswa.update', $s) }}" class="grid sm:grid-cols-8 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <input type="text" name="nis" value="{{ $s->nis }}" placeholder="NIS" required class="input">
                                 <input type="text" name="nisn" value="{{ $s->nisn }}" placeholder="NISN" class="input">
@@ -78,12 +79,13 @@
                                         <option value="{{ $k->id }}" {{ $s->kelas_id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                                     @endforeach
                                 </select>
+                                <input type="text" name="no_hp_ortu" value="{{ $s->no_hp_ortu }}" placeholder="No. WA Orang Tua (62...)" class="input">
                                 <label class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold">
                                     <input type="hidden" name="is_active" value="0">
                                     <input type="checkbox" name="is_active" value="1" {{ $s->is_active ? 'checked' : '' }} class="rounded">
                                     Aktif
                                 </label>
-                                <div class="flex gap-2 sm:col-span-7">
+                                <div class="flex gap-2 sm:col-span-8">
                                     <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                                     <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>
                                 </div>

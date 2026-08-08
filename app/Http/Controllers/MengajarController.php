@@ -7,6 +7,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\JurnalMengajar;
 use App\Models\JurnalMengajarSlot;
 use App\Models\TahunAjaran;
+use App\Support\NotifikasiAlfaDispatcher;
 use App\Support\SesiMengajarGrouper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -154,6 +155,12 @@ class MengajarController extends Controller
                 'jumlah_alfa' => $rekap['Alfa'],
             ]);
         });
+
+        // Di LUAR transaksi DB, sengaja: supaya kalau dispatch job/insert
+        // notifikasi lambat atau bermasalah, penyimpanan absensi guru tidak
+        // ikut ter-rollback. Jalan setelah data absensi benar-benar committed.
+        app(NotifikasiAlfaDispatcher::class)
+            ->prosesKelasTanggal($jadwalAwal->kelas_id, $validated['tanggal']);
 
         $labelJam = $jadwalAwal->jam_pelajaran_id === $jadwalAkhir->jam_pelajaran_id
             ? '1 jam'

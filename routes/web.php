@@ -14,9 +14,16 @@ use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WaliKelasController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
+
+// ===== WEBHOOK WHATSAPP CLOUD API =====
+// Di LUAR middleware 'auth' (Meta yang memanggil, bukan user login) dan
+// di-exempt dari CSRF (lihat bootstrap/app.php).
+Route::get('webhook/whatsapp', [WhatsAppWebhookController::class, 'verifikasi']);
+Route::post('webhook/whatsapp', [WhatsAppWebhookController::class, 'terimaStatus']);
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'create'])->name('login');
@@ -39,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('wali-kelas')->name('walikelas.')->middleware('role:guru,kurikulum,kepala_sekolah,admin')->group(function () {
         Route::get('absensi-bulanan/{kelas?}', [WaliKelasController::class, 'absensiBulanan'])->name('absensi-bulanan');
         Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
+        Route::get('status-whatsapp/{kelas?}', [WaliKelasController::class, 'statusWhatsApp'])->name('status-whatsapp');
     });
 
     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====

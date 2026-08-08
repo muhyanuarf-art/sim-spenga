@@ -32,6 +32,7 @@ class SiswaController extends Controller
             'nisn' => ['nullable', 'string'],
             'nama' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
+            'no_hp_ortu' => ['nullable', 'string', 'max:20'],
             'kelas_id' => ['required', 'exists:kelas,id'],
         ]);
         Siswa::create($validated);
@@ -45,6 +46,7 @@ class SiswaController extends Controller
             'nisn' => ['nullable', 'string'],
             'nama' => ['required', 'string', 'max:255'],
             'jenis_kelamin' => ['required', 'in:L,P'],
+            'no_hp_ortu' => ['nullable', 'string', 'max:20'],
             'kelas_id' => ['required', 'exists:kelas,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -74,10 +76,10 @@ class SiswaController extends Controller
     public function template()
     {
         return Excel::download(new TemplateExport(
-            ['nis', 'nisn', 'nama', 'jenis_kelamin', 'kode_kelas'],
+            ['nis', 'nisn', 'nama', 'jenis_kelamin', 'no_hp_ortu', 'kode_kelas'],
             [
-                ['2526001', '0091234567', 'Ahmad Fauzan', 'L', '7A'],
-                ['2526002', '0091234568', 'Siti Aminah', 'P', '7A'],
+                ['2526001', '0091234567', 'Ahmad Fauzan', 'L', '6281234567890', '7A'],
+                ['2526002', '0091234568', 'Siti Aminah', 'P', '6281234567891', '7A'],
             ],
             'Data Siswa',
             [
@@ -85,6 +87,7 @@ class SiswaController extends Controller
                 '- nis wajib diisi dan bersifat unik (tidak boleh sama dengan siswa lain).',
                 '- nisn boleh dikosongkan jika belum ada.',
                 '- jenis_kelamin diisi L (Laki-laki) atau P (Perempuan).',
+                '- no_hp_ortu diisi nomor WhatsApp orang tua format 62xxxxxxxxxx (tanpa +, tanpa spasi/strip). Boleh dikosongkan, tapi notifikasi Alfa tidak akan terkirim jika kosong.',
                 '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas (contoh: 7A).',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
             ]
