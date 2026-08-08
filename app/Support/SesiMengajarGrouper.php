@@ -73,18 +73,15 @@ class SesiMengajarGrouper
     }
 
     /**
-     * Tandai tiap sesi pada $sesiList dengan flag 'sudah_diisi' (boolean),
-     * yaitu apakah SEMUA jam dalam sesi tsb sudah punya Jurnal Mengajar
-     * untuk tanggal yang diberikan (default hari ini). Dipakai di halaman
-     * "Absensi & Jurnal Mengajar" maupun Dashboard Guru, supaya guru bisa
-     * melihat sesi mana yang sudah diisi TANPA link-nya dinonaktifkan —
-     * guru tetap bisa klik untuk membuka & mengedit ulang datanya kalau
-     * ada salah input.
+     * Tandai setiap sesi dengan 'sudah_diisi' (bool): true kalau SEMUA jam
+     * dalam sesi itu sudah punya jurnal pada $tanggal (default hari ini).
+     * Dipakai bersama oleh halaman "Absensi & Jurnal Mengajar" DAN dashboard
+     * guru, supaya status "Terisi" selalu konsisten di mana pun ditampilkan.
      *
-     * @param  Collection  $sesiList  Hasil dari self::kelompokkan().
-     * @param  Collection<int, \App\Models\JadwalPelajaran>  $jadwalMentah  Baris jadwal mentah (sebelum dikelompokkan) yang dipakai membangun $sesiList.
+     * @param  Collection  $sesiList  Hasil dari kelompokkan().
+     * @param  Collection<int, \App\Models\JadwalPelajaran>  $jadwalMentah  Jadwal mentah (sebelum dikelompokkan) yang dipakai untuk menyusun $sesiList.
      */
-    public static function tandaiTerisi(Collection $sesiList, Collection $jadwalMentah, ?string $tanggal = null): Collection
+    public static function tandaiSudahDiisi(Collection $sesiList, Collection $jadwalMentah, ?string $tanggal = null): Collection
     {
         $tanggal = $tanggal ?? now()->toDateString();
 
@@ -95,8 +92,7 @@ class SesiMengajarGrouper
 
         return $sesiList->map(function ($sesi) use ($idsTerisi) {
             $slotIds = $sesi['slots']->pluck('id')->toArray();
-            $sesi['sudah_diisi'] = count($slotIds) > 0
-                && count(array_intersect($slotIds, $idsTerisi)) === count($slotIds);
+            $sesi['sudah_diisi'] = count(array_intersect($slotIds, $idsTerisi)) === count($slotIds);
             return $sesi;
         });
     }

@@ -1,40 +1,46 @@
-# Fitur: Daftar Siswa Alfa Hari Ini di Semua Dashboard
+# Perbaikan: Status "Terisi" di Dashboard Guru
 
-## Aturan datanya
+## Bug-nya
 
-Daftar ini mengambil dari **Absensi Kelas** — yaitu status siswa dari
-guru mapel dengan **jam pelajaran paling akhir** yang sudah mengisi
-absensi hari ini (aturan yang sama seperti perbaikan Rekap Wali
-Kelas sebelumnya). Dihitung ulang otomatis setiap dashboard dibuka
-(live), bukan data tersimpan statis.
+Kartu "Jadwal Mengajar Hari Ini" di dashboard guru tidak pernah
+menampilkan badge **"Terisi"** meskipun jurnal & absensinya sudah
+diisi, karena `DashboardController` tidak menghitung status
+`sudah_diisi` sama sekali — beda dengan halaman "Absensi & Jurnal
+Mengajar" yang sudah menghitungnya dengan benar.
 
-## Tampil di mana saja
+## Perbaikan
 
-| Dashboard | Cakupan |
-|---|---|
-| **Admin / Kepala Sekolah** | Seluruh sekolah, semua kelas |
-| **Kurikulum** | Seluruh sekolah, semua kelas |
-| **Guru** | HANYA tampil kalau guru tsb adalah **Wali Kelas**, dan hanya untuk kelas walinya sendiri. Guru mapel biasa (bukan wali kelas) tidak melihat widget ini di dashboard-nya. |
+1. Logic "cek sudah diisi atau belum" sekarang dipindah ke 1 tempat:
+   `SesiMengajarGrouper::tandaiSudahDiisi()` — dipakai bersama oleh
+   `MengajarController` (halaman Absensi & Jurnal) DAN
+   `DashboardController` (dashboard guru). Jadi hasilnya **dijamin
+   sama persis**, bukan ditulis 2x secara terpisah yang berisiko
+   beda di kemudian hari.
+2. Tampilan kartu di dashboard guru sekarang pakai style yang sama
+   persis dengan halaman Absensi & Jurnal saat sudah terisi: border
+   & background hijau (`border-emerald-200 bg-emerald-50/60`) +
+   badge hijau **"Terisi"**.
+3. Untuk sesi yang BELUM terisi, kartu tetap pakai warna per-mapel
+   (fitur "dashboard lebih berwarna" sebelumnya) — tidak berubah.
 
 ## File yang diubah
 
 | File | Keterangan |
 |---|---|
-| `app/Models/AbsensiSiswa.php` | + method statis `siswaAlfaHariIni(?$kelasId)` |
-| `app/Http/Controllers/DashboardController.php` | Semua 3 varian dashboard sekarang kirim variabel `$siswaAlfaHariIni`. Sekalian **rekap "Hadir/Sakit/Izin/Alfa" di dashboard Admin diperbaiki** juga (sebelumnya bisa dobel-hitung kalau 1 siswa diabsen banyak mapel di hari yang sama — sekarang konsisten pakai status final per hari) |
-| `resources/views/dashboard/admin.blade.php` | + card "🚩 Siswa Alfa Hari Ini" |
-| `resources/views/dashboard/kurikulum.blade.php` | + card "🚩 Siswa Alfa Hari Ini" |
-| `resources/views/dashboard/guru.blade.php` | + card "🚩 Siswa Alfa Hari Ini" (khusus Wali Kelas, di dalam banner wali kelas) |
+| `app/Support/SesiMengajarGrouper.php` | + method `tandaiSudahDiisi()` (sumber logic tunggal) |
+| `app/Http/Controllers/DashboardController.php` | Pakai `tandaiSudahDiisi()` untuk `$jadwalHariIni` |
+| `app/Http/Controllers/MengajarController.php` | Disederhanakan, pakai `tandaiSudahDiisi()` juga (perilaku tidak berubah, cuma tidak duplikat kode lagi) |
+| `resources/views/dashboard/guru.blade.php` | Kartu jadwal: badge & warna "Terisi" sama persis dgn halaman Absensi & Jurnal |
 
 ## Cara pasang
 
-1. Salin 5 file di atas ke project Anda (timpa yang lama).
-2. Tidak perlu migration, tidak ada perubahan struktur database.
+1. Salin 4 file di atas ke project Anda (timpa yang lama).
+2. Tidak perlu migration.
 3. Clear cache view:
    ```bash
    php artisan view:clear
    ```
-4. Test: buat 1 siswa Alfa hari ini di 1 mapel (guru mapel paling
-   akhir jam-nya pada hari itu), lalu cek dashboard Admin, Kurikulum,
-   dan dashboard guru yang jadi Wali Kelas kelas tsb — nama siswa
-   itu harus muncul di ketiganya, dengan info mapel & jam yang sama.
+4. Test: isi absensi & jurnal untuk 1 sesi mengajar hari ini, lalu
+   buka dashboard guru — kartu sesi itu harus langsung berubah jadi
+   hijau dengan badge "Terisi", sama seperti tampilannya di menu
+   "Absensi & Jurnal Mengajar".

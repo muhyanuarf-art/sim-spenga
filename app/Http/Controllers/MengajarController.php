@@ -36,7 +36,7 @@ class MengajarController extends Controller
 
             // tandai sesi yang sudah diisi jurnalnya hari ini (jika hari = hari ini)
             if ($hari === $this->hariIniIndonesia()) {
-                $sesiList = SesiMengajarGrouper::tandaiTerisi($sesiList, $jadwal);
+                $sesiList = SesiMengajarGrouper::tandaiSudahDiisi($sesiList, $jadwal);
             }
         }
 
