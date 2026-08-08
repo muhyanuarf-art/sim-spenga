@@ -4,12 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Exports\TemplateExport;
 use App\Imports\JadwalImport;
+use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
 use App\Models\JamPelajaran;
 use App\Models\Kelas;
-use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -38,11 +37,41 @@ class JadwalController extends Controller
             ->groupBy('hari')
             ->map(fn ($items) => $items->map(fn ($j) => ['id' => $j->id, 'label' => $j->label])->values());
         $hariList = JadwalPelajaran::HARI_LIST();
-        $guruList = User::where('role', 'guru')->orderBy('name')->get();
-        $mapelList = MataPelajaran::orderBy('nama_mapel')->get();
+
+        // Mapping Guru Mengajar untuk kelas & tahun ajaran yang sedang dipilih.
+        // Dropdown Mapel & Guru pada form Jadwal Pelajaran mengikuti data ini,
+        // supaya tidak mungkin memilih kombinasi mapel/guru yang tidak pernah di-mapping ke kelas tsb.
+        $mengajarList = ($tahunAjaran && $kelas)
+            ? GuruMengajarKelas::with(['guru', 'mapel'])
+                ->where('tahun_ajaran_id', $tahunAjaran->id)
+                ->where('kelas_id', $kelas->id)
+                ->get()
+            : collect();
+
+        // Daftar mapel unik yang tersedia untuk kelas ini, sesuai Mapping Guru Mengajar.
+        $mapelList = $mengajarList->pluck('mapel')
+            ->filter()
+            ->unique('id')
+            ->sortBy('nama_mapel')
+            ->values();
+
+        // Jaga-jaga: kalau ada jadwal lama yang mapel/gurunya sudah tidak ada lagi di mapping
+        // (mis. mapping-nya diubah/dihapus belakangan), tetap sertakan supaya data lama tidak "hilang" dari tampilan.
+        if ($jadwal->isNotEmpty()) {
+            $mapelTerpakai = $jadwal->flatten()->pluck('mapel')->filter();
+            $mapelList = $mapelList->concat($mapelTerpakai)->unique('id')->sortBy('nama_mapel')->values();
+        }
+
+        // Data mapping mapel -> guru, dikirim ke Alpine.js untuk memfilter dropdown Guru secara dinamis
+        // begitu dropdown Mapel dipilih.
+        $mengajarMap = $mengajarList->map(fn ($m) => [
+            'mapel_id' => $m->mata_pelajaran_id,
+            'guru_id' => $m->guru_id,
+            'guru_nama' => $m->guru->name ?? '-',
+        ])->values();
 
         return view('jadwal.index', compact(
-            'jadwal', 'kelas', 'kelasList', 'jamPerHari', 'hariList', 'guruList', 'mapelList', 'tahunAjaran'
+            'jadwal', 'kelas', 'kelasList', 'jamPerHari', 'hariList', 'mapelList', 'mengajarMap', 'tahunAjaran'
         ));
     }
 
@@ -55,13 +84,21 @@ class JadwalController extends Controller
             'hari' => ['required', Rule::in(JadwalPelajaran::HARI_LIST())],
             'kelas_id' => ['required', 'exists:kelas,id'],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
-            'guru_id' => ['required', 'exists:users,id'],
+            'guru_id' => [
+                'required',
+                'exists:users,id',
+                Rule::exists('guru_mengajar_kelas', 'guru_id')->where(fn ($q) => $q
+                    ->where('kelas_id', $request->kelas_id)
+                    ->where('mata_pelajaran_id', $request->mata_pelajaran_id)
+                    ->where('tahun_ajaran_id', $tahunAjaran->id)),
+            ],
             'jam_pelajaran_id' => [
                 'required',
                 Rule::exists('jam_pelajarans', 'id')->where(fn ($q) => $q->where('hari', $request->hari)),
             ],
         ], [
             'jam_pelajaran_id.exists' => 'Jam pelajaran yang dipilih tidak sesuai dengan hari yang dipilih.',
+            'guru_id.exists' => 'Guru tersebut tidak terdaftar mengajar mapel ini di kelas ini pada Mapping Guru Mengajar.',
         ]);
         $validated['tahun_ajaran_id'] = $tahunAjaran->id;
 
@@ -83,7 +120,14 @@ class JadwalController extends Controller
         $validated = $request->validate([
             'hari' => ['required', Rule::in(JadwalPelajaran::HARI_LIST())],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
-            'guru_id' => ['required', 'exists:users,id'],
+            'guru_id' => [
+                'required',
+                'exists:users,id',
+                Rule::exists('guru_mengajar_kelas', 'guru_id')->where(fn ($q) => $q
+                    ->where('kelas_id', $jadwal->kelas_id)
+                    ->where('mata_pelajaran_id', $request->mata_pelajaran_id)
+                    ->where('tahun_ajaran_id', $jadwal->tahun_ajaran_id)),
+            ],
             'jam_pelajaran_id' => [
                 'required',
                 Rule::exists('jam_pelajarans', 'id')->where(fn ($q) => $q->where('hari', $request->hari)),
@@ -96,6 +140,7 @@ class JadwalController extends Controller
         ], [
             'jam_pelajaran_id.exists' => 'Jam pelajaran yang dipilih tidak sesuai dengan hari yang dipilih.',
             'jam_pelajaran_id.unique' => 'Kelas ini sudah punya jadwal lain di jam yang sama pada hari tersebut.',
+            'guru_id.exists' => 'Guru tersebut tidak terdaftar mengajar mapel ini di kelas ini pada Mapping Guru Mengajar.',
         ]);
 
         $jadwal->update($validated);

@@ -19,6 +19,27 @@
                 <a href="<?php echo e(route('walikelas.jurnal-kelas')); ?>" class="btn-outline bg-white">Jurnal Kelas</a>
             </div>
         </div>
+
+        <div class="card p-5">
+            <p class="font-bold text-slate-800 mb-1">🚩 Siswa Alfa Hari Ini &mdash; Kelas <?php echo e($kelasWali->nama_kelas); ?></p>
+            <p class="text-xs text-slate-400 mb-4">Berdasarkan Absensi Kelas &mdash; status dari guru mapel dengan jam paling akhir yang mengisi hari ini.</p>
+            <div class="overflow-x-auto -mx-5">
+                <table class="table-clean w-full">
+                    <thead><tr><th>Nama Siswa</th><th>Menurut Mapel</th><th>Jam</th></tr></thead>
+                    <tbody>
+                        <?php $__empty_1 = true; $__currentLoopData = $siswaAlfaHariIni; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $a): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <tr>
+                            <td class="font-medium"><?php echo e($a['siswa']->nama ?? '-'); ?></td>
+                            <td class="text-slate-500"><?php echo e($a['mapel'] ?? '-'); ?></td>
+                            <td class="text-slate-500"><?php echo e($a['jam_ke'] ? "Jam ke-{$a['jam_ke']}" : '-'); ?></td>
+                        </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <tr><td colspan="3" class="text-center text-emerald-600 py-6">🎉 Tidak ada siswa Alfa hari ini.</td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     <?php endif; ?>
 
     <div class="card p-5">

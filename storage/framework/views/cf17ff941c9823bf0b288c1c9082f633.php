@@ -24,9 +24,22 @@
         </div>
     <?php endif; ?>
 
-    <div class="card p-5" x-show="showForm" x-cloak x-transition x-data="{ hari: '<?php echo e($hariList[0]); ?>', jamPerHari: <?php echo \Illuminate\Support\Js::from($jamPerHari)->toHtml() ?> }">
+    <?php if($kelas && $mapelList->isEmpty()): ?>
+        <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
+            ⚠️ Belum ada data Mapping Guru Mengajar untuk kelas <?php echo e($kelas->nama_kelas); ?>. Silakan lengkapi dulu di menu <strong>Mapping Guru Mengajar</strong> sebelum menyusun jadwal.
+        </div>
+    <?php endif; ?>
+
+    <div class="card p-5" x-show="showForm" x-cloak x-transition x-data="{
+            hari: '<?php echo e($hariList[0]); ?>',
+            jamPerHari: <?php echo \Illuminate\Support\Js::from($jamPerHari)->toHtml() ?>,
+            mengajar: <?php echo \Illuminate\Support\Js::from($mengajarMap)->toHtml() ?>,
+            mapelId: '',
+            guruId: '',
+            guruOptions(mapelId) { return this.mengajar.filter(m => m.mapel_id == mapelId) }
+        }">
         <p class="font-bold text-slate-800 mb-1">Tambah Jadwal - Kelas <?php echo e($kelas->nama_kelas ?? '-'); ?></p>
-        <p class="text-xs text-slate-400 mb-4">Pilihan Jam Ke akan otomatis menyesuaikan dengan Hari yang dipilih, karena jam pelajaran sekarang diatur per hari.</p>
+        <p class="text-xs text-slate-400 mb-4">Pilihan Jam Ke menyesuaikan Hari, dan pilihan Mapel &amp; Guru menyesuaikan data Mapping Guru Mengajar kelas ini.</p>
         <form method="POST" action="<?php echo e(route('jadwal.store')); ?>" class="grid sm:grid-cols-5 gap-3 items-end">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="kelas_id" value="<?php echo e($kelas->id ?? ''); ?>">
@@ -47,15 +60,21 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Mapel</label>
-                <select name="mata_pelajaran_id" required class="input">
+                <select name="mata_pelajaran_id" x-model="mapelId" @change="guruId = ''" required class="input">
+                    <option value="">-- Pilih Mapel --</option>
                     <?php $__currentLoopData = $mapelList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($m->id); ?>"><?php echo e($m->nama_mapel); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </select>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Guru</label>
-                <select name="guru_id" required class="input">
-                    <?php $__currentLoopData = $guruList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $g): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($g->id); ?>"><?php echo e($g->name); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <select name="guru_id" x-model="guruId" required class="input" :disabled="!mapelId" x-show="guruOptions(mapelId).length">
+                    <option value="">-- Pilih Guru --</option>
+                    <template x-for="g in guruOptions(mapelId)" :key="g.guru_id">
+                        <option :value="g.guru_id" x-text="g.guru_nama"></option>
+                    </template>
                 </select>
+                <p class="text-xs text-red-500 mt-1" x-show="mapelId && !guruOptions(mapelId).length">Belum ada guru yang di-mapping mengajar mapel ini di kelas ini.</p>
+                <p class="text-xs text-slate-400 mt-1" x-show="!mapelId">Pilih mapel terlebih dahulu.</p>
             </div>
             <button type="submit" class="btn-primary h-[38px]">Simpan</button>
         </form>
@@ -67,7 +86,26 @@
             <p class="font-bold text-slate-800 mb-3"><?php echo e($h); ?></p>
             <div class="space-y-2">
                 <?php $__empty_1 = true; $__currentLoopData = ($jadwal[$h] ?? collect())->sortBy('jamPelajaran.jam_ke'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $j): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <div x-data="{ editing: false, hari: '<?php echo e($j->hari); ?>', jamPerHari: <?php echo \Illuminate\Support\Js::from($jamPerHari)->toHtml() ?> }">
+                <?php
+                    // Fallback: pastikan mapel & guru yang sedang terpakai di jadwal ini selalu muncul
+                    // di pilihan, walau mapping-nya sudah berubah/dihapus belakangan.
+                    $editMengajarMap = $mengajarMap->contains(fn ($m) => $m['guru_id'] == $j->guru_id && $m['mapel_id'] == $j->mata_pelajaran_id)
+                        ? $mengajarMap
+                        : $mengajarMap->concat([[
+                            'mapel_id' => $j->mata_pelajaran_id,
+                            'guru_id' => $j->guru_id,
+                            'guru_nama' => $j->guru->name,
+                        ]]);
+                ?>
+                <div x-data="{
+                        editing: false,
+                        hari: '<?php echo e($j->hari); ?>',
+                        jamPerHari: <?php echo \Illuminate\Support\Js::from($jamPerHari)->toHtml() ?>,
+                        mengajar: <?php echo \Illuminate\Support\Js::from($editMengajarMap)->toHtml() ?>,
+                        mapelId: <?php echo e($j->mata_pelajaran_id); ?>,
+                        guruId: <?php echo e($j->guru_id); ?>,
+                        guruOptions(mapelId) { return this.mengajar.filter(m => m.mapel_id == mapelId) }
+                    }">
                     <div x-show="!editing" class="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
                         <div>
                             <p class="text-xs font-bold text-brand-600"><?php echo e($j->jamPelajaran->label); ?></p>
@@ -95,16 +133,20 @@
                                 </template>
                             </select>
                             <p class="text-xs text-red-500" x-show="!(jamPerHari[hari] || []).length">Belum ada jam pelajaran untuk hari ini.</p>
-                            <select name="mata_pelajaran_id" required class="input text-xs">
+                            <select name="mata_pelajaran_id" x-model="mapelId" @change="guruId = ''" required class="input text-xs">
                                 <?php $__currentLoopData = $mapelList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option value="<?php echo e($m->id); ?>" <?php echo e($j->mata_pelajaran_id == $m->id ? 'selected' : ''); ?>><?php echo e($m->nama_mapel); ?></option>
+                                    <option value="<?php echo e($m->id); ?>"><?php echo e($m->nama_mapel); ?></option>
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                                <?php if(!$mapelList->contains('id', $j->mata_pelajaran_id)): ?>
+                                    <option value="<?php echo e($j->mata_pelajaran_id); ?>"><?php echo e($j->mapel->nama_mapel); ?> (tidak lagi di-mapping)</option>
+                                <?php endif; ?>
                             </select>
-                            <select name="guru_id" required class="input text-xs">
-                                <?php $__currentLoopData = $guruList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $g): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <option value="<?php echo e($g->id); ?>" <?php echo e($j->guru_id == $g->id ? 'selected' : ''); ?>><?php echo e($g->name); ?></option>
-                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            <select name="guru_id" x-model="guruId" required class="input text-xs" :disabled="!mapelId" x-show="guruOptions(mapelId).length">
+                                <template x-for="g in guruOptions(mapelId)" :key="g.guru_id">
+                                    <option :value="g.guru_id" x-text="g.guru_nama"></option>
+                                </template>
                             </select>
+                            <p class="text-xs text-red-500" x-show="!guruOptions(mapelId).length">Belum ada guru yang di-mapping mengajar mapel ini di kelas ini.</p>
                             <div class="flex gap-2">
                                 <button type="submit" class="btn-primary h-[32px] text-xs flex-1">Simpan</button>
                                 <button type="button" @click="editing = false" class="btn-outline h-[32px] text-xs flex-1">Batal</button>
