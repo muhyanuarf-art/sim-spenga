@@ -80,6 +80,12 @@
                 </a>
             @endif
 
+            @if(in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah']))
+                <a href="{{ route('rekap.index') }}" class="nav-link {{ request()->routeIs('rekap.index') ? 'nav-active' : '' }}">
+                    <span class="text-lg">📈</span> Rekapitulasi
+                </a>
+            @endif
+
             @if($user->role === 'kurikulum' || $user->role === 'admin')
                 <p class="nav-section">Kurikulum</p>
                 <a href="{{ route('kurikulum.guru-mengajar.index') }}" class="nav-link {{ request()->routeIs('kurikulum.guru-mengajar.*') ? 'nav-active' : '' }}">
@@ -87,9 +93,6 @@
                 </a>
                 <a href="{{ route('jadwal.index') }}" class="nav-link {{ request()->routeIs('jadwal.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">🗓️</span> Jadwal Pelajaran
-                </a>
-                <a href="{{ route('rekap.index') }}" class="nav-link {{ request()->routeIs('rekap.index') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📈</span> Rekapitulasi
                 </a>
                 <a href="{{ route('siswa.index') }}" class="nav-link {{ request()->routeIs('siswa.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">🧑‍🎓</span> Data Siswa

@@ -21,44 +21,104 @@
                     @endforeach
                 </select>
             </div>
+            <button type="button" onclick="window.print()" class="btn-outline ml-auto">🖨️ Cetak / Export PDF</button>
         </form>
+        <p class="text-xs text-slate-400 mt-3">
+            📅 Hari ini: <b class="text-slate-500">{{ now()->translatedFormat('l, d F Y') }}</b>
+            &middot; bulan &amp; tahun di atas otomatis mengikuti tanggal server saat halaman ini dibuka.
+        </p>
     </div>
 
-    <div class="grid lg:grid-cols-2 gap-6">
-        <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-4">Kepatuhan Pengisian Jurnal - Guru</p>
-            <div class="overflow-x-auto -mx-5">
-                <table class="table-clean w-full">
-                    <thead><tr><th>Guru</th><th class="text-right">Jumlah Jurnal</th></tr></thead>
-                    <tbody>
-                        @foreach($rekapGuru as $g)
-                        <tr>
-                            <td class="font-medium">{{ $g->name }}</td>
-                            <td class="text-right font-bold {{ $g->jurnal_bulan_ini == 0 ? 'text-red-500' : 'text-emerald-600' }}">{{ $g->jurnal_bulan_ini }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+    @if(!$tahunAjaran)
+        <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
+            ⚠️ Belum ada Tahun Ajaran aktif, jadi jumlah "seharusnya" belum bisa dihitung dari jadwal.
+        </div>
+    @endif
+
+    <div class="card p-5">
+        <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+            <p class="font-extrabold text-slate-800 text-lg">Rekapitulasi Jurnal Mengajar</p>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">
+            Bulan {{ \Carbon\Carbon::create()->month($bulan)->translatedFormat('F') }} {{ $tahun }} &middot;
+            "Seharusnya" dihitung dari jadwal pelajaran per SESI mengajar (jam berurutan = 1 sesi = 1 jurnal), bukan per jam.
+        </p>
+
+        <div class="overflow-x-auto -mx-5">
+            <table class="w-full text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-50">
+                        <th class="border border-slate-200 px-2 py-2 sticky left-0 bg-slate-50 text-left min-w-[170px]">Guru</th>
+                        @for($t = 1; $t <= $jumlahHari; $t++)
+                            <th class="border border-slate-200 px-1 py-2 w-9">{{ $t }}</th>
+                        @endfor
+                        <th class="border border-slate-200 px-2 py-2 bg-emerald-50">Terisi</th>
+                        <th class="border border-slate-200 px-2 py-2 bg-slate-100">Seharusnya</th>
+                        <th class="border border-slate-200 px-2 py-2 bg-indigo-50">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($rekapGuru as $r)
+                    <tr class="hover:bg-slate-50">
+                        <td class="border border-slate-200 px-2 py-1.5 sticky left-0 bg-white font-medium whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <x-initial-avatar :nama="$r['guru']->name" />
+                                {{ $r['guru']->name }}
+                            </div>
+                        </td>
+                        @for($t = 1; $t <= $jumlahHari; $t++)
+                            @php $h = $r['harian'][$t]; @endphp
+                            <td class="border border-slate-200 text-center
+                                @if($h['seharusnya'] === 0) text-slate-300
+                                @elseif($h['terisi'] === $h['seharusnya']) text-emerald-600 font-bold bg-emerald-50/40
+                                @else text-red-500 font-bold bg-red-50/40
+                                @endif"
+                                @if($h['seharusnya'] > 0) title="{{ $h['terisi'] }} dari {{ $h['seharusnya'] }} sesi terisi tanggal {{ $t }}" @endif>
+                                @if($h['seharusnya'] === 0)
+                                    &middot;
+                                @else
+                                    {{ $h['terisi'] }}/{{ $h['seharusnya'] }}
+                                @endif
+                            </td>
+                        @endfor
+                        <td class="border border-slate-200 text-center font-bold bg-emerald-50/50">{{ $r['total_terisi'] }}</td>
+                        <td class="border border-slate-200 text-center font-bold bg-slate-100">{{ $r['total_seharusnya'] }}</td>
+                        <td class="border border-slate-200 text-center font-bold
+                            {{ $r['persen'] === null ? 'text-slate-300' : ($r['persen'] >= 90 ? 'text-emerald-600 bg-emerald-50/50' : ($r['persen'] >= 60 ? 'text-amber-600 bg-amber-50/50' : 'text-red-500 bg-red-50/50')) }}">
+                            {{ $r['persen'] !== null ? $r['persen'].'%' : '-' }}
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="{{ $jumlahHari + 4 }}" class="text-center text-slate-400 py-8">Belum ada data guru / jadwal.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
 
-        <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-4">Rekap Per Kelas</p>
-            <div class="overflow-x-auto -mx-5">
-                <table class="table-clean w-full">
-                    <thead><tr><th>Kelas</th><th>Siswa</th><th>Jurnal</th><th>Total Alfa</th></tr></thead>
-                    <tbody>
-                        @foreach($rekapKelas as $r)
-                        <tr>
-                            <td class="font-semibold">{{ $r['kelas']->nama_kelas }}</td>
-                            <td>{{ $r['kelas']->siswas_count }}</td>
-                            <td>{{ $r['jumlah_jurnal'] }}</td>
-                            <td class="font-bold {{ $r['total_alfa'] > 0 ? 'text-red-500' : 'text-slate-400' }}">{{ $r['total_alfa'] }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+        <div class="flex gap-6 mt-4 text-xs text-slate-500 flex-wrap">
+            <span><b class="text-emerald-600">Hijau</b> = semua sesi hari itu sudah terisi jurnalnya</span>
+            <span><b class="text-red-500">Merah</b> = ada sesi yang belum terisi</span>
+            <span>&middot; = tidak ada jadwal mengajar hari itu</span>
+            <span class="text-slate-400">Hover angka untuk detail tanggal.</span>
+        </div>
+    </div>
+
+    <div class="card p-5">
+        <p class="font-bold text-slate-800 mb-4">Rekap Per Kelas</p>
+        <div class="overflow-x-auto -mx-5">
+            <table class="table-clean w-full">
+                <thead><tr><th>Kelas</th><th>Siswa</th><th>Jurnal Terisi</th><th>Total Alfa</th></tr></thead>
+                <tbody>
+                    @foreach($rekapKelas as $r)
+                    <tr>
+                        <td class="font-semibold"><x-kelas-badge :nama="$r['kelas']->nama_kelas" /></td>
+                        <td>{{ $r['kelas']->siswas_count }}</td>
+                        <td>{{ $r['jumlah_jurnal'] }}</td>
+                        <td class="font-bold {{ $r['total_alfa'] > 0 ? 'text-red-500' : 'text-slate-400' }}">{{ $r['total_alfa'] }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

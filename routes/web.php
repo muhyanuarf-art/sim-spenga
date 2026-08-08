@@ -67,8 +67,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/import', [JadwalController::class, 'import'])->name('import');
         });
 
-        Route::get('rekap', [RekapController::class, 'index'])->name('rekap.index');
-
         Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);
         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');
@@ -79,6 +77,11 @@ Route::middleware('auth')->group(function () {
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
+    });
+
+    // ===== REKAPITULASI: dilihat Admin, Kurikulum, DAN Kepala Sekolah (view-only) =====
+    Route::middleware('role:admin,kurikulum,kepala_sekolah')->group(function () {
+        Route::get('rekap', [RekapController::class, 'index'])->name('rekap.index');
     });
 
     // Jam pelajaran: input fleksibel oleh Admin, tapi Kurikulum boleh lihat

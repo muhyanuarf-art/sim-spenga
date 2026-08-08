@@ -1,46 +1,70 @@
-# Perbaikan: Status "Terisi" di Dashboard Guru
+# Rekapitulasi Jurnal Mengajar — Format Bulanan (1–31)
 
-## Bug-nya
+## Apa yang berubah
 
-Kartu "Jadwal Mengajar Hari Ini" di dashboard guru tidak pernah
-menampilkan badge **"Terisi"** meskipun jurnal & absensinya sudah
-diisi, karena `DashboardController` tidak menghitung status
-`sudah_diisi` sama sekali — beda dengan halaman "Absensi & Jurnal
-Mengajar" yang sudah menghitungnya dengan benar.
+1. **Format tabel** — "Kepatuhan Pengisian Jurnal" yang tadinya cuma
+   1 angka per guru, sekarang jadi tabel bulanan tanggal 1–31 (mirip
+   Rekap Absensi Bulanan Wali Kelas), dengan kolom akhir **Terisi**,
+   **Seharusnya**, dan **%**.
 
-## Perbaikan
+2. **"Seharusnya" dihitung otomatis dari jadwal**, bukan angka tebak-
+   tebakan:
+   - Diambil dari jadwal pelajaran guru per **SESI mengajar** (jam
+     berurutan = 1 sesi = 1 jurnal wajib), bukan per jam pelajaran.
+   - Sesi yang jamnya Senin dihitung 1x untuk setiap tanggal yang
+     jatuh pada hari Senin di bulan yang dipilih (otomatis
+     menyesuaikan jumlah hari efektif per bulan, karena tiap bulan
+     jumlah Senin-nya beda).
 
-1. Logic "cek sudah diisi atau belum" sekarang dipindah ke 1 tempat:
-   `SesiMengajarGrouper::tandaiSudahDiisi()` — dipakai bersama oleh
-   `MengajarController` (halaman Absensi & Jurnal) DAN
-   `DashboardController` (dashboard guru). Jadi hasilnya **dijamin
-   sama persis**, bukan ditulis 2x secara terpisah yang berisiko
-   beda di kemudian hari.
-2. Tampilan kartu di dashboard guru sekarang pakai style yang sama
-   persis dengan halaman Absensi & Jurnal saat sudah terisi: border
-   & background hijau (`border-emerald-200 bg-emerald-50/60`) +
-   badge hijau **"Terisi"**.
-3. Untuk sesi yang BELUM terisi, kartu tetap pakai warna per-mapel
-   (fitur "dashboard lebih berwarna" sebelumnya) — tidak berubah.
+3. **Akses dibuka untuk Kepala Sekolah** — sebelumnya menu
+   Rekapitulasi hanya bisa diakses Admin & Kurikulum. Sekarang
+   Kepala Sekolah juga bisa melihatnya (view-only — tidak bisa edit
+   jadwal/mapping, itu tetap khusus Kurikulum & Admin).
+
+4. **Tanggal otomatis ikut jam server** — bulan & tahun default di
+   filter SELALU memakai `now()` (tanggal server saat halaman
+   dibuka), bukan angka tetap. Ditambah baris "📅 Hari ini: ..." yang
+   menampilkan tanggal hari ini dalam format Indonesia penuh (mis.
+   *Sabtu, 08 Agustus 2026*).
+
+   ⚠️ Ini bergantung pada setting `APP_TIMEZONE` & `APP_LOCALE` di
+   file `.env` project Anda. Defaultnya (`.env.example`) sudah benar:
+   ```
+   APP_TIMEZONE=Asia/Jakarta
+   APP_LOCALE=id
+   ```
+   Kalau jam/tanggal di server ternyata masih meleset, cek nilai
+   kedua baris ini di `.env` Anda (bukan `.env.example`), lalu jalankan:
+   ```bash
+   php artisan config:clear
+   ```
 
 ## File yang diubah
 
 | File | Keterangan |
 |---|---|
-| `app/Support/SesiMengajarGrouper.php` | + method `tandaiSudahDiisi()` (sumber logic tunggal) |
-| `app/Http/Controllers/DashboardController.php` | Pakai `tandaiSudahDiisi()` untuk `$jadwalHariIni` |
-| `app/Http/Controllers/MengajarController.php` | Disederhanakan, pakai `tandaiSudahDiisi()` juga (perilaku tidak berubah, cuma tidak duplikat kode lagi) |
-| `resources/views/dashboard/guru.blade.php` | Kartu jadwal: badge & warna "Terisi" sama persis dgn halaman Absensi & Jurnal |
+| `app/Http/Controllers/RekapController.php` | Logic rekap bulanan baru (dihitung dari sesi, bukan jam) |
+| `resources/views/rekap/index.blade.php` | Tabel tanggal 1–31 + info tanggal hari ini |
+| `routes/web.php` | Route `rekap.index` dibuka untuk `admin,kurikulum,kepala_sekolah` |
+| `resources/views/layouts/app.blade.php` | Menu "Rekapitulasi" di sidebar ikut muncul untuk Kepala Sekolah |
 
 ## Cara pasang
 
 1. Salin 4 file di atas ke project Anda (timpa yang lama).
 2. Tidak perlu migration.
-3. Clear cache view:
+3. Clear cache:
    ```bash
+   php artisan route:clear
    php artisan view:clear
    ```
-4. Test: isi absensi & jurnal untuk 1 sesi mengajar hari ini, lalu
-   buka dashboard guru — kartu sesi itu harus langsung berubah jadi
-   hijau dengan badge "Terisi", sama seperti tampilannya di menu
-   "Absensi & Jurnal Mengajar".
+4. Test:
+   - Login sebagai **Kepala Sekolah** → menu "Rekapitulasi" harus
+     muncul di sidebar & bisa dibuka (sebelumnya tidak ada).
+   - Login sebagai **Kurikulum/Admin** → buka Rekapitulasi, cek
+     tabel guru menampilkan tanggal 1–31, dengan warna hijau di
+     tanggal yang sudah lengkap terisi dan merah yang belum.
+   - Cek 1 guru yang punya sesi 3 jam berurutan (Senin jam 1-3): di
+     tabel, tanggal Senin harus menghitung **1 sesi** seharusnya
+     (bukan 3), sesuai jumlah Senin di bulan itu.
+   - Ganti bulan di dropdown → kolom "Seharusnya" per guru harus
+     ikut berubah sesuai jumlah hari itu di bulan yang dipilih.
