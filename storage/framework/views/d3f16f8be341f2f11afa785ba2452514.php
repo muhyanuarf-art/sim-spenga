@@ -100,7 +100,7 @@
                         <?php $__empty_1 = true; $__currentLoopData = $jurnal; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $j): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
                             <td class="whitespace-nowrap"><?php echo e($j->tanggal->translatedFormat('d M Y')); ?></td>
-                            <td class="whitespace-nowrap"><?php echo e($j->jamPelajaran->label); ?></td>
+                            <td class="whitespace-nowrap"><?php echo e($j->label_sesi); ?></td>
                             <td class="font-semibold"><?php echo e($j->kelas->nama_kelas); ?></td>
                             <td class="text-slate-600"><?php echo e($j->materi); ?></td>
                             <td class="text-slate-500"><?php echo e($j->kegiatan ?: '-'); ?></td>

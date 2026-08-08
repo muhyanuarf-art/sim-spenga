@@ -6,13 +6,24 @@
 
     <div class="card p-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <p class="text-xs font-bold text-brand-600">{{ $jadwal->jamPelajaran->label }} &middot; {{ $jadwal->hari }}</p>
-            <p class="text-lg font-extrabold text-slate-800">Kelas {{ $jadwal->kelas->nama_kelas }} - {{ $jadwal->mapel->nama_mapel }}</p>
+            <p class="text-xs font-bold text-brand-600">
+                @if($jadwalAwal->jam_pelajaran_id === $jadwalAkhir->jam_pelajaran_id)
+                    {{ $jadwalAwal->jamPelajaran->label }} &middot; {{ $jadwalAwal->hari }}
+                @else
+                    Jam ke-{{ $jadwalAwal->jamPelajaran->jam_ke }} s.d ke-{{ $jadwalAkhir->jamPelajaran->jam_ke }}
+                    ({{ substr($jadwalAwal->jamPelajaran->jam_mulai, 0, 5) }} - {{ substr($jadwalAkhir->jamPelajaran->jam_selesai, 0, 5) }})
+                    &middot; {{ $jadwalAwal->hari }}
+                @endif
+            </p>
+            <p class="text-lg font-extrabold text-slate-800">Kelas {{ $jadwalAwal->kelas->nama_kelas }} - {{ $jadwalAwal->mapel->nama_mapel }}</p>
+            @if($jumlahJam > 1)
+                <p class="text-xs text-emerald-600 font-semibold mt-1">{{ $jumlahJam }} jam pelajaran digabung jadi 1 sesi — cukup isi 1x untuk semuanya.</p>
+            @endif
         </div>
         <a href="{{ route('mengajar.index') }}" class="btn-outline">&larr; Kembali</a>
     </div>
 
-    <form method="POST" action="{{ route('mengajar.store', $jadwal) }}" x-data="mengajarForm()">
+    <form method="POST" action="{{ route('mengajar.store', $ids) }}" x-data="mengajarForm()">
         @csrf
         <div class="card p-5 mb-6">
             <p class="font-bold text-slate-800 mb-4">Jurnal Mengajar</p>

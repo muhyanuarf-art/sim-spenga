@@ -32,34 +32,51 @@ class WaliKelasController extends Controller
 
         $siswas = $kelas->siswas()->where('is_active', true)->orderBy('nama')->get();
 
+        // Eager-load info jam (awal & akhir sesi) tiap jurnal, supaya bisa
+        // menentukan "sesi mana yang jam-nya paling akhir pada hari itu"
+        // tanpa query tambahan per baris.
         $absensiRaw = AbsensiSiswa::where('kelas_id', $kelas->id)
             ->whereYear('tanggal', $tahun)
             ->whereMonth('tanggal', $bulan)
+            ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
             ->get()
             ->groupBy('siswa_id');
 
         $rekap = $siswas->map(function ($siswa) use ($absensiRaw, $jumlahHari) {
             $data = array_fill(1, $jumlahHari, '');
+            $keterangan = array_fill(1, $jumlahHari, '');
             $sakit = $izin = $alfa = 0;
 
             $records = $absensiRaw->get($siswa->id, collect());
-            foreach ($records as $r) {
-                $tgl = (int) $r->tanggal->format('j');
-                $kode = match ($r->status) {
+
+            // Absensi Kelas mengikuti aturan: kalau siswa tercatat di lebih dari
+            // 1 mapel pada hari yang sama, status dari GURU MAPEL DENGAN JAM
+            // PALING AKHIR pada hari itu yang dipakai (lihat AbsensiSiswa::finalPerHari).
+            // Laporan per guru mapel sendiri tetap utuh (lihat LaporanGuruController),
+            // ini hanya memengaruhi rekap kelas.
+            foreach (\App\Models\AbsensiSiswa::finalPerHari($records) as $final) {
+                $tgl = (int) $final->tanggal->format('j');
+                $kode = match ($final->status) {
                     'Sakit' => 'S',
                     'Izin' => 'I',
                     'Alfa' => 'A',
                     default => '.',
                 };
                 $data[$tgl] = $kode;
-                if ($r->status === 'Sakit') $sakit++;
-                if ($r->status === 'Izin') $izin++;
-                if ($r->status === 'Alfa') $alfa++;
+
+                $mapelNama = $final->jurnal?->mapel?->nama_mapel ?? '-';
+                $jamKe = $final->jurnal?->jamPelajaranAkhir?->jam_ke ?? $final->jurnal?->jamPelajaran?->jam_ke;
+                $keterangan[$tgl] = "{$final->status} \u{2014} {$mapelNama}" . ($jamKe ? " (jam ke-{$jamKe})" : '');
+
+                if ($final->status === 'Sakit') $sakit++;
+                if ($final->status === 'Izin') $izin++;
+                if ($final->status === 'Alfa') $alfa++;
             }
 
             return [
                 'siswa' => $siswa,
                 'harian' => $data,
+                'keterangan' => $keterangan,
                 'sakit' => $sakit,
                 'izin' => $izin,
                 'alfa' => $alfa,

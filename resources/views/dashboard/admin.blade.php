@@ -43,28 +43,50 @@
         </div>
 
         <div class="card p-5 lg:col-span-2">
-            <p class="font-bold text-slate-800 mb-4">Status Pengisian Absensi Per Kelas (Hari Ini)</p>
+            <p class="font-bold text-slate-800 mb-1">🚩 Siswa Alfa Hari Ini</p>
+            <p class="text-xs text-slate-400 mb-4">Berdasarkan Absensi Kelas &mdash; status dari guru mapel dengan jam paling akhir yang mengisi hari ini.</p>
             <div class="overflow-x-auto -mx-5">
                 <table class="table-clean w-full">
-                    <thead><tr><th>Kelas</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Menurut Mapel</th><th>Jam</th></tr></thead>
                     <tbody>
-                        @foreach($rekapPerKelas as $r)
+                        @forelse($siswaAlfaHariIni as $a)
                         <tr>
-                            <td class="font-semibold">{{ $r['kelas'] }}</td>
-                            <td>{{ $r['wali_kelas'] }}</td>
-                            <td>{{ $r['jumlah_siswa'] }}</td>
-                            <td>
-                                @if($r['sudah_diabsen'])
-                                    <span class="badge bg-emerald-50 text-emerald-700">Sudah diabsen</span>
-                                @else
-                                    <span class="badge bg-slate-100 text-slate-500">Belum ada data</span>
-                                @endif
-                            </td>
+                            <td class="font-medium">{{ $a['siswa']->nama ?? '-' }}</td>
+                            <td>{{ $a['kelas']->nama_kelas ?? '-' }}</td>
+                            <td class="text-slate-500">{{ $a['mapel'] ?? '-' }}</td>
+                            <td class="text-slate-500">{{ $a['jam_ke'] ? "Jam ke-{$a['jam_ke']}" : '-' }}</td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr><td colspan="4" class="text-center text-emerald-600 py-6">🎉 Tidak ada siswa Alfa hari ini.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="card p-5">
+        <p class="font-bold text-slate-800 mb-4">Status Pengisian Absensi Per Kelas (Hari Ini)</p>
+        <div class="overflow-x-auto -mx-5">
+            <table class="table-clean w-full">
+                <thead><tr><th>Kelas</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach($rekapPerKelas as $r)
+                    <tr>
+                        <td class="font-semibold">{{ $r['kelas'] }}</td>
+                        <td>{{ $r['wali_kelas'] }}</td>
+                        <td>{{ $r['jumlah_siswa'] }}</td>
+                        <td>
+                            @if($r['sudah_diabsen'])
+                                <span class="badge bg-emerald-50 text-emerald-700">Sudah diabsen</span>
+                            @else
+                                <span class="badge bg-slate-100 text-slate-500">Belum ada data</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

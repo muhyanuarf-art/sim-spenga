@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\JurnalMengajar;
+use App\Models\JurnalMengajarSlot;
 use App\Models\TahunAjaran;
+use App\Support\SesiMengajarGrouper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class MengajarController extends Controller
 {
     /**
-     * Step 1: Guru memilih hari & melihat jadwal (kelas + jam ke-berapa) miliknya.
+     * Step 1: Guru memilih hari & melihat jadwal miliknya, sudah dikelompokkan
+     * per SESI mengajar (jam-jam berurutan dengan kelas & mapel yang sama
+     * digabung jadi 1 kartu, bukan 1 kartu per jam).
      */
     public function index(Request $request)
     {
@@ -20,65 +24,81 @@ class MengajarController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
         $hari = $request->get('hari', $this->hariIniIndonesia());
 
-        $jadwal = collect();
+        $sesiList = collect();
         if ($tahunAjaran) {
             $jadwal = JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
                 ->where('guru_id', $user->id)
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->where('hari', $hari)
-                ->orderBy('jam_pelajaran_id')
                 ->get();
 
-            // tandai slot yang sudah diisi jurnalnya hari ini (jika hari = hari ini)
+            $sesiList = SesiMengajarGrouper::kelompokkan($jadwal);
+
+            // tandai sesi yang sudah diisi jurnalnya hari ini (jika hari = hari ini)
             if ($hari === $this->hariIniIndonesia()) {
-                $sudahDiisi = JurnalMengajar::where('guru_id', $user->id)
-                    ->whereDate('tanggal', now()->toDateString())
+                $idsTerisi = JurnalMengajarSlot::whereDate('tanggal', now()->toDateString())
+                    ->whereIn('jadwal_pelajaran_id', $jadwal->pluck('id'))
                     ->pluck('jadwal_pelajaran_id')
                     ->toArray();
-                $jadwal->each(function ($j) use ($sudahDiisi) {
-                    $j->sudah_diisi = in_array($j->id, $sudahDiisi);
+
+                $sesiList = $sesiList->map(function ($sesi) use ($idsTerisi) {
+                    $slotIds = $sesi['slots']->pluck('id')->toArray();
+                    // dianggap "terisi" kalau semua jam dalam sesi ini sudah punya slot jurnal
+                    $sesi['sudah_diisi'] = count(array_intersect($slotIds, $idsTerisi)) === count($slotIds);
+                    return $sesi;
                 });
             }
         }
 
         $hariList = JadwalPelajaran::HARI_LIST();
 
-        return view('absensi.pilih-kelas', compact('jadwal', 'hari', 'hariList', 'tahunAjaran'));
+        return view('absensi.pilih-kelas', compact('sesiList', 'hari', 'hariList', 'tahunAjaran'));
     }
 
     /**
-     * Step 2: Form isi jurnal mengajar + absensi siswa untuk 1 slot jadwal.
+     * Step 2: Form isi jurnal mengajar + absensi siswa untuk 1 SESI
+     * (bisa mencakup beberapa jam pelajaran berurutan sekaligus).
+     *
+     * $ids = daftar id jadwal_pelajarans dipisah koma, mis. "12,13,14".
      */
-    public function form(Request $request, JadwalPelajaran $jadwal)
+    public function form(Request $request, string $ids)
     {
-        $this->authorizeJadwal($request, $jadwal);
-
+        $slotJadwal = $this->resolveSesi($request, $ids);
         $tanggal = $request->get('tanggal', now()->toDateString());
 
-        $jurnal = JurnalMengajar::with('absensi.siswa')
-            ->where('jadwal_pelajaran_id', $jadwal->id)
-            ->whereDate('tanggal', $tanggal)
-            ->first();
+        $jurnal = $this->cariJurnalUntukSesi($slotJadwal, $tanggal);
 
-        $siswas = $jadwal->kelas->siswas()->where('is_active', true)->orderBy('nama')->get();
+        $jadwalAwal = $slotJadwal->first();
+        $jadwalAkhir = $slotJadwal->last();
+        $siswas = $jadwalAwal->kelas->siswas()->where('is_active', true)->orderBy('nama')->get();
 
         $absensiTersimpan = [];
         if ($jurnal) {
+            $jurnal->load('absensi');
             foreach ($jurnal->absensi as $a) {
                 $absensiTersimpan[$a->siswa_id] = $a->status;
             }
         }
 
-        return view('absensi.form', compact('jadwal', 'jurnal', 'siswas', 'absensiTersimpan', 'tanggal'));
+        return view('absensi.form', [
+            'ids' => $ids,
+            'jadwalAwal' => $jadwalAwal,
+            'jadwalAkhir' => $jadwalAkhir,
+            'jumlahJam' => $slotJadwal->count(),
+            'jurnal' => $jurnal,
+            'siswas' => $siswas,
+            'absensiTersimpan' => $absensiTersimpan,
+            'tanggal' => $tanggal,
+        ]);
     }
 
     /**
-     * Simpan Jurnal Mengajar + Absensi Siswa sekaligus (langsung terintegrasi
-     * ke Jurnal Kelas & Absensi Kelas milik Wali Kelas, serta monitoring Kurikulum).
+     * Simpan Jurnal Mengajar + Absensi Siswa sekaligus untuk 1 SESI
+     * (1x submit mencakup seluruh jam dalam sesi tsb, bukan per jam).
      */
-    public function store(Request $request, JadwalPelajaran $jadwal)
+    public function store(Request $request, string $ids)
     {
-        $this->authorizeJadwal($request, $jadwal);
+        $slotJadwal = $this->resolveSesi($request, $ids);
 
         $validated = $request->validate([
             'tanggal' => ['required', 'date'],
@@ -89,36 +109,50 @@ class MengajarController extends Controller
             'absensi.*' => ['required', 'in:Hadir,Sakit,Izin,Alfa'],
         ]);
 
-        DB::transaction(function () use ($validated, $jadwal, $request) {
-            $jurnal = JurnalMengajar::updateOrCreate(
-                [
-                    'jadwal_pelajaran_id' => $jadwal->id,
-                    'tanggal' => $validated['tanggal'],
-                ],
-                [
-                    'guru_id' => $jadwal->guru_id,
-                    'kelas_id' => $jadwal->kelas_id,
-                    'mata_pelajaran_id' => $jadwal->mata_pelajaran_id,
-                    'jam_pelajaran_id' => $jadwal->jam_pelajaran_id,
-                    'materi' => $validated['materi'],
-                    'kegiatan' => $validated['kegiatan'] ?? null,
-                    'keterangan' => $validated['keterangan'] ?? null,
-                ]
-            );
+        $jadwalAwal = $slotJadwal->first();
+        $jadwalAkhir = $slotJadwal->last();
+
+        DB::transaction(function () use ($validated, $slotJadwal, $jadwalAwal, $jadwalAkhir) {
+            $jurnal = $this->cariJurnalUntukSesi($slotJadwal, $validated['tanggal']);
+
+            if (!$jurnal) {
+                $jurnal = new JurnalMengajar();
+            }
+
+            $jurnal->fill([
+                'jadwal_pelajaran_id' => $jadwalAwal->id,
+                'guru_id' => $jadwalAwal->guru_id,
+                'kelas_id' => $jadwalAwal->kelas_id,
+                'mata_pelajaran_id' => $jadwalAwal->mata_pelajaran_id,
+                'jam_pelajaran_id' => $jadwalAwal->jam_pelajaran_id,
+                'jam_pelajaran_id_akhir' => $jadwalAkhir->jam_pelajaran_id,
+                'tanggal' => $validated['tanggal'],
+                'materi' => $validated['materi'],
+                'kegiatan' => $validated['kegiatan'] ?? null,
+                'keterangan' => $validated['keterangan'] ?? null,
+            ]);
+            $jurnal->save();
+
+            // Kaitkan setiap jam dalam sesi ini ke jurnal yang sama.
+            // unique(jadwal_pelajaran_id, tanggal) memastikan 1 jam pada
+            // 1 tanggal tidak bisa "kepakai" jurnal lain.
+            foreach ($slotJadwal as $j) {
+                JurnalMengajarSlot::updateOrCreate(
+                    ['jadwal_pelajaran_id' => $j->id, 'tanggal' => $validated['tanggal']],
+                    ['jurnal_mengajar_id' => $jurnal->id]
+                );
+            }
+            // Bersihkan slot lama milik jurnal ini yang sudah tidak relevan (jarang terjadi).
+            JurnalMengajarSlot::where('jurnal_mengajar_id', $jurnal->id)
+                ->whereNotIn('jadwal_pelajaran_id', $slotJadwal->pluck('id'))
+                ->delete();
 
             $rekap = ['Hadir' => 0, 'Sakit' => 0, 'Izin' => 0, 'Alfa' => 0];
 
             foreach ($validated['absensi'] as $siswaId => $status) {
                 AbsensiSiswa::updateOrCreate(
-                    [
-                        'jurnal_mengajar_id' => $jurnal->id,
-                        'siswa_id' => $siswaId,
-                    ],
-                    [
-                        'kelas_id' => $jadwal->kelas_id,
-                        'tanggal' => $validated['tanggal'],
-                        'status' => $status,
-                    ]
+                    ['jurnal_mengajar_id' => $jurnal->id, 'siswa_id' => $siswaId],
+                    ['kelas_id' => $jadwalAwal->kelas_id, 'tanggal' => $validated['tanggal'], 'status' => $status]
                 );
                 $rekap[$status] = ($rekap[$status] ?? 0) + 1;
             }
@@ -131,16 +165,80 @@ class MengajarController extends Controller
             ]);
         });
 
+        $labelJam = $jadwalAwal->jam_pelajaran_id === $jadwalAkhir->jam_pelajaran_id
+            ? '1 jam'
+            : "{$slotJadwal->count()} jam sekaligus";
+
         return redirect()->route('mengajar.index')
-            ->with('success', "Absensi & Jurnal untuk kelas {$jadwal->kelas->nama_kelas} berhasil disimpan.");
+            ->with('success', "Absensi & Jurnal untuk kelas {$jadwalAwal->kelas->nama_kelas} ({$labelJam}) berhasil disimpan.");
     }
 
-    private function authorizeJadwal(Request $request, JadwalPelajaran $jadwal): void
+    /**
+     * Ambil & validasi daftar JadwalPelajaran dari string id "12,13,14":
+     * - semua id harus ada & milik guru yang login (kecuali admin)
+     * - harus persis membentuk 1 sesi valid (kelas & mapel sama, jam berurutan)
+     *   supaya URL tidak bisa "diakali" jadi gabungan sembarang jam.
+     */
+    private function resolveSesi(Request $request, string $ids)
     {
+        $idArray = collect(explode(',', $ids))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($idArray->isEmpty()) {
+            abort(404);
+        }
+
+        $slotJadwal = JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
+            ->whereIn('id', $idArray)
+            ->get()
+            ->sortBy(fn ($j) => $j->jamPelajaran->jam_ke)
+            ->values();
+
+        if ($slotJadwal->count() !== $idArray->count()) {
+            abort(404, 'Sebagian jadwal tidak ditemukan.');
+        }
+
         $user = $request->user();
-        if ($user->role !== 'admin' && $jadwal->guru_id !== $user->id) {
+        $guruId = $slotJadwal->first()->guru_id;
+        if ($user->role !== 'admin' && $guruId !== $user->id) {
             abort(403, 'Jadwal ini bukan milik Anda.');
         }
+        if ($slotJadwal->pluck('guru_id')->unique()->count() > 1) {
+            abort(403, 'Sesi tidak valid.');
+        }
+
+        // Pastikan kombinasi id di URL memang 1 sesi utuh yang valid (bukan gabungan acak).
+        $sesiTerhitung = SesiMengajarGrouper::kelompokkan(
+            JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
+                ->where('guru_id', $guruId)
+                ->where('hari', $slotJadwal->first()->hari)
+                ->where('tahun_ajaran_id', $slotJadwal->first()->tahun_ajaran_id)
+                ->get()
+        );
+        $cocok = $sesiTerhitung->first(fn ($s) => $s['slots']->pluck('id')->sort()->values()
+            ->all() === $slotJadwal->pluck('id')->sort()->values()->all());
+
+        if (!$cocok) {
+            abort(404, 'Sesi mengajar tidak valid.');
+        }
+
+        return $slotJadwal;
+    }
+
+    /**
+     * Cari jurnal mengajar yang sudah pernah dibuat untuk sesi (kumpulan jam) &
+     * tanggal ini, lewat tabel jurnal_mengajar_slots.
+     */
+    private function cariJurnalUntukSesi($slotJadwal, string $tanggal): ?JurnalMengajar
+    {
+        $slotId = JurnalMengajarSlot::whereIn('jadwal_pelajaran_id', $slotJadwal->pluck('id'))
+            ->whereDate('tanggal', $tanggal)
+            ->value('jurnal_mengajar_id');
+
+        return $slotId ? JurnalMengajar::find($slotId) : null;
     }
 
     private function hariIniIndonesia(): string

@@ -30,8 +30,9 @@ Route::middleware('auth')->group(function () {
     // ===== GURU MAPEL: absensi siswa + jurnal mengajar =====
     Route::prefix('mengajar')->name('mengajar.')->middleware('role:guru,kurikulum,admin')->group(function () {
         Route::get('/', [MengajarController::class, 'index'])->name('index');
-        Route::get('/{jadwal}', [MengajarController::class, 'form'])->name('form');
-        Route::post('/{jadwal}', [MengajarController::class, 'store'])->name('store');
+        // {ids} = id jadwal_pelajarans dipisah koma, mis. "12,13,14" untuk 1 sesi 3 jam berurutan
+        Route::get('/{ids}', [MengajarController::class, 'form'])->where('ids', '[0-9,]+')->name('form');
+        Route::post('/{ids}', [MengajarController::class, 'store'])->where('ids', '[0-9,]+')->name('store');
     });
 
     // ===== WALI KELAS: rekap absensi bulanan + jurnal kelas =====

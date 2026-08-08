@@ -100,7 +100,7 @@
                         @forelse($jurnal as $j)
                         <tr>
                             <td class="whitespace-nowrap">{{ $j->tanggal->translatedFormat('d M Y') }}</td>
-                            <td class="whitespace-nowrap">{{ $j->jamPelajaran->label }}</td>
+                            <td class="whitespace-nowrap">{{ $j->label_sesi }}</td>
                             <td class="font-semibold">{{ $j->kelas->nama_kelas }}</td>
                             <td class="text-slate-600">{{ $j->materi }}</td>
                             <td class="text-slate-500">{{ $j->kegiatan ?: '-' }}</td>

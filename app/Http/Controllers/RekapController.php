@@ -32,9 +32,21 @@ class RekapController extends Controller
             ->map(function ($kelas) use ($bulan, $tahun) {
                 $jumlahJurnal = JurnalMengajar::where('kelas_id', $kelas->id)
                     ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)->count();
-                $totalAlfa = \App\Models\AbsensiSiswa::where('kelas_id', $kelas->id)
-                    ->where('status', 'Alfa')
-                    ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)->count();
+
+                // Pakai status final per hari (bukan mentah semua mapel), supaya
+                // siswa yang tercatat Alfa oleh 2 guru mapel di hari yang sama
+                // tidak dihitung 2x. Konsisten dengan Rekap Absensi Bulanan Wali Kelas.
+                $absensiKelas = \App\Models\AbsensiSiswa::where('kelas_id', $kelas->id)
+                    ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+                    ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
+                    ->get()
+                    ->groupBy('siswa_id');
+
+                $totalAlfa = $absensiKelas->sum(
+                    fn ($recordsSiswa) => \App\Models\AbsensiSiswa::finalPerHari($recordsSiswa)
+                        ->where('status', 'Alfa')->count()
+                );
+
                 return [
                     'kelas' => $kelas,
                     'jumlah_jurnal' => $jumlahJurnal,

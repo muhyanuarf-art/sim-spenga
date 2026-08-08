@@ -10,6 +10,7 @@ use App\Models\JurnalMengajar;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\SesiMengajarGrouper;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -26,10 +27,20 @@ class DashboardController extends Controller
             $totalGuru = User::where('role', 'guru')->count();
             $totalKelas = Kelas::count();
 
-            $rekapHariIni = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
-                ->selectRaw('status, count(*) as jumlah')
+            $absensiHariIniRaw = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
+                ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
+                ->get()
+                ->groupBy('siswa_id');
+
+            // Rekap dihitung dari status FINAL per siswa per hari (jam paling
+            // akhir), bukan dari mentah semua record mapel, supaya 1 siswa
+            // tidak terhitung berkali-kali kalau diabsen lebih dari 1 mapel.
+            $rekapHariIni = $absensiHariIniRaw
+                ->map(fn ($recordsSiswa) => AbsensiSiswa::finalPerHari($recordsSiswa)->first())
                 ->groupBy('status')
-                ->pluck('jumlah', 'status');
+                ->map->count();
+
+            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
 
             $jurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
             $jadwalHariIni = $tahunAjaran
@@ -52,7 +63,7 @@ class DashboardController extends Controller
                 });
 
             return view('dashboard.admin', compact(
-                'totalSiswa', 'totalGuru', 'totalKelas', 'rekapHariIni', 'jurnalHariIni', 'jadwalHariIni', 'rekapPerKelas', 'tahunAjaran'
+                'totalSiswa', 'totalGuru', 'totalKelas', 'rekapHariIni', 'siswaAlfaHariIni', 'jurnalHariIni', 'jadwalHariIni', 'rekapPerKelas', 'tahunAjaran'
             ));
         }
 
@@ -70,21 +81,25 @@ class DashboardController extends Controller
             $totalJurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
             $totalGuru = User::where('role', 'guru')->count();
             $totalMappingKelas = $tahunAjaran ? GuruMengajarKelas::where('tahun_ajaran_id', $tahunAjaran->id)->count() : 0;
+            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
 
             return view('dashboard.kurikulum', compact(
-                'jurnalHariIni', 'totalJadwalHariIni', 'totalJurnalHariIni', 'totalGuru', 'totalMappingKelas', 'tahunAjaran'
+                'jurnalHariIni', 'totalJadwalHariIni', 'totalJurnalHariIni', 'totalGuru', 'totalMappingKelas', 'siswaAlfaHariIni', 'tahunAjaran'
             ));
         }
 
         // Guru (termasuk Wali Kelas)
-        $jadwalHariIni = $tahunAjaran
+        $jadwalHariIniMentah = $tahunAjaran
             ? JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
                 ->where('guru_id', $user->id)
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
                 ->where('hari', $this->hariIndonesia())
-                ->orderBy('jam_pelajaran_id')
                 ->get()
             : collect();
+
+        // Dikelompokkan jadi sesi (jam berurutan, kelas & mapel sama = 1 kartu)
+        // supaya konsisten dengan halaman "Absensi & Jurnal Mengajar".
+        $jadwalHariIni = SesiMengajarGrouper::kelompokkan($jadwalHariIniMentah);
 
         $jurnalTerakhir = JurnalMengajar::with(['kelas', 'mapel'])
             ->where('guru_id', $user->id)
@@ -93,8 +108,9 @@ class DashboardController extends Controller
             ->get();
 
         $kelasWali = $user->kelasWali;
+        $siswaAlfaHariIni = $kelasWali ? AbsensiSiswa::siswaAlfaHariIni($kelasWali->id) : collect();
 
-        return view('dashboard.guru', compact('jadwalHariIni', 'jurnalTerakhir', 'kelasWali', 'tahunAjaran'));
+        return view('dashboard.guru', compact('jadwalHariIni', 'jurnalTerakhir', 'kelasWali', 'siswaAlfaHariIni', 'tahunAjaran'));
     }
 
     private function hariIndonesia(): string

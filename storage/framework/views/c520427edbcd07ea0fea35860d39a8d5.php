@@ -42,28 +42,50 @@
         </div>
 
         <div class="card p-5 lg:col-span-2">
-            <p class="font-bold text-slate-800 mb-4">Status Pengisian Absensi Per Kelas (Hari Ini)</p>
+            <p class="font-bold text-slate-800 mb-1">🚩 Siswa Alfa Hari Ini</p>
+            <p class="text-xs text-slate-400 mb-4">Berdasarkan Absensi Kelas &mdash; status dari guru mapel dengan jam paling akhir yang mengisi hari ini.</p>
             <div class="overflow-x-auto -mx-5">
                 <table class="table-clean w-full">
-                    <thead><tr><th>Kelas</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Menurut Mapel</th><th>Jam</th></tr></thead>
                     <tbody>
-                        <?php $__currentLoopData = $rekapPerKelas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $r): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <?php $__empty_1 = true; $__currentLoopData = $siswaAlfaHariIni; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $a): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
-                            <td class="font-semibold"><?php echo e($r['kelas']); ?></td>
-                            <td><?php echo e($r['wali_kelas']); ?></td>
-                            <td><?php echo e($r['jumlah_siswa']); ?></td>
-                            <td>
-                                <?php if($r['sudah_diabsen']): ?>
-                                    <span class="badge bg-emerald-50 text-emerald-700">Sudah diabsen</span>
-                                <?php else: ?>
-                                    <span class="badge bg-slate-100 text-slate-500">Belum ada data</span>
-                                <?php endif; ?>
-                            </td>
+                            <td class="font-medium"><?php echo e($a['siswa']->nama ?? '-'); ?></td>
+                            <td><?php echo e($a['kelas']->nama_kelas ?? '-'); ?></td>
+                            <td class="text-slate-500"><?php echo e($a['mapel'] ?? '-'); ?></td>
+                            <td class="text-slate-500"><?php echo e($a['jam_ke'] ? "Jam ke-{$a['jam_ke']}" : '-'); ?></td>
                         </tr>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <tr><td colspan="4" class="text-center text-emerald-600 py-6">🎉 Tidak ada siswa Alfa hari ini.</td></tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="card p-5">
+        <p class="font-bold text-slate-800 mb-4">Status Pengisian Absensi Per Kelas (Hari Ini)</p>
+        <div class="overflow-x-auto -mx-5">
+            <table class="table-clean w-full">
+                <thead><tr><th>Kelas</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th>Status</th></tr></thead>
+                <tbody>
+                    <?php $__currentLoopData = $rekapPerKelas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $r): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <tr>
+                        <td class="font-semibold"><?php echo e($r['kelas']); ?></td>
+                        <td><?php echo e($r['wali_kelas']); ?></td>
+                        <td><?php echo e($r['jumlah_siswa']); ?></td>
+                        <td>
+                            <?php if($r['sudah_diabsen']): ?>
+                                <span class="badge bg-emerald-50 text-emerald-700">Sudah diabsen</span>
+                            <?php else: ?>
+                                <span class="badge bg-slate-100 text-slate-500">Belum ada data</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

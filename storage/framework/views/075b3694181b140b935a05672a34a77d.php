@@ -31,11 +31,19 @@
             <p class="text-sm text-slate-400 py-6 text-center">Tidak ada jadwal mengajar untuk hari ini.</p>
         <?php else: ?>
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <?php $__currentLoopData = $jadwalHariIni; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $j): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <a href="<?php echo e(route('mengajar.form', $j)); ?>" class="border border-slate-200 rounded-xl p-4 hover:border-brand-400 hover:bg-brand-50/40 transition block">
-                    <p class="text-xs font-bold text-brand-600 mb-1"><?php echo e($j->jamPelajaran->label); ?></p>
-                    <p class="font-semibold text-slate-800">Kelas <?php echo e($j->kelas->nama_kelas); ?></p>
-                    <p class="text-sm text-slate-500"><?php echo e($j->mapel->nama_mapel); ?></p>
+                <?php $__currentLoopData = $jadwalHariIni; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $sesi): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <a href="<?php echo e(route('mengajar.form', $sesi['ids'])); ?>" class="border border-slate-200 rounded-xl p-4 hover:border-brand-400 hover:bg-brand-50/40 transition block">
+                    <p class="text-xs font-bold text-brand-600 mb-1">
+                        <?php if($sesi['jam_awal']->id === $sesi['jam_akhir']->id): ?>
+                            <?php echo e($sesi['jam_awal']->label); ?>
+
+                        <?php else: ?>
+                            Jam ke-<?php echo e($sesi['jam_awal']->jam_ke); ?> s.d ke-<?php echo e($sesi['jam_akhir']->jam_ke); ?>
+
+                        <?php endif; ?>
+                    </p>
+                    <p class="font-semibold text-slate-800">Kelas <?php echo e($sesi['kelas']->nama_kelas); ?></p>
+                    <p class="text-sm text-slate-500"><?php echo e($sesi['mapel']->nama_mapel); ?></p>
                 </a>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </div>

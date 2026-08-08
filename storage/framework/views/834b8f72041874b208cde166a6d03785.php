@@ -5,13 +5,27 @@
 
     <div class="card p-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <p class="text-xs font-bold text-brand-600"><?php echo e($jadwal->jamPelajaran->label); ?> &middot; <?php echo e($jadwal->hari); ?></p>
-            <p class="text-lg font-extrabold text-slate-800">Kelas <?php echo e($jadwal->kelas->nama_kelas); ?> - <?php echo e($jadwal->mapel->nama_mapel); ?></p>
+            <p class="text-xs font-bold text-brand-600">
+                <?php if($jadwalAwal->jam_pelajaran_id === $jadwalAkhir->jam_pelajaran_id): ?>
+                    <?php echo e($jadwalAwal->jamPelajaran->label); ?> &middot; <?php echo e($jadwalAwal->hari); ?>
+
+                <?php else: ?>
+                    Jam ke-<?php echo e($jadwalAwal->jamPelajaran->jam_ke); ?> s.d ke-<?php echo e($jadwalAkhir->jamPelajaran->jam_ke); ?>
+
+                    (<?php echo e(substr($jadwalAwal->jamPelajaran->jam_mulai, 0, 5)); ?> - <?php echo e(substr($jadwalAkhir->jamPelajaran->jam_selesai, 0, 5)); ?>)
+                    &middot; <?php echo e($jadwalAwal->hari); ?>
+
+                <?php endif; ?>
+            </p>
+            <p class="text-lg font-extrabold text-slate-800">Kelas <?php echo e($jadwalAwal->kelas->nama_kelas); ?> - <?php echo e($jadwalAwal->mapel->nama_mapel); ?></p>
+            <?php if($jumlahJam > 1): ?>
+                <p class="text-xs text-emerald-600 font-semibold mt-1"><?php echo e($jumlahJam); ?> jam pelajaran digabung jadi 1 sesi — cukup isi 1x untuk semuanya.</p>
+            <?php endif; ?>
         </div>
         <a href="<?php echo e(route('mengajar.index')); ?>" class="btn-outline">&larr; Kembali</a>
     </div>
 
-    <form method="POST" action="<?php echo e(route('mengajar.store', $jadwal)); ?>" x-data="mengajarForm()">
+    <form method="POST" action="<?php echo e(route('mengajar.store', $ids)); ?>" x-data="mengajarForm()">
         <?php echo csrf_field(); ?>
         <div class="card p-5 mb-6">
             <p class="font-bold text-slate-800 mb-4">Jurnal Mengajar</p>

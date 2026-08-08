@@ -44,6 +44,28 @@
     </div>
 
     <div class="card p-5">
+        <p class="font-bold text-slate-800 mb-1">🚩 Siswa Alfa Hari Ini</p>
+        <p class="text-xs text-slate-400 mb-4">Berdasarkan Absensi Kelas &mdash; status dari guru mapel dengan jam paling akhir yang mengisi hari ini.</p>
+        <div class="overflow-x-auto -mx-5">
+            <table class="table-clean w-full">
+                <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Menurut Mapel</th><th>Jam</th></tr></thead>
+                <tbody>
+                    @forelse($siswaAlfaHariIni as $a)
+                    <tr>
+                        <td class="font-medium">{{ $a['siswa']->nama ?? '-' }}</td>
+                        <td>{{ $a['kelas']->nama_kelas ?? '-' }}</td>
+                        <td class="text-slate-500">{{ $a['mapel'] ?? '-' }}</td>
+                        <td class="text-slate-500">{{ $a['jam_ke'] ? "Jam ke-{$a['jam_ke']}" : '-' }}</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="4" class="text-center text-emerald-600 py-6">🎉 Tidak ada siswa Alfa hari ini.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card p-5">
         <p class="font-bold text-slate-800 mb-4">Jurnal Mengajar Terbaru Hari Ini</p>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">

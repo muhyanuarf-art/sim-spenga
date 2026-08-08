@@ -47,7 +47,7 @@
                     @forelse($jurnal as $j)
                     <tr>
                         <td class="whitespace-nowrap">{{ $j->tanggal->translatedFormat('d M Y') }}</td>
-                        <td>{{ $j->jamPelajaran->label }}</td>
+                        <td>{{ $j->label_sesi }}</td>
                         <td class="font-medium">{{ $j->mapel->nama_mapel }}</td>
                         <td>{{ $j->guru->name }}</td>
                         <td class="text-slate-500">{{ \Illuminate\Support\Str::limit($j->materi, 60) }}</td>

@@ -46,7 +46,7 @@
                     <?php $__empty_1 = true; $__currentLoopData = $jurnal; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $j): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <tr>
                         <td class="whitespace-nowrap"><?php echo e($j->tanggal->translatedFormat('d M Y')); ?></td>
-                        <td><?php echo e($j->jamPelajaran->label); ?></td>
+                        <td><?php echo e($j->label_sesi); ?></td>
                         <td class="font-medium"><?php echo e($j->mapel->nama_mapel); ?></td>
                         <td><?php echo e($j->guru->name); ?></td>
                         <td class="text-slate-500"><?php echo e(\Illuminate\Support\Str::limit($j->materi, 60)); ?></td>

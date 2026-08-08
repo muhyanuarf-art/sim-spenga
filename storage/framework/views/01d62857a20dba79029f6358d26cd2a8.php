@@ -68,7 +68,8 @@
                                 <?php if($kode === 'S'): ?> text-amber-600 font-bold
                                 <?php elseif($kode === 'I'): ?> text-blue-600 font-bold
                                 <?php elseif($kode === 'A'): ?> text-red-600 font-bold
-                                <?php endif; ?>">
+                                <?php endif; ?>"
+                                <?php if($kode !== '' && $kode !== '.'): ?> title="<?php echo e($r['keterangan'][$t]); ?>" <?php endif; ?>>
                                 <?php echo e($kode); ?>
 
                             </td>
@@ -85,11 +86,12 @@
             </table>
         </div>
 
-        <div class="flex gap-6 mt-4 text-xs text-slate-500">
+        <div class="flex gap-6 mt-4 text-xs text-slate-500 flex-wrap">
             <span><b>S</b> = Sakit</span>
             <span><b>I</b> = Izin</span>
             <span><b>A</b> = Alfa</span>
             <span>Kolom kosong = Hadir</span>
+            <span class="text-slate-400">&middot; Hover kode untuk lihat mapel penentu. Jika siswa tercatat beda status di beberapa mapel pada hari yang sama, status dari <b>jam pelajaran paling akhir</b> pada hari itu yang dipakai.</span>
         </div>
     </div>
 </div>
