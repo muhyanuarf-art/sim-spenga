@@ -36,17 +36,7 @@ class MengajarController extends Controller
 
             // tandai sesi yang sudah diisi jurnalnya hari ini (jika hari = hari ini)
             if ($hari === $this->hariIniIndonesia()) {
-                $idsTerisi = JurnalMengajarSlot::whereDate('tanggal', now()->toDateString())
-                    ->whereIn('jadwal_pelajaran_id', $jadwal->pluck('id'))
-                    ->pluck('jadwal_pelajaran_id')
-                    ->toArray();
-
-                $sesiList = $sesiList->map(function ($sesi) use ($idsTerisi) {
-                    $slotIds = $sesi['slots']->pluck('id')->toArray();
-                    // dianggap "terisi" kalau semua jam dalam sesi ini sudah punya slot jurnal
-                    $sesi['sudah_diisi'] = count(array_intersect($slotIds, $idsTerisi)) === count($slotIds);
-                    return $sesi;
-                });
+                $sesiList = SesiMengajarGrouper::tandaiTerisi($sesiList, $jadwal);
             }
         }
 

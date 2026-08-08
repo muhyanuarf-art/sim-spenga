@@ -71,4 +71,33 @@ class SesiMengajarGrouper
             'jam_akhir' => $terakhir->jamPelajaran,
         ];
     }
+
+    /**
+     * Tandai tiap sesi pada $sesiList dengan flag 'sudah_diisi' (boolean),
+     * yaitu apakah SEMUA jam dalam sesi tsb sudah punya Jurnal Mengajar
+     * untuk tanggal yang diberikan (default hari ini). Dipakai di halaman
+     * "Absensi & Jurnal Mengajar" maupun Dashboard Guru, supaya guru bisa
+     * melihat sesi mana yang sudah diisi TANPA link-nya dinonaktifkan —
+     * guru tetap bisa klik untuk membuka & mengedit ulang datanya kalau
+     * ada salah input.
+     *
+     * @param  Collection  $sesiList  Hasil dari self::kelompokkan().
+     * @param  Collection<int, \App\Models\JadwalPelajaran>  $jadwalMentah  Baris jadwal mentah (sebelum dikelompokkan) yang dipakai membangun $sesiList.
+     */
+    public static function tandaiTerisi(Collection $sesiList, Collection $jadwalMentah, ?string $tanggal = null): Collection
+    {
+        $tanggal = $tanggal ?? now()->toDateString();
+
+        $idsTerisi = \App\Models\JurnalMengajarSlot::whereDate('tanggal', $tanggal)
+            ->whereIn('jadwal_pelajaran_id', $jadwalMentah->pluck('id'))
+            ->pluck('jadwal_pelajaran_id')
+            ->toArray();
+
+        return $sesiList->map(function ($sesi) use ($idsTerisi) {
+            $slotIds = $sesi['slots']->pluck('id')->toArray();
+            $sesi['sudah_diisi'] = count($slotIds) > 0
+                && count(array_intersect($slotIds, $idsTerisi)) === count($slotIds);
+            return $sesi;
+        });
+    }
 }

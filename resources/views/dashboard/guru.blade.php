@@ -54,16 +54,25 @@
         @else
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($jadwalHariIni as $sesi)
-                <a href="{{ route('mengajar.form', $sesi['ids']) }}" class="border border-slate-200 rounded-xl p-4 hover:border-brand-400 hover:bg-brand-50/40 transition block">
-                    <p class="text-xs font-bold text-brand-600 mb-1">
-                        @if($sesi['jam_awal']->id === $sesi['jam_akhir']->id)
-                            {{ $sesi['jam_awal']->label }}
-                        @else
-                            Jam ke-{{ $sesi['jam_awal']->jam_ke }} s.d ke-{{ $sesi['jam_akhir']->jam_ke }}
+                <a href="{{ route('mengajar.form', $sesi['ids']) }}"
+                   class="border rounded-xl p-4 transition block {{ ($sesi['sudah_diisi'] ?? false) ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 hover:border-brand-400 hover:bg-brand-50/40' }}">
+                    <div class="flex items-center justify-between mb-1 gap-2">
+                        <p class="text-xs font-bold text-brand-600">
+                            @if($sesi['jam_awal']->id === $sesi['jam_akhir']->id)
+                                {{ $sesi['jam_awal']->label }}
+                            @else
+                                Jam ke-{{ $sesi['jam_awal']->jam_ke }} s.d ke-{{ $sesi['jam_akhir']->jam_ke }}
+                            @endif
+                        </p>
+                        @if($sesi['sudah_diisi'] ?? false)
+                            <span class="badge bg-emerald-100 text-emerald-700 shrink-0">Terisi</span>
                         @endif
-                    </p>
+                    </div>
                     <p class="font-semibold text-slate-800">Kelas {{ $sesi['kelas']->nama_kelas }}</p>
                     <p class="text-sm text-slate-500">{{ $sesi['mapel']->nama_mapel }}</p>
+                    @if(($sesi['sudah_diisi'] ?? false))
+                        <p class="text-xs text-emerald-600 mt-1">Sudah diisi &mdash; klik untuk lihat/ubah.</p>
+                    @endif
                 </a>
                 @endforeach
             </div>

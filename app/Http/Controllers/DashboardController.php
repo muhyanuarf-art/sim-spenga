@@ -101,6 +101,11 @@ class DashboardController extends Controller
         // supaya konsisten dengan halaman "Absensi & Jurnal Mengajar".
         $jadwalHariIni = SesiMengajarGrouper::kelompokkan($jadwalHariIniMentah);
 
+        // Tandai sesi yang sudah pernah diisi jurnal & absensinya hari ini,
+        // supaya guru tahu mana yang sudah diisi (link TETAP bisa diklik
+        // untuk mengedit ulang, tidak dinonaktifkan).
+        $jadwalHariIni = SesiMengajarGrouper::tandaiTerisi($jadwalHariIni, $jadwalHariIniMentah);
+
         $jurnalTerakhir = JurnalMengajar::with(['kelas', 'mapel'])
             ->where('guru_id', $user->id)
             ->latest('tanggal')
