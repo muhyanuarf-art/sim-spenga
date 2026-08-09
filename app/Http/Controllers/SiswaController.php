@@ -31,8 +31,9 @@ class SiswaController extends Controller
             'nis' => ['required', 'string', 'unique:siswas,nis'],
             'nisn' => ['nullable', 'string'],
             'nama' => ['required', 'string', 'max:255'],
+            'nama_ortu' => ['nullable', 'string', 'max:255'],
+            'no_wa_ortu' => ['nullable', 'string', 'max:20'],
             'jenis_kelamin' => ['required', 'in:L,P'],
-            'no_hp_ortu' => ['nullable', 'string', 'max:20'],
             'kelas_id' => ['required', 'exists:kelas,id'],
         ]);
         Siswa::create($validated);
@@ -45,8 +46,9 @@ class SiswaController extends Controller
             'nis' => ['required', 'string', 'unique:siswas,nis,' . $siswa->id],
             'nisn' => ['nullable', 'string'],
             'nama' => ['required', 'string', 'max:255'],
+            'nama_ortu' => ['nullable', 'string', 'max:255'],
+            'no_wa_ortu' => ['nullable', 'string', 'max:20'],
             'jenis_kelamin' => ['required', 'in:L,P'],
-            'no_hp_ortu' => ['nullable', 'string', 'max:20'],
             'kelas_id' => ['required', 'exists:kelas,id'],
             'is_active' => ['nullable', 'boolean'],
         ]);
@@ -76,18 +78,21 @@ class SiswaController extends Controller
     public function template()
     {
         return Excel::download(new TemplateExport(
-            ['nis', 'nisn', 'nama', 'jenis_kelamin', 'no_hp_ortu', 'kode_kelas'],
+            ['nis', 'nisn', 'nama', 'nama_ortu', 'no_wa_ortu', 'jenis_kelamin', 'kode_kelas'],
             [
-                ['2526001', '0091234567', 'Ahmad Fauzan', 'L', '6281234567890', '7A'],
-                ['2526002', '0091234568', 'Siti Aminah', 'P', '6281234567891', '7A'],
+                ['2526001', '0091234567', 'Ahmad Fauzan', 'Bpk. Slamet', '081234567890', 'L', '7A'],
+                ['2526002', '0091234568', 'Siti Aminah', 'Ibu Rahayu', '081234567891', 'P', '7A'],
             ],
             'Data Siswa',
             [
                 'Petunjuk:',
                 '- nis wajib diisi dan bersifat unik (tidak boleh sama dengan siswa lain).',
                 '- nisn boleh dikosongkan jika belum ada.',
+                '- nama_ortu boleh dikosongkan (dipakai untuk sapaan pada pesan WA).',
+                '- no_wa_ortu diisi nomor WhatsApp aktif orang tua/wali, format bebas',
+                '  (08xxx atau 62xxx), sistem akan merapikan otomatis. Kosongkan kalau',
+                '  belum ada nomornya — siswa tsb tidak akan dikirimi notifikasi WA.',
                 '- jenis_kelamin diisi L (Laki-laki) atau P (Perempuan).',
-                '- no_hp_ortu diisi nomor WhatsApp orang tua format 62xxxxxxxxxx (tanpa +, tanpa spasi/strip). Boleh dikosongkan, tapi notifikasi Alfa tidak akan terkirim jika kosong.',
                 '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas (contoh: 7A).',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
             ]

@@ -6,9 +6,10 @@ use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\JurnalMengajar;
 use App\Models\JurnalMengajarSlot;
+use App\Models\NotifikasiAlfaTerkirim;
 use App\Models\TahunAjaran;
-use App\Support\NotifikasiAlfaDispatcher;
 use App\Support\SesiMengajarGrouper;
+use App\Jobs\KirimNotifikasiAlfaWhatsapp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -156,11 +157,12 @@ class MengajarController extends Controller
             ]);
         });
 
-        // Di LUAR transaksi DB, sengaja: supaya kalau dispatch job/insert
-        // notifikasi lambat atau bermasalah, penyimpanan absensi guru tidak
-        // ikut ter-rollback. Jalan setelah data absensi benar-benar committed.
-        app(NotifikasiAlfaDispatcher::class)
-            ->prosesKelasTanggal($jadwalAwal->kelas_id, $validated['tanggal']);
+        // Cek & kirim notifikasi WA ke orang tua siswa Alfa. Bagian ini HANYA
+        // melakukan query database ringan (cepat) — pengiriman WA yang
+        // sesungguhnya (lambat, tergantung jaringan/API luar) didorong ke
+        // job antrian (queue), tidak dijalankan di sini. Jadi guru tetap
+        // langsung selesai menyimpan tanpa menunggu proses WA.
+        $this->prosesNotifikasiAlfa($validated['absensi'], $validated['tanggal']);
 
         $labelJam = $jadwalAwal->jam_pelajaran_id === $jadwalAkhir->jam_pelajaran_id
             ? '1 jam'
@@ -168,6 +170,62 @@ class MengajarController extends Controller
 
         return redirect()->route('mengajar.index')
             ->with('success', "Absensi & Jurnal untuk kelas {$jadwalAwal->kelas->nama_kelas} ({$labelJam}) berhasil disimpan.");
+    }
+
+    /**
+     * Untuk siswa yang statusnya Alfa pada sesi yang BARU disimpan ini,
+     * cek apakah status Alfa itu memang status FINAL hari ini (dari sesi
+     * dengan jam paling akhir — aturan "Absensi Kelas" yang sama seperti di
+     * AbsensiSiswa::finalPerHari). Kalau ya, dan belum pernah dikirimi
+     * notifikasi hari ini (dicegah lewat unique siswa_id+tanggal), antrikan
+     * 1 job pengiriman WA. Kalau statusnya BUKAN status final (ada guru
+     * mapel dengan jam lebih akhir yang sudah mengisi status berbeda),
+     * tidak dikirim notifikasi dari sesi ini — biarkan sesi paling akhir
+     * yang menentukan.
+     *
+     * Catatan: kalau nanti sesi ini "dikalahkan" oleh sesi lain yang jam-nya
+     * lebih akhir dan mengoreksi jadi Hadir, sistem TIDAK mengirim pesan
+     * "koreksi/pembatalan" — notifikasi yang sudah terlanjur terkirim tetap
+     * seperti itu. Ini simplifikasi yang disengaja untuk menjaga fitur tetap
+     * ringan; kalau dibutuhkan fitur koreksi otomatis, bisa dikembangkan lagi.
+     */
+    private function prosesNotifikasiAlfa(array $absensi, string $tanggal): void
+    {
+        $siswaAlfaDiSesiIni = collect($absensi)->filter(fn ($status) => $status === 'Alfa')->keys();
+        if ($siswaAlfaDiSesiIni->isEmpty()) {
+            return;
+        }
+
+        foreach ($siswaAlfaDiSesiIni as $siswaId) {
+            $records = AbsensiSiswa::where('siswa_id', $siswaId)
+                ->whereDate('tanggal', $tanggal)
+                ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
+                ->get();
+
+            $final = AbsensiSiswa::finalPerHari($records)->first();
+            if (!$final || $final->status !== 'Alfa') {
+                continue;
+            }
+
+            // Anti-duplikat: 1 siswa hanya diproses 1x per tanggal. Kalau
+            // baris sudah ada (dibuat oleh penyimpanan sebelumnya hari ini),
+            // wasRecentlyCreated = false, artinya sudah pernah diantrikan.
+            $baris = NotifikasiAlfaTerkirim::firstOrCreate(
+                ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
+                ['status_kirim' => 'pending']
+            );
+
+            if (!$baris->wasRecentlyCreated) {
+                continue;
+            }
+
+            KirimNotifikasiAlfaWhatsapp::dispatch(
+                (int) $siswaId,
+                $tanggal,
+                $final->jurnal?->mapel?->nama_mapel,
+                $final->jurnal?->jamPelajaranAkhir?->jam_ke ?? $final->jurnal?->jamPelajaran?->jam_ke,
+            );
+        }
     }
 
     /**

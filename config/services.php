@@ -10,9 +10,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'whatsapp' => [
-        'token' => env('WHATSAPP_TOKEN'),
-        'phone_id' => env('WHATSAPP_PHONE_ID'),
-        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+    // Gateway WhatsApp untuk notifikasi Alfa ke orang tua. Contoh di sini
+    // pakai Fonnte (https://fonnte.com) karena API-nya sederhana & populer
+    // di Indonesia. Kalau pakai provider lain (Wablas, Woowa, dsb), cukup
+    // sesuaikan URL & format request di app/Jobs/KirimNotifikasiAlfaWhatsapp.php.
+    'fonnte' => [
+        'token' => env('FONNTE_TOKEN'),
+        'url' => env('FONNTE_URL', 'https://api.fonnte.com/send'),
     ],
 ];

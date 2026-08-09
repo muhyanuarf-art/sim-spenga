@@ -37,7 +37,7 @@
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($jadwalHariIni as $sesi)
                 @php
-                    $palet = ['indigo', 'emerald', 'amber', 'sky', 'rose', 'teal', 'violet', 'fuchsia'];
+                    $palet = ['indigo', 'amber', 'sky', 'rose', 'teal', 'violet', 'fuchsia'];
                     $warna = $palet[crc32($sesi['mapel']->nama_mapel ?? '?') % count($palet)];
                     $terisi = $sesi['sudah_diisi'] ?? false;
                 @endphp

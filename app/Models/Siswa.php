@@ -13,7 +13,7 @@ class Siswa extends Model
 
     protected $table = 'siswas';
 
-    protected $fillable = ['nis', 'nisn', 'nama', 'jenis_kelamin', 'no_hp_ortu', 'kelas_id', 'is_active'];
+    protected $fillable = ['nis', 'nisn', 'nama', 'nama_ortu', 'no_wa_ortu', 'jenis_kelamin', 'kelas_id', 'is_active'];
 
     protected function casts(): array
     {
@@ -28,10 +28,5 @@ class Siswa extends Model
     public function absensi(): HasMany
     {
         return $this->hasMany(AbsensiSiswa::class, 'siswa_id');
-    }
-
-    public function notifikasiWa(): HasMany
-    {
-        return $this->hasMany(NotifikasiWa::class, 'siswa_id');
     }
 }

@@ -10,7 +10,7 @@ use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
 /**
  * Format kolom excel (header baris 1):
- * nis | nisn | nama | jenis_kelamin | no_hp_ortu | kode_kelas
+ * nis | nisn | nama | nama_ortu | no_wa_ortu | jenis_kelamin | kode_kelas
  */
 class SiswaImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
@@ -26,8 +26,9 @@ class SiswaImport implements ToModel, WithHeadingRow, SkipsEmptyRows
             [
                 'nisn' => $row['nisn'] ?? null,
                 'nama' => trim($row['nama']),
+                'nama_ortu' => isset($row['nama_ortu']) ? trim($row['nama_ortu']) : null,
+                'no_wa_ortu' => isset($row['no_wa_ortu']) ? trim((string) $row['no_wa_ortu']) : null,
                 'jenis_kelamin' => strtoupper(trim($row['jenis_kelamin'])) === 'P' ? 'P' : 'L',
-                'no_hp_ortu' => isset($row['no_hp_ortu']) ? trim((string) $row['no_hp_ortu']) : null,
                 'kelas_id' => $kelas->id,
                 'is_active' => true,
             ]
