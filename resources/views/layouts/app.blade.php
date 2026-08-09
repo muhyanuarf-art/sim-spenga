@@ -68,9 +68,6 @@
                 <a href="{{ route('walikelas.jurnal-kelas') }}" class="nav-link {{ request()->routeIs('walikelas.jurnal-kelas') ? 'nav-active' : '' }}">
                     <span class="text-lg">📔</span> Jurnal Mengajar Kelas
                 </a>
-                <a href="{{ route('walikelas.status-whatsapp') }}" class="nav-link {{ request()->routeIs('walikelas.status-whatsapp') ? 'nav-active' : '' }}">
-                    <span class="text-lg">💬</span> Status WhatsApp Ortu
-                </a>
             @endif
 
             @if(in_array($user->role, ['guru', 'kurikulum', 'kepala_sekolah', 'admin']))
@@ -80,6 +77,9 @@
                 </a>
                 <a href="{{ route('laporan.absensi-guru') }}" class="nav-link {{ request()->routeIs('laporan.absensi-guru') ? 'nav-active' : '' }}">
                     <span class="text-lg">🗒️</span> Absensi Guru Tiap Mapel
+                </a>
+                <a href="{{ route('notifikasi-wa.index') }}" class="nav-link {{ request()->routeIs('notifikasi-wa.index') ? 'nav-active' : '' }}">
+                    <span class="text-lg">📲</span> Status WhatsApp Ortu
                 </a>
             @endif
 

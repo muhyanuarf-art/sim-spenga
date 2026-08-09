@@ -78,6 +78,9 @@
                 <a href="<?php echo e(route('laporan.absensi-guru')); ?>" class="nav-link <?php echo e(request()->routeIs('laporan.absensi-guru') ? 'nav-active' : ''); ?>">
                     <span class="text-lg">🗒️</span> Absensi Guru Tiap Mapel
                 </a>
+                <a href="<?php echo e(route('notifikasi-wa.index')); ?>" class="nav-link <?php echo e(request()->routeIs('notifikasi-wa.index') ? 'nav-active' : ''); ?>">
+                    <span class="text-lg">📲</span> Status WhatsApp Ortu
+                </a>
             <?php endif; ?>
 
             <?php if(in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])): ?>

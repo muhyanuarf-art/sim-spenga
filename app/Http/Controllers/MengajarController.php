@@ -212,7 +212,11 @@ class MengajarController extends Controller
             // wasRecentlyCreated = false, artinya sudah pernah diantrikan.
             $baris = NotifikasiAlfaTerkirim::firstOrCreate(
                 ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
-                ['status_kirim' => 'pending']
+                [
+                    'status_kirim' => 'pending',
+                    'mata_pelajaran_id' => $final->jurnal?->mata_pelajaran_id,
+                    'jam_ke' => $final->jurnal?->jamPelajaranAkhir?->jam_ke ?? $final->jurnal?->jamPelajaran?->jam_ke,
+                ]
             );
 
             if (!$baris->wasRecentlyCreated) {

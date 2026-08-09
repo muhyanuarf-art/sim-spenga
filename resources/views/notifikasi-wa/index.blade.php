@@ -1,0 +1,124 @@
+@extends('layouts.app')
+@section('title', 'Status WhatsApp Ortu')
+
+@section('content')
+<div class="space-y-6">
+    <div class="card p-5">
+        <form method="GET" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Bulan</label>
+                <select name="bulan" class="input" onchange="this.form.submit()">
+                    @foreach(range(1,12) as $b)
+                        <option value="{{ $b }}" {{ $b === $bulan ? 'selected' : '' }}>{{ \Carbon\Carbon::create()->month($b)->translatedFormat('F') }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tahun</label>
+                <select name="tahun" class="input" onchange="this.form.submit()">
+                    @foreach(range(now()->year - 1, now()->year + 1) as $y)
+                        <option value="{{ $y }}" {{ $y === $tahun ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @if($bisaFilterKelas)
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas</label>
+                <select name="kelas_id" class="input" onchange="this.form.submit()">
+                    <option value="">Semua Kelas</option>
+                    @foreach($kelasList as $k)
+                        <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+        </form>
+        <p class="text-xs text-slate-400 mt-3">
+            📅 Hari ini: <b class="text-slate-500">{{ now()->translatedFormat('l, d F Y') }}</b>
+            &middot; bulan &amp; tahun di atas otomatis mengikuti tanggal server saat halaman ini dibuka.
+        </p>
+    </div>
+
+    @if($tanpaAksesData)
+        <div class="rounded-xl bg-slate-50 border border-slate-200 text-slate-500 px-5 py-6 text-sm text-center">
+            📲 Menu ini menampilkan histori notifikasi WA per KELAS (bukan per mapel), jadi hanya relevan untuk
+            <b>Wali Kelas</b>. Anda saat ini belum ditetapkan sebagai wali kelas manapun.
+        </div>
+    @else
+        <div class="grid grid-cols-3 gap-4">
+            <x-stat-card color="emerald" icon="✅" label="Terkirim" :value="$ringkasan['terkirim']" />
+            <x-stat-card color="amber" icon="⏳" label="Menunggu Diproses" :value="$ringkasan['pending']" />
+            <x-stat-card color="rose" icon="⚠️" label="Gagal Terkirim" :value="$ringkasan['gagal']" />
+        </div>
+
+        @if($ringkasan['pending'] > 0)
+            <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
+                ⏳ Ada {{ $ringkasan['pending'] }} notifikasi yang masih menunggu diproses queue worker.
+                Pastikan <code class="bg-amber-100 px-1 rounded">php artisan queue:work</code> sedang berjalan di server.
+            </div>
+        @endif
+        @if($ringkasan['gagal'] > 0)
+            <div class="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 text-sm">
+                ⚠️ Ada {{ $ringkasan['gagal'] }} notifikasi gagal terkirim — kemungkinan nomor WA ortu kosong/salah format,
+                atau gateway WA sedang bermasalah.
+            </div>
+        @endif
+
+        <div class="card p-5">
+            <p class="font-bold text-slate-800 mb-1">Histori Notifikasi WA — {{ \Carbon\Carbon::create()->month($bulan)->translatedFormat('F') }} {{ $tahun }}</p>
+            @if($kelasWali)
+                <p class="text-sm text-slate-400 mb-4">Menampilkan siswa kelas {{ $kelasWali->nama_kelas }} (kelas wali Anda).</p>
+            @else
+                <p class="text-sm text-slate-400 mb-4">Diurutkan dari tanggal terbaru.</p>
+            @endif
+
+            <div class="overflow-x-auto -mx-5">
+                <table class="table-clean w-full">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th>Menurut Mapel</th>
+                            <th>Status</th>
+                            <th>Waktu Terkirim</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($data as $n)
+                        <tr>
+                            <td class="text-slate-500 whitespace-nowrap">{{ $n->tanggal->translatedFormat('d M Y') }}</td>
+                            <td class="font-medium">
+                                <div class="flex items-center gap-2">
+                                    <x-initial-avatar :nama="$n->siswa->nama ?? '-'" />
+                                    {{ $n->siswa->nama ?? '(siswa dihapus)' }}
+                                </div>
+                            </td>
+                            <td><x-kelas-badge :nama="$n->siswa->kelas->nama_kelas ?? '-'" /></td>
+                            <td class="text-slate-500">
+                                {{ $n->mapel->nama_mapel ?? '-' }}
+                                @if($n->jam_ke) <span class="text-slate-400">(jam ke-{{ $n->jam_ke }})</span> @endif
+                            </td>
+                            <td>
+                                @if($n->status_kirim === 'terkirim')
+                                    <span class="badge bg-emerald-50 text-emerald-700">✅ Terkirim</span>
+                                @elseif($n->status_kirim === 'gagal')
+                                    <span class="badge bg-rose-50 text-rose-700">⚠️ Gagal</span>
+                                @else
+                                    <span class="badge bg-amber-50 text-amber-700">⏳ Menunggu</span>
+                                @endif
+                            </td>
+                            <td class="text-slate-500 whitespace-nowrap">
+                                {{ $n->dikirim_at ? $n->dikirim_at->translatedFormat('d M Y, H:i') : '-' }}
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="6" class="text-center text-emerald-600 py-8">🎉 Tidak ada notifikasi Alfa bulan ini.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+</div>
+@endsection

@@ -9,7 +9,7 @@ class NotifikasiAlfaTerkirim extends Model
 {
     protected $table = 'notifikasi_alfa_terkirims';
 
-    protected $fillable = ['siswa_id', 'tanggal', 'dikirim_at', 'status_kirim'];
+    protected $fillable = ['siswa_id', 'tanggal', 'mata_pelajaran_id', 'jam_ke', 'dikirim_at', 'status_kirim'];
 
     protected function casts(): array
     {
@@ -19,5 +19,10 @@ class NotifikasiAlfaTerkirim extends Model
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class, 'siswa_id');
+    }
+
+    public function mapel(): BelongsTo
+    {
+        return $this->belongsTo(MataPelajaran::class, 'mata_pelajaran_id');
     }
 }
