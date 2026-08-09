@@ -20,3 +20,16 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Laravel runtime output — jangan ikut di-commit (log & cache view/session
+# berubah tiap kali aplikasi jalan, bukan bagian dari kode sumber).
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep

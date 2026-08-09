@@ -81,7 +81,9 @@
                             <th>Kelas</th>
                             <th>Menurut Mapel</th>
                             <th>Status</th>
+                            <th>Percobaan</th>
                             <th>Waktu Terkirim</th>
+                            <th>Keterangan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -108,12 +110,14 @@
                                     <span class="badge bg-amber-50 text-amber-700">⏳ Menunggu</span>
                                 @endif
                             </td>
+                            <td class="text-slate-500 text-center">{{ $n->percobaan_ke }}/{{ \App\Models\NotifikasiAlfaTerkirim::MAKS_PERCOBAAN }}</td>
                             <td class="text-slate-500 whitespace-nowrap">
                                 {{ $n->dikirim_at ? $n->dikirim_at->translatedFormat('d M Y, H:i') : '-' }}
                             </td>
+                            <td class="text-slate-400 text-xs max-w-[220px]">{{ $n->keterangan_gagal ?? '-' }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-emerald-600 py-8">🎉 Tidak ada notifikasi Alfa bulan ini.</td></tr>
+                        <tr><td colspan="8" class="text-center text-emerald-600 py-8">🎉 Tidak ada notifikasi Alfa bulan ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

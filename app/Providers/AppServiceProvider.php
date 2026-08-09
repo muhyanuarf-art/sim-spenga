@@ -23,10 +23,12 @@ class AppServiceProvider extends ServiceProvider
             $view->with('tahunAjaranAktifGlobal', TahunAjaran::aktif());
         });
 
-        // Batasi laju kirim WhatsApp: maksimal 20 pesan/menit, supaya tidak
-        // melanggar rate limit WhatsApp Cloud API saat banyak siswa Alfa
-        // sekaligus dikirim ke queue (lihat KirimNotifikasiAlfaJob::middleware()).
-        RateLimiter::for('whatsapp-kirim', function () {
+        // Batasi laju kirim WhatsApp: maksimal 20 pesan/menit. Fonnte
+        // sendiri sanggup jauh lebih cepat (~10 pesan/detik), tapi kita
+        // tetap batasi supaya aman dari risiko banned WhatsApp kalau ada
+        // banyak siswa Alfa sekaligus dikirim ke queue bersamaan (lihat
+        // KirimNotifikasiAlfaWhatsapp::middleware()).
+        RateLimiter::for('notifikasi-wa', function () {
             return Limit::perMinute(20);
         });
     }

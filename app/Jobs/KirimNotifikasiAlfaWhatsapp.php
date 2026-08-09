@@ -8,10 +8,14 @@ use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Job ini SENGAJA dijalankan lewat QUEUE (background worker), bukan
@@ -25,19 +29,37 @@ use Illuminate\Support\Facades\Log;
  *   `php artisan queue:work` di belakang layar, kapan saja dia sempat.
  * - Kalau WA API gagal/down, otomatis dicoba ulang ($tries) TANPA
  *   mengganggu guru sama sekali & tanpa membuat request web jadi lambat.
+ *
+ * ADA 2 JENIS RETRY YANG DIPISAH (penting supaya sesuai aturan sekolah):
+ * 1. Retry TEKNIS ($tries/$backoff Laravel di bawah) — untuk gangguan
+ *    sesaat: device Fonnte terputus, timeout jaringan, kuota habis, dsb.
+ *    Ini transparan, tidak dihitung sebagai "percobaan" versi sekolah.
+ * 2. Retry BISNIS (kolom percobaan_ke di tabel notifikasi_alfa_terkirims,
+ *    maks NotifikasiAlfaTerkirim::MAKS_PERCOBAAN = 2 kali total) — khusus
+ *    saat Fonnte bilang nomornya sendiri yang bermasalah ("target invalid").
+ *    Begini caranya: percobaan ke-1 gagal -> job baru didispatch lagi
+ *    (percobaan ke-2) -> kalau gagal lagi, BERHENTI PERMANEN, tidak retry
+ *    otomatis Laravel lagi untuk baris itu (kemungkinan nomor bukan WA aktif).
  */
 class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Maksimal percobaan kalau gagal (mis. WA API timeout/down sementara). */
+    /** Maksimal percobaan TEKNIS kalau gagal (mis. WA API timeout/down sementara). */
     public int $tries = 3;
 
-    /** Jeda antar percobaan ulang (detik): 15 detik, lalu 1 menit, lalu 5 menit. */
+    /** Jeda antar percobaan ulang TEKNIS (detik): 15 detik, lalu 1 menit, lalu 5 menit. */
     public array $backoff = [15, 60, 300];
 
     /** Job dianggap gagal total kalau lebih dari ini (mencegah nyangkut lama). */
     public int $timeout = 30;
+
+    /**
+     * Alasan gagal dari Fonnte yang menandakan masalah ada di NOMOR itu
+     * sendiri (bukan gangguan sesaat) — ini yang dihitung sebagai retry
+     * BISNIS (maks 2x), bukan dilempar ke retry teknis Laravel.
+     */
+    private const ALASAN_MASALAH_NOMOR = ['target invalid', 'nomor', 'invalid'];
 
     public function __construct(
         public int $siswaId,
@@ -51,49 +73,133 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
         $this->onQueue('notifikasi');
     }
 
+    /**
+     * Batasi laju kirim supaya aman meskipun Fonnte sendiri sudah cukup
+     * longgar (~10 pesan/detik) — jaga-jaga kalau banyak siswa Alfa
+     * sekaligus (misal alfa massal 1 kelas) dikirim ke queue bersamaan.
+     */
+    public function middleware(): array
+    {
+        return [new RateLimited('notifikasi-wa')];
+    }
+
     public function handle(): void
     {
+        $baris = NotifikasiAlfaTerkirim::where('siswa_id', $this->siswaId)
+            ->whereDate('tanggal', $this->tanggal)
+            ->first();
+
+        // Baris mungkin sudah dihapus, atau statusnya sudah bukan 'pending'
+        // (misal sudah keburu ditangani job lain, atau sudah gagal permanen
+        // di percobaan sebelumnya) — tidak perlu dikirim lagi.
+        if (! $baris || $baris->status_kirim !== 'pending') {
+            return;
+        }
+
         $siswa = Siswa::find($this->siswaId);
 
-        // Tidak ada data siswa / nomor WA ortu kosong -> lewati diam-diam,
-        // tandai gagal di tabel pelacak supaya tidak dicoba berulang kali.
-        if (!$siswa || empty($siswa->no_wa_ortu)) {
-            $this->tandaiStatus('gagal');
+        if (! $siswa || empty($siswa->no_wa_ortu)) {
+            $baris->update([
+                'status_kirim' => 'gagal',
+                'keterangan_gagal' => 'Nomor WhatsApp orang tua belum diisi di data siswa.',
+            ]);
             return;
         }
 
         $nomor = $this->normalisasiNomor($siswa->no_wa_ortu);
         $pesan = $this->susunPesan($siswa);
 
-        $response = Http::timeout(15)
-            ->asForm()
-            ->withHeaders(['Authorization' => config('services.fonnte.token')])
-            ->post(config('services.fonnte.url'), [
-                'target' => $nomor,
-                'message' => $pesan,
-            ]);
-
-        if (!$response->successful()) {
-            // Lempar exception supaya mekanisme retry Laravel jalan
-            // ($tries & $backoff di atas), bukan gagal diam-diam.
-            throw new \RuntimeException("Gagal kirim WA (HTTP {$response->status()}): {$response->body()}");
+        try {
+            $response = Http::timeout(15)
+                ->asForm()
+                ->withHeaders(['Authorization' => config('services.fonnte.token')])
+                ->post(config('services.fonnte.url'), [
+                    'target' => $nomor,
+                    'message' => $pesan,
+                ]);
+        } catch (ConnectionException $e) {
+            // Gagal konek sama sekali (mis. tidak ada internet) -> lempar
+            // supaya retry TEKNIS Laravel yang menangani ($tries/$backoff).
+            throw $e;
         }
 
-        $this->tandaiStatus('terkirim');
+        // PENTING: Fonnte SERING mengembalikan HTTP 200 walaupun pesan
+        // sebenarnya GAGAL diproses (mis. nomor tidak valid) — jadi
+        // suksesnya request HTTP saja tidak cukup, harus dicek field
+        // "status" di body JSON respons.
+        $body = $response->json() ?? [];
+        $suksesMenurutFonnte = $response->successful() && (($body['status'] ?? false) === true);
+
+        if ($suksesMenurutFonnte) {
+            $baris->update([
+                'status_kirim' => 'terkirim',
+                'dikirim_at' => now(),
+                'keterangan_gagal' => null,
+            ]);
+            return;
+        }
+
+        $alasan = $body['reason'] ?? ('HTTP ' . $response->status() . ': ' . $response->body());
+        $ituMasalahNomor = collect(self::ALASAN_MASALAH_NOMOR)
+            ->contains(fn ($kata) => str_contains(strtolower($alasan), $kata));
+
+        if ($ituMasalahNomor) {
+            $this->tanganiGagalNomor($baris, $alasan);
+            return;
+        }
+
+        // Kegagalan TEKNIS lain (device Fonnte disconnect, kuota habis,
+        // format request salah, dsb) -> lempar supaya job di-retry
+        // otomatis oleh Laravel sesuai $tries/$backoff di atas.
+        throw new RuntimeException("Fonnte gagal kirim: {$alasan}");
     }
 
-    /** Kalau job gagal terus sampai batas $tries habis. */
-    public function failed(\Throwable $e): void
+    /**
+     * Kegagalan yang kemungkinan besar karena nomornya sendiri bermasalah.
+     * TIDAK dilempar ulang ke Laravel (supaya tidak kena retry teknis) —
+     * retry-nya manual, sesuai aturan sekolah: maks 2x percobaan total.
+     */
+    private function tanganiGagalNomor(NotifikasiAlfaTerkirim $baris, string $alasan): void
     {
-        Log::warning("Notifikasi WA Alfa gagal untuk siswa #{$this->siswaId} tanggal {$this->tanggal}: {$e->getMessage()}");
-        $this->tandaiStatus('gagal');
+        if ($baris->percobaan_ke < NotifikasiAlfaTerkirim::MAKS_PERCOBAAN) {
+            $baris->update([
+                'percobaan_ke' => $baris->percobaan_ke + 1,
+                'keterangan_gagal' => $alasan,
+                // status_kirim tetap 'pending' — job pengganti di bawah
+                // akan memprosesnya lagi sebagai percobaan berikutnya.
+            ]);
+
+            // Beri jeda 2 menit sebelum coba lagi (jaga-jaga kalau
+            // penyebabnya sesaat, mis. device Fonnte baru saja reconnect).
+            static::dispatch($this->siswaId, $this->tanggal, $this->mapel, $this->jamKe)
+                ->delay(now()->addMinutes(2));
+
+            return;
+        }
+
+        // Sudah mencapai batas MAKS_PERCOBAAN (2x) dan masih gagal juga
+        // -> berhenti PERMANEN, kemungkinan besar nomor bukan WhatsApp aktif.
+        $baris->update([
+            'status_kirim' => 'gagal',
+            'keterangan_gagal' => "{$alasan} (sudah dicoba {$baris->percobaan_ke}x, kemungkinan nomor bukan WhatsApp aktif)",
+        ]);
     }
 
-    private function tandaiStatus(string $status): void
+    /** Kalau job gagal terus sampai batas $tries TEKNIS habis. */
+    public function failed(?Throwable $e): void
     {
-        NotifikasiAlfaTerkirim::where('siswa_id', $this->siswaId)
+        Log::warning("Notifikasi WA Alfa gagal (teknis) untuk siswa #{$this->siswaId} tanggal {$this->tanggal}: " . $e?->getMessage());
+
+        $baris = NotifikasiAlfaTerkirim::where('siswa_id', $this->siswaId)
             ->whereDate('tanggal', $this->tanggal)
-            ->update(['status_kirim' => $status, 'dikirim_at' => $status === 'terkirim' ? now() : null]);
+            ->first();
+
+        if ($baris && $baris->status_kirim === 'pending') {
+            $baris->update([
+                'status_kirim' => 'gagal',
+                'keterangan_gagal' => 'Gagal terhubung ke Fonnte setelah beberapa kali percobaan teknis: ' . $e?->getMessage(),
+            ]);
+        }
     }
 
     private function susunPesan(Siswa $siswa): string

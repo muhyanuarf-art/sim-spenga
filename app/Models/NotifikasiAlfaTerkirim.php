@@ -9,7 +9,18 @@ class NotifikasiAlfaTerkirim extends Model
 {
     protected $table = 'notifikasi_alfa_terkirims';
 
-    protected $fillable = ['siswa_id', 'tanggal', 'mata_pelajaran_id', 'jam_ke', 'dikirim_at', 'status_kirim'];
+    /**
+     * Maksimal total percobaan kirim kalau gagal karena alasan yang
+     * kemungkinan besar terkait NOMOR (bukan gangguan teknis sesaat).
+     * Sesuai aturan sekolah: gagal 1x -> coba lagi 1x -> kalau masih
+     * gagal juga (2x total), berhenti, kemungkinan nomor bukan WhatsApp.
+     */
+    public const MAKS_PERCOBAAN = 2;
+
+    protected $fillable = [
+        'siswa_id', 'tanggal', 'mata_pelajaran_id', 'jam_ke',
+        'dikirim_at', 'status_kirim', 'percobaan_ke', 'keterangan_gagal',
+    ];
 
     protected function casts(): array
     {
@@ -24,5 +35,34 @@ class NotifikasiAlfaTerkirim extends Model
     public function mapel(): BelongsTo
     {
         return $this->belongsTo(MataPelajaran::class, 'mata_pelajaran_id');
+    }
+
+    /**
+     * Boleh dicoba kirim ulang lagi hanya kalau statusnya gagal DAN
+     * belum mencapai batas MAKS_PERCOBAAN.
+     */
+    public function bisaDicobaLagi(): bool
+    {
+        return $this->status_kirim === 'gagal' && $this->percobaan_ke < self::MAKS_PERCOBAAN;
+    }
+
+    public function statusLabel(): string
+    {
+        return match ($this->status_kirim) {
+            'pending' => 'Menunggu',
+            'terkirim' => 'Terkirim',
+            'gagal' => 'Gagal',
+            default => ucfirst($this->status_kirim),
+        };
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status_kirim) {
+            'pending' => 'bg-slate-100 text-slate-600',
+            'terkirim' => 'bg-emerald-100 text-emerald-700',
+            'gagal' => 'bg-red-100 text-red-700',
+            default => 'bg-slate-100 text-slate-600',
+        };
     }
 }

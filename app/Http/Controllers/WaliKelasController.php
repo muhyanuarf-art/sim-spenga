@@ -5,48 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\AbsensiSiswa;
 use App\Models\Kelas;
 use App\Models\JurnalMengajar;
-use App\Models\NotifikasiWa;
 use Illuminate\Http\Request;
 
 class WaliKelasController extends Controller
 {
-    /**
-     * Dashboard status pengiriman notifikasi WA ke orang tua (Menunggu,
-     * Terkirim, Diterima, Telah Dibaca, Gagal) untuk kelas walinya.
-     */
-    public function statusWhatsApp(Request $request, ?Kelas $kelas = null)
-    {
-        $user = $request->user();
-        $kelas = $kelas ?? $this->resolveKelasWali($user);
-
-        if ($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah') {
-            $kelasId = $request->get('kelas_id', $kelas?->id);
-            $kelas = Kelas::findOrFail($kelasId);
-        } else {
-            $this->authorizeWali($user, $kelas);
-        }
-
-        $tanggal = $request->get('tanggal', now()->toDateString());
-
-        $notifikasi = NotifikasiWa::with('siswa')
-            ->where('kelas_id', $kelas->id)
-            ->whereDate('tanggal', $tanggal)
-            ->get()
-            ->sortBy(fn ($n) => $n->siswa->nama);
-
-        $ringkasan = [
-            'menunggu' => $notifikasi->where('status', 'menunggu')->count(),
-            'terkirim' => $notifikasi->where('status', 'terkirim')->count(),
-            'diterima' => $notifikasi->where('status', 'diterima')->count(),
-            'dibaca' => $notifikasi->where('status', 'dibaca')->count(),
-            'gagal' => $notifikasi->where('status', 'gagal')->count(),
-        ];
-
-        $daftarKelas = Kelas::orderBy('nama_kelas')->get();
-
-        return view('walikelas.status-whatsapp', compact('kelas', 'notifikasi', 'ringkasan', 'tanggal', 'daftarKelas'));
-    }
-
     /**
      * Rekap absensi bulanan 1 lembar: NIS, Nama, Tanggal 1-31, Sakit, Izin, Alfa, Jumlah.
      * Bisa dipilih bulan berapapun sepanjang tahun ajaran berjalan.

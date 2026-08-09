@@ -15,10 +15,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureRole::class,
             'wali_kelas' => \App\Http\Middleware\EnsureWaliKelas::class,
         ]);
-
-        $middleware->validateCsrfTokens(except: [
-            'webhook/whatsapp',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -67,8 +67,8 @@ class AbsensiSiswa extends Model
 
     /**
      * Sama seperti siswaAlfaHariIni(), tapi untuk tanggal manapun (bukan
-     * hanya hari ini) — dipakai NotifikasiAlfaDispatcher setelah guru mapel
-     * menyimpan absensi untuk tanggal tsb.
+     * hanya hari ini). Dipakai DashboardController untuk widget "Siswa
+     * Alfa Hari Ini" di halaman utama tiap role.
      */
     public static function siswaAlfaHariIniByTanggal(?int $kelasId, string $tanggal)
     {
