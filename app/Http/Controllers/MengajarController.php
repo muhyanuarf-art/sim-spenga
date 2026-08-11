@@ -289,7 +289,13 @@ class MengajarController extends Controller
 
     /**
      * Cari jurnal mengajar yang sudah pernah dibuat untuk sesi (kumpulan jam) &
-     * tanggal ini, lewat tabel jurnal_mengajar_slots.
+     * tanggal ini. Dicari lewat 2 jalur supaya lebih tahan terhadap kondisi
+     * data yang tidak ideal:
+     * 1) Lewat tabel jurnal_mengajar_slots (jalur utama).
+     * 2) Fallback: langsung ke jurnal_mengajars berdasarkan jadwal_pelajaran_id
+     *    (slot AWAL sesi) + tanggal — jalur ini konsisten dengan bagaimana
+     *    store() selalu mengisi kolom itu, jadi tetap ketemu meski baris di
+     *    tabel slot untuk beberapa sebab tidak lengkap.
      */
     private function cariJurnalUntukSesi($slotJadwal, string $tanggal): ?JurnalMengajar
     {
@@ -297,7 +303,13 @@ class MengajarController extends Controller
             ->whereDate('tanggal', $tanggal)
             ->value('jurnal_mengajar_id');
 
-        return $slotId ? JurnalMengajar::find($slotId) : null;
+        if ($slotId) {
+            return JurnalMengajar::find($slotId);
+        }
+
+        return JurnalMengajar::where('jadwal_pelajaran_id', $slotJadwal->first()->id)
+            ->whereDate('tanggal', $tanggal)
+            ->first();
     }
 
     private function hariIniIndonesia(): string

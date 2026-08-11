@@ -1,135 +1,73 @@
-# Menu Baru: Status WhatsApp Ortu (dengan filter bulan)
+# Perbaikan: Jurnal/Absensi Tidak Berubah Saat Diisi Ulang
 
-## Apa yang dibuat
+## Analisis jujur
 
-Menu **"📲 Status WhatsApp Ortu"** — histori pengiriman notifikasi
-Alfa ke orang tua, dengan filter Bulan & Tahun (mirip Rekapitulasi).
-Muncul di sidebar bagian **Laporan**.
+Saya sudah telusuri logic penyimpanannya (`MengajarController::store()`)
+baris per baris, termasuk:
+- Cara mencari jurnal yang sudah ada saat diedit ulang
+- Cara `AbsensiSiswa` disimpan per siswa
 
-## Siapa yang bisa lihat apa
+Secara logic, proses UPDATE ini **dilindungi constraint UNIQUE di
+database** (`jurnal_mengajar_id` + `siswa_id`), yang membuat
+`updateOrCreate` seharusnya SELALU meng-update baris yang sama, tidak
+mungkin diam-diam gagal atau membuat data baru tanpa terlihat error.
+Saya tidak menemukan bug logic yang jelas di jalur ini.
 
-| Role | Cakupan data |
-|---|---|
-| Admin, Kurikulum, Kepala Sekolah | Semua siswa/kelas, + bisa filter per kelas |
-| Guru yang jadi **Wali Kelas** | Hanya siswa di kelas walinya sendiri |
-| Guru mapel biasa (bukan wali kelas) | Menu tetap muncul, tapi ditampilkan pesan penjelasan (bukan tabel kosong) — karena notifikasi ini levelnya per KELAS/hari, bukan per mapel |
+**Kemungkinan penyebab paling masuk akal**: browser menampilkan
+halaman lama dari **cache** (terutama kalau memakai tombol Back,
+atau membuka ulang tab yang sama tanpa refresh), bukan mengambil data
+terbaru dari server. Ini sangat umum terjadi dan gejalanya persis
+seperti yang Anda alami: data di database sebenarnya SUDAH berubah,
+tapi tampilan di layar masih menunjukkan versi lama.
 
-## Isi halamannya
+## Yang saya perbaiki
 
-- 3 kartu ringkasan: **Terkirim**, **Menunggu Diproses**, **Gagal Terkirim**
-- Peringatan otomatis kalau ada yang "Menunggu" (kemungkinan queue
-  worker belum jalan) atau "Gagal" (kemungkinan nomor WA salah/kosong)
-- Tabel histori: Tanggal, Nama Siswa, Kelas, Mapel & jam penentu,
-  Status, Waktu Terkirim
+1. **`app/Http/Middleware/NoCacheHeaders.php`** (baru) — menambahkan
+   header supaya browser TIDAK BOLEH menyimpan/menampilkan cache
+   halaman untuk semua halaman yang butuh login (dashboard, Jurnal
+   Kelas, Absensi & Jurnal Mengajar, dll). Jadi setiap kali halaman
+   dibuka (termasuk lewat tombol Back), data yang diambil PASTI
+   terbaru dari server.
 
-## File yang ditambah/diubah
+2. **`bootstrap/app.php`** — mendaftarkan middleware di atas untuk
+   semua halaman.
 
-| File | Keterangan |
-|---|---|
-| `database/migrations/..._add_mapel_jam_to_notifikasi_alfa_terkirims_table.php` | + kolom `mata_pelajaran_id`, `jam_ke` di tabel pelacak notifikasi |
-| `app/Models/NotifikasiAlfaTerkirim.php` | + relasi `mapel()` |
-| `app/Http/Controllers/NotifikasiWhatsappController.php` | Controller baru untuk halaman ini |
-| `app/Http/Controllers/MengajarController.php` | Simpan mapel & jam saat notifikasi dibuat (supaya histori bisa tampilkan info itu) |
-| `resources/views/notifikasi-wa/index.blade.php` | View halaman baru |
-| `resources/views/layouts/app.blade.php` | + link menu di sidebar |
-| `routes/web.php` | + route `notifikasi-wa.index` |
+3. **`app/Http/Controllers/MengajarController.php`** —
+   `cariJurnalUntukSesi()` diperkuat dengan jalur cadangan (fallback):
+   kalau pencarian lewat tabel penghubung (`jurnal_mengajar_slots`)
+   entah kenapa tidak ketemu, sistem otomatis coba cari langsung ke
+   tabel `jurnal_mengajars`. Ini jaga-jaga murni (defensif), bukan
+   berarti saya menemukan bug di situ — tapi memperkecil kemungkinan
+   penyebab lain di masa depan.
 
 ## Cara pasang
 
-1. Salin semua file di atas ke project Anda (timpa yang lama).
-2. Jalankan migration:
-   ```bash
-   php artisan migrate
-   ```
+1. Salin 3 file di atas ke project Anda (timpa yang lama).
+2. Tidak perlu migration.
 3. Clear cache:
    ```bash
+   php artisan config:clear
    php artisan route:clear
-   php artisan view:clear
    ```
-4. Login dengan berbagai role untuk cek:
-   - Admin/Kurikulum/Kepala Sekolah → menu muncul, ada filter Kelas,
-     data lengkap se-sekolah.
-   - Guru Wali Kelas → data hanya kelasnya sendiri, tanpa filter Kelas.
-   - Guru mapel biasa (bukan wali) → menu tetap ada, tapi muncul
-     pesan "hanya relevan untuk Wali Kelas".
-   - Ganti bulan di filter → data ikut berubah sesuai bulan yang dipilih.
+4. **PENTING saat testing**: setelah pasang, lakukan **hard refresh**
+   di browser (`Ctrl+Shift+R` di Chrome/Firefox Windows) minimal
+   sekali di awal, supaya browser benar-benar membuang cache versi
+   lama yang mungkin masih tersimpan dari sebelum perbaikan ini.
 
-**Catatan:** fitur ini menampilkan histori dari data yang SUDAH ada
-di tabel `notifikasi_alfa_terkirims` — karena Anda belum menjalankan
-fitur notifikasi WA di server (masih menunggu pindah ke VPS/hosting),
-untuk saat ini tabelnya akan kosong. Begitu fitur WA-nya aktif nanti
-(sesuai panduan sebelumnya), histori akan otomatis terisi dan bisa
-dipantau lewat menu ini.
+## Kalau masih terjadi setelah ini
 
----
+Kalau setelah pasang & hard refresh masalahnya masih muncul, tolong
+info detail berikut supaya saya bisa telusuri lebih spesifik:
+1. Setelah simpan ulang, apakah muncul pesan sukses ("berhasil
+   disimpan") di halaman?
+2. Untuk melihat "tidak berubah"-nya, apakah Anda me-refresh halaman
+   (F5) atau pakai tombol Back browser?
+3. Kalau dicek langsung di database (tabel `absensi_siswas`, cari
+   baris siswa & tanggal itu) — apakah `status`-nya benar sudah
+   berubah di database, meski tampilan web belum?
 
-# Update: Perbaikan supaya bisa jalan di localhost + retry maks 2x
-
-## Kabar baik soal localhost
-
-**Fitur kirim WA Fonnte ini SUDAH BISA jalan penuh di localhost/Laragon**,
-tidak perlu tunggu pindah ke hosting/VPS dulu. Alasannya: Laravel yang
-memanggil KELUAR ke server Fonnte (`Http::post(...)`) — bukan Fonnte yang
-memanggil MASUK ke aplikasi Anda. Selama komputer Anda tersambung
-internet, request kirim pesan akan sampai ke Fonnte dan pesan akan
-terkirim ke WhatsApp orang tua meski Laravel-nya jalan di `localhost`.
-
-(Yang BENAR-BENAR butuh domain publik itu fitur *webhook* — mis. status
-"dibaca"/"delivered" real-time dari Fonnte ke aplikasi Anda. Fitur itu
-belum dipakai di sini, jadi tidak masalah untuk sekarang.)
-
-## Bug yang diperbaiki
-
-Kode kirim WA sebelumnya cuma mengecek **kode HTTP** response Fonnte
-untuk menentukan sukses/gagal. Padahal Fonnte **sering balas HTTP 200
-meskipun pesan sebenarnya GAGAL** (misalnya nomor tidak valid) — jadi ada
-risiko notifikasi ditandai "Terkirim" padahal sebenarnya tidak terkirim.
-Sekarang kode mengecek field `status` di body JSON respons Fonnte, bukan
-cuma kode HTTP-nya saja.
-
-## Retry maks 2x ditambahkan
-
-Sesuai aturan sekolah, sekarang ada 2 kolom baru di tabel
-`notifikasi_alfa_terkirims`: `percobaan_ke` dan `keterangan_gagal`.
-
-- Kalau Fonnte bilang gagal karena **nomor bermasalah** ("target
-  invalid" dsb): dicoba lagi otomatis 1x (jeda 2 menit), maksimal
-  **2x percobaan total**. Kalau percobaan ke-2 masih gagal juga →
-  berhenti permanen, status jadi "Gagal", keterangan mencatat kemungkinan
-  nomor bukan WhatsApp aktif.
-- Kalau gagalnya karena **gangguan teknis** (device Fonnte
-  terputus/timeout dsb): ditangani terpisah oleh mekanisme retry job
-  bawaan Laravel (otomatis dicoba lagi sampai 3x dengan jeda 15
-  detik/1 menit/5 menit), tidak ikut menghitung "percobaan" versi sekolah.
-
-## Pembersihan
-
-- Menghapus semua file implementasi WA versi lama (Meta WhatsApp Cloud
-  API) yang sempat tercampur di repo tapi sudah tidak dipakai:
-  `NotifikasiWa`, `KirimNotifikasiAlfaJob`, `WhatsAppWebhookController`,
-  `NotifikasiAlfaDispatcher`, `WhatsAppCloudService`, migration
-  `notifikasi_was`/`no_hp_ortu`, view `walikelas/status-whatsapp.blade.php`,
-  dan file `fitur-notifikasi-wa-alfa.patch` yang sempat ikut ter-commit.
-- `storage/logs/*.log` dan `storage/framework/**` (cache view/session)
-  di-untrack dari Git dan ditambahkan ke `.gitignore` — file-file ini
-  seharusnya tidak ikut di-commit karena berubah tiap kali aplikasi
-  jalan, bukan bagian dari kode sumber.
-
-## Langkah pasang di lokal (Laragon)
-
-```powershell
-php artisan migrate
-php artisan queue:work
-```
-
-Isi `.env`:
-```
-QUEUE_CONNECTION=database
-FONNTE_TOKEN=isi_token_device_fonnte_anda
-FONNTE_URL=https://api.fonnte.com/send
-```
-
-Jalankan `php artisan queue:work` di terminal terpisah (biarkan
-berjalan) setiap kali Anda mau menguji fitur ini — kalau tidak jalan,
-notifikasi akan menumpuk di status "Menunggu" selamanya.
-
+Jawaban poin 3 akan sangat menentukan: kalau di database SUDAH
+berubah tapi tampilan belum — pasti soal cache/tampilan (perbaikan
+ini seharusnya sudah cukup). Kalau di database TERNYATA belum
+berubah juga — berarti ada bug lain yang belum ketemu, dan saya perlu
+gali lebih dalam dengan info itu.
