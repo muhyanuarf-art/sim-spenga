@@ -35,6 +35,7 @@ class User extends Authenticatable
     public function isKepalaSekolah(): bool { return $this->role === 'kepala_sekolah'; }
     public function isKurikulum(): bool { return $this->role === 'kurikulum'; }
     public function isGuru(): bool { return $this->role === 'guru'; }
+    public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
     public function isWaliKelas(): bool { return $this->kelasWali()->exists(); }
 
     // ==== Relations ====
@@ -46,6 +47,23 @@ class User extends Authenticatable
     public function mengajarKelas(): HasMany
     {
         return $this->hasMany(GuruMengajarKelas::class, 'guru_id');
+    }
+
+    public function bkKelas(): HasMany
+    {
+        return $this->hasMany(GuruBkKelas::class, 'guru_id');
+    }
+
+    /** Daftar Kelas yang dipantau Guru BK ini pada tahun ajaran aktif. */
+    public function kelasBk()
+    {
+        $tahunAjaran = TahunAjaran::aktif();
+        if (! $tahunAjaran) {
+            return collect();
+        }
+        return Kelas::whereIn('id', $this->bkKelas()->where('tahun_ajaran_id', $tahunAjaran->id)->pluck('kelas_id'))
+            ->orderBy('nama_kelas')
+            ->get();
     }
 
     public function jadwalMengajar(): HasMany
@@ -64,6 +82,7 @@ class User extends Authenticatable
             'admin' => 'Administrator',
             'kepala_sekolah' => 'Kepala Sekolah',
             'kurikulum' => 'Kurikulum',
+            'guru_bk' => 'Guru BK',
             'guru' => $this->isWaliKelas() ? 'Guru / Wali Kelas' : 'Guru Mapel',
             default => ucfirst($this->role),
         };

@@ -12,19 +12,24 @@ class WaliKelasController extends Controller
     /**
      * Rekap absensi bulanan 1 lembar: NIS, Nama, Tanggal 1-31, Sakit, Izin, Alfa, Jumlah.
      * Bisa dipilih bulan berapapun sepanjang tahun ajaran berjalan.
+     *
+     * Dipakai oleh 3 kelompok pengguna:
+     * - Admin/Kurikulum/Kepala Sekolah: bebas pilih kelas manapun.
+     * - Guru (Wali Kelas): terkunci ke 1 kelas walinya sendiri.
+     * - Guru BK: bebas pilih di antara kelas-kelas yang di-mapping-kan
+     *   kepadanya (lihat menu Mapping Guru BK oleh Kurikulum/Admin).
      */
     public function absensiBulanan(Request $request, ?Kelas $kelas = null)
     {
         $user = $request->user();
-        $kelas = $kelas ?? $this->resolveKelasWali($user);
+        $kelas = $kelas ?? $this->resolveKelasDefault($user);
+        $daftarKelas = $this->resolveDaftarKelasPilihan($user);
 
-        if ($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah') {
-            // boleh pilih kelas manapun
-            $kelas = $this->resolveKelasTerpilih($request, $kelas);
-            if (! $kelas) {
-                return redirect()->route('dashboard')
-                    ->with('error', 'Belum ada data kelas. Silakan tambahkan kelas terlebih dahulu di menu Data Kelas.');
-            }
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+            $kelasId = $request->get('kelas_id', $kelas?->id);
+            $kelas = Kelas::findOrFail($kelasId);
+        } elseif ($user->role === 'guru_bk') {
+            $kelas = $this->resolveKelasBkDipilih($request, $user, $kelas);
         } else {
             $this->authorizeWali($user, $kelas);
         }
@@ -57,7 +62,7 @@ class WaliKelasController extends Controller
             // PALING AKHIR pada hari itu yang dipakai (lihat AbsensiSiswa::finalPerHari).
             // Laporan per guru mapel sendiri tetap utuh (lihat LaporanGuruController),
             // ini hanya memengaruhi rekap kelas.
-            foreach (\App\Models\AbsensiSiswa::finalPerHari($records) as $final) {
+            foreach (AbsensiSiswa::finalPerHari($records) as $final) {
                 $tgl = (int) $final->tanggal->format('j');
                 $kode = match ($final->status) {
                     'Sakit' => 'S',
@@ -87,25 +92,23 @@ class WaliKelasController extends Controller
             ];
         });
 
-        $daftarKelas = Kelas::orderBy('nama_kelas')->get();
-
         return view('walikelas.absensi-bulanan', compact('kelas', 'rekap', 'bulan', 'tahun', 'jumlahHari', 'daftarKelas'));
     }
 
     /**
-     * Monitoring Jurnal Mengajar untuk kelas walinya.
+     * Monitoring Jurnal Mengajar untuk 1 kelas (wali kelas / BK / admin-kurikulum-kepsek).
      */
     public function jurnalKelas(Request $request, ?Kelas $kelas = null)
     {
         $user = $request->user();
-        $kelas = $kelas ?? $this->resolveKelasWali($user);
+        $kelas = $kelas ?? $this->resolveKelasDefault($user);
+        $daftarKelas = $this->resolveDaftarKelasPilihan($user);
 
-        if ($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah') {
-            $kelas = $this->resolveKelasTerpilih($request, $kelas);
-            if (! $kelas) {
-                return redirect()->route('dashboard')
-                    ->with('error', 'Belum ada data kelas. Silakan tambahkan kelas terlebih dahulu di menu Data Kelas.');
-            }
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+            $kelasId = $request->get('kelas_id', $kelas?->id);
+            $kelas = Kelas::findOrFail($kelasId);
+        } elseif ($user->role === 'guru_bk') {
+            $kelas = $this->resolveKelasBkDipilih($request, $user, $kelas);
         } else {
             $this->authorizeWali($user, $kelas);
         }
@@ -121,35 +124,48 @@ class WaliKelasController extends Controller
             ->orderBy('jam_pelajaran_id')
             ->get();
 
-        $daftarKelas = Kelas::orderBy('nama_kelas')->get();
-
         return view('walikelas.jurnal-kelas', compact('kelas', 'jurnal', 'bulan', 'tahun', 'daftarKelas'));
-    }
-
-    /**
-     * Tentukan kelas yang dilihat oleh Admin/Kurikulum/Kepala Sekolah:
-     * 1. pakai ?kelas_id= dari query string kalau valid;
-     * 2. kalau tidak ada/tidak valid, pakai kelas walinya sendiri (kalau dia
-     *    kebetulan juga wali kelas) atau kelas pertama yang ada di database;
-     * 3. kalau memang belum ada satupun kelas di database, kembalikan null
-     *    (pemanggil akan redirect dengan pesan yang jelas, bukan error 404 mentah).
-     */
-    private function resolveKelasTerpilih(Request $request, ?Kelas $kelasDefault): ?Kelas
-    {
-        $kelasId = $request->get('kelas_id');
-        if ($kelasId) {
-            $kelas = Kelas::find($kelasId);
-            if ($kelas) {
-                return $kelas;
-            }
-        }
-
-        return $kelasDefault ?? Kelas::orderBy('nama_kelas')->first();
     }
 
     private function resolveKelasWali($user): ?Kelas
     {
         return Kelas::where('wali_kelas_id', $user->id)->first();
+    }
+
+    /** Kelas default yang ditampilkan pertama kali (sebelum user memilih lewat dropdown/URL). */
+    private function resolveKelasDefault($user): ?Kelas
+    {
+        if ($user->role === 'guru_bk') {
+            return $user->kelasBk()->first();
+        }
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+            return Kelas::orderBy('nama_kelas')->first();
+        }
+        return $this->resolveKelasWali($user);
+    }
+
+    /** Daftar kelas yang boleh dipilih lewat dropdown (beda cakupan per role). */
+    private function resolveDaftarKelasPilihan($user)
+    {
+        if ($user->role === 'guru_bk') {
+            return $user->kelasBk();
+        }
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+            return Kelas::orderBy('nama_kelas')->get();
+        }
+        return collect(); // wali kelas: terkunci ke 1 kelas, dropdown tidak dipakai
+    }
+
+    /** Validasi & tentukan kelas yang dipilih Guru BK, harus salah satu dari kelas mapping-nya. */
+    private function resolveKelasBkDipilih(Request $request, $user, ?Kelas $kelasDefault): Kelas
+    {
+        $kelasBkIds = $user->kelasBk()->pluck('id');
+        abort_if($kelasBkIds->isEmpty(), 403, 'Anda belum di-mapping ke kelas manapun. Hubungi Kurikulum/Admin.');
+
+        $kelasId = $request->get('kelas_id', $kelasDefault?->id ?? $kelasBkIds->first());
+        abort_unless($kelasBkIds->contains((int) $kelasId), 403, 'Anda tidak memiliki akses ke kelas ini.');
+
+        return Kelas::findOrFail($kelasId);
     }
 
     private function authorizeWali($user, ?Kelas $kelas): void

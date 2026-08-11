@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
@@ -36,8 +37,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/{ids}', [MengajarController::class, 'store'])->where('ids', '[0-9,]+')->name('store');
     });
 
-    // ===== WALI KELAS: rekap absensi bulanan + jurnal kelas =====
-    Route::prefix('wali-kelas')->name('walikelas.')->middleware('role:guru,kurikulum,kepala_sekolah,admin')->group(function () {
+    // ===== WALI KELAS / GURU BK: rekap absensi bulanan + jurnal kelas =====
+    Route::prefix('wali-kelas')->name('walikelas.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
         Route::get('absensi-bulanan/{kelas?}', [WaliKelasController::class, 'absensiBulanan'])->name('absensi-bulanan');
         Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
     });
@@ -50,7 +51,7 @@ Route::middleware('auth')->group(function () {
 
     // ===== STATUS WHATSAPP ORTU: histori notifikasi Alfa (semua role,
     // cakupan datanya dibatasi per role di controller) =====
-    Route::middleware('role:guru,kurikulum,kepala_sekolah,admin')->group(function () {
+    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
         Route::get('notifikasi-wa', [NotifikasiWhatsappController::class, 'index'])->name('notifikasi-wa.index');
     });
 
@@ -63,7 +64,12 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{guruMengajar}', [GuruMengajarController::class, 'destroy'])->name('destroy');
             Route::get('/import', [GuruMengajarController::class, 'importForm'])->name('import.form');
             Route::post('/import', [GuruMengajarController::class, 'import'])->name('import');
-            Route::get('/template', [GuruMengajarController::class, 'template'])->name('template');
+        });
+
+        Route::prefix('kurikulum/guru-bk')->name('kurikulum.guru-bk.')->group(function () {
+            Route::get('/', [GuruBkController::class, 'index'])->name('index');
+            Route::post('/', [GuruBkController::class, 'store'])->name('store');
+            Route::delete('/{guruBk}', [GuruBkController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('jadwal')->name('jadwal.')->group(function () {
@@ -73,23 +79,14 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{jadwal}', [JadwalController::class, 'destroy'])->name('destroy');
             Route::get('/import', [JadwalController::class, 'importForm'])->name('import.form');
             Route::post('/import', [JadwalController::class, 'import'])->name('import');
-            Route::get('/template', [JadwalController::class, 'template'])->name('template');
         });
 
         Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);
         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');
-        Route::get('siswa-template', [SiswaController::class, 'template'])->name('siswa.template');
 
         Route::resource('kelas', KelasController::class)->except(['create', 'edit', 'show'])->parameters(['kelas' => 'kelas']);
-        Route::get('kelas-import', [KelasController::class, 'importForm'])->name('kelas.import.form');
-        Route::post('kelas-import', [KelasController::class, 'import'])->name('kelas.import');
-        Route::get('kelas-template', [KelasController::class, 'template'])->name('kelas.template');
-
         Route::resource('mapel', MataPelajaranController::class)->except(['create', 'edit', 'show']);
-        Route::get('mapel-import', [MataPelajaranController::class, 'importForm'])->name('mapel.import.form');
-        Route::post('mapel-import', [MataPelajaranController::class, 'import'])->name('mapel.import');
-        Route::get('mapel-template', [MataPelajaranController::class, 'template'])->name('mapel.template');
         Route::resource('tahun-ajaran', TahunAjaranController::class)
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
@@ -106,7 +103,6 @@ Route::middleware('auth')->group(function () {
         Route::resource('jam-pelajaran', JamPelajaranController::class)
             ->except(['create', 'edit', 'show'])
             ->parameters(['jam-pelajaran' => 'jamPelajaran']);
-        Route::post('jam-pelajaran-salin', [JamPelajaranController::class, 'salin'])->name('jam-pelajaran.salin');
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
     });
 });

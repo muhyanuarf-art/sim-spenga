@@ -29,7 +29,7 @@ class UserController extends Controller
             'nip' => ['nullable', 'string', 'unique:users,nip'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
-            'role' => ['required', Rule::in(['admin', 'kepala_sekolah', 'kurikulum', 'guru'])],
+            'role' => ['required', Rule::in(['admin', 'kepala_sekolah', 'kurikulum', 'guru', 'guru_bk'])],
             'no_hp' => ['nullable', 'string'],
         ]);
         $validated['password'] = Hash::make($validated['password']);
@@ -44,7 +44,7 @@ class UserController extends Controller
             'nip' => ['nullable', 'string', 'unique:users,nip,' . $user->id],
             'email' => ['required', 'email', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:6'],
-            'role' => ['required', Rule::in(['admin', 'kepala_sekolah', 'kurikulum', 'guru'])],
+            'role' => ['required', Rule::in(['admin', 'kepala_sekolah', 'kurikulum', 'guru', 'guru_bk'])],
             'no_hp' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]);

@@ -88,6 +88,40 @@ class DashboardController extends Controller
             ));
         }
 
+        // Guru BK: monitoring absensi lintas kelas sesuai mapping-nya
+        if ($user->role === 'guru_bk') {
+            $kelasBk = $user->kelasBk();
+            $kelasBkIds = $kelasBk->pluck('id');
+
+            $siswaAlfaHariIni = collect();
+            $rekapPerKelasBk = collect();
+
+            if ($kelasBkIds->isNotEmpty()) {
+                // Ambil siswa Alfa hari ini untuk SEMUA kelas mapping sekaligus,
+                // lalu di-filter ke kelas yang relevan (siswaAlfaHariIni tanpa
+                // parameter = se-sekolah, jadi difilter manual di sini).
+                $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni()
+                    ->filter(fn ($a) => $kelasBkIds->contains($a['kelas']?->id))
+                    ->values();
+
+                $rekapPerKelasBk = $kelasBk->map(function ($kelas) {
+                    $totalSiswa = $kelas->siswas()->where('is_active', true)->count();
+                    $alfaHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
+                        ->whereDate('tanggal', now()->toDateString())
+                        ->where('status', 'Alfa')
+                        ->distinct('siswa_id')
+                        ->count('siswa_id');
+                    return [
+                        'kelas' => $kelas,
+                        'total_siswa' => $totalSiswa,
+                        'alfa_hari_ini' => $alfaHariIni,
+                    ];
+                });
+            }
+
+            return view('dashboard.guru-bk', compact('kelasBk', 'siswaAlfaHariIni', 'rekapPerKelasBk', 'tahunAjaran'));
+        }
+
         // Guru (termasuk Wali Kelas)
         $jadwalHariIniMentah = $tahunAjaran
             ? JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])

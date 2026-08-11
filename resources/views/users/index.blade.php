@@ -12,6 +12,7 @@
                 <option value="kepala_sekolah" {{ request('role')=='kepala_sekolah'?'selected':'' }}>Kepala Sekolah</option>
                 <option value="kurikulum" {{ request('role')=='kurikulum'?'selected':'' }}>Kurikulum</option>
                 <option value="guru" {{ request('role')=='guru'?'selected':'' }}>Guru</option>
+                <option value="guru_bk" {{ request('role')=='guru_bk'?'selected':'' }}>Guru BK</option>
             </select>
             <button class="btn-outline">Cari</button>
         </form>
@@ -28,6 +29,7 @@
             <input type="password" name="password" placeholder="Password" required class="input">
             <select name="role" required class="input">
                 <option value="guru">Guru</option>
+                <option value="guru_bk">Guru BK</option>
                 <option value="kurikulum">Kurikulum</option>
                 <option value="kepala_sekolah">Kepala Sekolah</option>
                 <option value="admin">Admin</option>
@@ -72,6 +74,7 @@
                                 <input type="password" name="password" placeholder="Kosongkan jika tidak diubah" class="input">
                                 <select name="role" required class="input">
                                     <option value="guru" {{ $u->role === 'guru' ? 'selected' : '' }}>Guru</option>
+                                    <option value="guru_bk" {{ $u->role === 'guru_bk' ? 'selected' : '' }}>Guru BK</option>
                                     <option value="kurikulum" {{ $u->role === 'kurikulum' ? 'selected' : '' }}>Kurikulum</option>
                                     <option value="kepala_sekolah" {{ $u->role === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
                                     <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>Admin</option>

@@ -5,7 +5,7 @@
 <div class="space-y-6">
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap items-end gap-3">
-            @if(in_array(auth()->user()->role, ['admin', 'kurikulum', 'kepala_sekolah']))
+            @if(in_array(auth()->user()->role, ['admin', 'kurikulum', 'kepala_sekolah', 'guru_bk']))
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas</label>
                 <select name="kelas_id" class="input" onchange="this.form.submit()">

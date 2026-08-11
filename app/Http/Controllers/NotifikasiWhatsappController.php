@@ -15,6 +15,7 @@ class NotifikasiWhatsappController extends Controller
      * Cakupan data menurut role:
      * - Admin, Kurikulum, Kepala Sekolah: semua siswa/kelas.
      * - Guru yang menjabat Wali Kelas: hanya siswa di kelas walinya sendiri.
+     * - Guru BK: siswa di kelas-kelas yang di-mapping-kan kepadanya (bisa lebih dari 1).
      * - Guru mapel biasa (bukan wali kelas): tidak ada data yang relevan
      *   untuk dilihat (notifikasi ini levelnya per KELAS/hari, bukan per
      *   mapel), jadi ditampilkan pesan penjelasan alih-alih tabel kosong.
@@ -32,6 +33,7 @@ class NotifikasiWhatsappController extends Controller
         $kelasWali = null;
         $bisaFilterKelas = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah']);
         $tanpaAksesData = false;
+        $kelasBkList = collect();
 
         if ($user->role === 'guru') {
             $kelasWali = $user->kelasWali;
@@ -39,6 +41,13 @@ class NotifikasiWhatsappController extends Controller
                 $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $kelasWali->id));
             } else {
                 $tanpaAksesData = true;
+            }
+        } elseif ($user->role === 'guru_bk') {
+            $kelasBkList = $user->kelasBk();
+            if ($kelasBkList->isEmpty()) {
+                $tanpaAksesData = true;
+            } else {
+                $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasBkList->pluck('id')));
             }
         } elseif ($bisaFilterKelas && $request->filled('kelas_id')) {
             $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
@@ -55,7 +64,7 @@ class NotifikasiWhatsappController extends Controller
         $kelasList = $bisaFilterKelas ? Kelas::orderBy('nama_kelas')->get() : collect();
 
         return view('notifikasi-wa.index', compact(
-            'data', 'bulan', 'tahun', 'ringkasan', 'kelasList', 'kelasWali', 'bisaFilterKelas', 'tanpaAksesData'
+            'data', 'bulan', 'tahun', 'ringkasan', 'kelasList', 'kelasWali', 'kelasBkList', 'bisaFilterKelas', 'tanpaAksesData'
         ));
     }
 }

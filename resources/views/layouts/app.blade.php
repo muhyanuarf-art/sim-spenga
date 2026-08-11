@@ -60,8 +60,8 @@
                 </a>
             @endif
 
-            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || ($user->role === 'guru' && $user->isWaliKelas()))
-                <p class="nav-section">Wali Kelas</p>
+            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || ($user->role === 'guru' && $user->isWaliKelas()))
+                <p class="nav-section">Monitoring Kelas</p>
                 <a href="{{ route('walikelas.absensi-bulanan') }}" class="nav-link {{ request()->routeIs('walikelas.absensi-bulanan') ? 'nav-active' : '' }}">
                     <span class="text-lg">📊</span> Rekap Absensi Bulanan
                 </a>
@@ -70,14 +70,16 @@
                 </a>
             @endif
 
-            @if(in_array($user->role, ['guru', 'kurikulum', 'kepala_sekolah', 'admin']))
+            @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
                 <p class="nav-section">Laporan</p>
+                @if($user->role !== 'guru_bk')
                 <a href="{{ route('laporan.jurnal-guru') }}" class="nav-link {{ request()->routeIs('laporan.jurnal-guru') ? 'nav-active' : '' }}">
                     <span class="text-lg">📘</span> Jurnal Mengajar Guru Tiap Mapel
                 </a>
                 <a href="{{ route('laporan.absensi-guru') }}" class="nav-link {{ request()->routeIs('laporan.absensi-guru') ? 'nav-active' : '' }}">
                     <span class="text-lg">🗒️</span> Absensi Guru Tiap Mapel
                 </a>
+                @endif
                 <a href="{{ route('notifikasi-wa.index') }}" class="nav-link {{ request()->routeIs('notifikasi-wa.index') ? 'nav-active' : '' }}">
                     <span class="text-lg">📲</span> Status WhatsApp Ortu
                 </a>
@@ -93,6 +95,9 @@
                 <p class="nav-section">Kurikulum</p>
                 <a href="{{ route('kurikulum.guru-mengajar.index') }}" class="nav-link {{ request()->routeIs('kurikulum.guru-mengajar.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">👨‍🏫</span> Mapping Guru Mengajar
+                </a>
+                <a href="{{ route('kurikulum.guru-bk.index') }}" class="nav-link {{ request()->routeIs('kurikulum.guru-bk.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🧭</span> Mapping Guru BK
                 </a>
                 <a href="{{ route('jadwal.index') }}" class="nav-link {{ request()->routeIs('jadwal.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">🗓️</span> Jadwal Pelajaran
@@ -156,11 +161,6 @@
             @if(session('success'))
                 <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm font-medium">
                     ✅ {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm font-medium">
-                    ⚠️ {{ session('error') }}
                 </div>
             @endif
             @if($errors->any())

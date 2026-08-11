@@ -1,73 +1,94 @@
-# Perbaikan: Jurnal/Absensi Tidak Berubah Saat Diisi Ulang
+# Fitur Baru: Role & Menu Guru BK
 
-## Analisis jujur
+## Apa yang dibuat
 
-Saya sudah telusuri logic penyimpanannya (`MengajarController::store()`)
-baris per baris, termasuk:
-- Cara mencari jurnal yang sudah ada saat diedit ulang
-- Cara `AbsensiSiswa` disimpan per siswa
+Role baru **Guru BK**, dengan menu monitoring absensi yang otomatis
+menampilkan **hanya kelas-kelas yang di-mapping-kan** kepadanya oleh
+Kurikulum/Admin (bisa lebih dari 1 kelas per Guru BK) — persis
+seperti yang diminta.
 
-Secara logic, proses UPDATE ini **dilindungi constraint UNIQUE di
-database** (`jurnal_mengajar_id` + `siswa_id`), yang membuat
-`updateOrCreate` seharusnya SELALU meng-update baris yang sama, tidak
-mungkin diam-diam gagal atau membuat data baru tanpa terlihat error.
-Saya tidak menemukan bug logic yang jelas di jalur ini.
+## Alur kerjanya
 
-**Kemungkinan penyebab paling masuk akal**: browser menampilkan
-halaman lama dari **cache** (terutama kalau memakai tombol Back,
-atau membuka ulang tab yang sama tanpa refresh), bukan mengambil data
-terbaru dari server. Ini sangat umum terjadi dan gejalanya persis
-seperti yang Anda alami: data di database sebenarnya SUDAH berubah,
-tapi tampilan di layar masih menunjukkan versi lama.
+1. **Admin** membuat akun pengguna baru dengan role **"Guru BK"** di
+   menu Kelola Pengguna.
+2. **Kurikulum/Admin** membuka menu baru **"Mapping Guru BK"**, lalu
+   menentukan Guru BK tsb bertanggung jawab memantau kelas apa saja
+   (mis. Pak Budi bertanggung jawab atas kelas 7A, 7B, 8C).
+3. **Guru BK** login → dashboard otomatis menampilkan ringkasan
+   semua kelas mapping-nya + siswa Alfa hari ini lintas kelas
+   tersebut, dan bisa buka Rekap Absensi Bulanan / Jurnal Kelas /
+   Status WhatsApp Ortu — semuanya otomatis dibatasi hanya ke
+   kelas-kelas mapping-nya (tidak bisa lihat kelas lain, termasuk
+   kalau URL-nya diakali langsung).
 
-## Yang saya perbaiki
+## Menu yang didapat Guru BK
 
-1. **`app/Http/Middleware/NoCacheHeaders.php`** (baru) — menambahkan
-   header supaya browser TIDAK BOLEH menyimpan/menampilkan cache
-   halaman untuk semua halaman yang butuh login (dashboard, Jurnal
-   Kelas, Absensi & Jurnal Mengajar, dll). Jadi setiap kali halaman
-   dibuka (termasuk lewat tombol Back), data yang diambil PASTI
-   terbaru dari server.
+| Menu | Cakupan |
+|---|---|
+| **Dashboard** | Ringkasan semua kelas mapping-nya, badge "🚩 X Alfa" per kelas, daftar siswa Alfa hari ini lintas kelas |
+| **Rekap Absensi Bulanan** | Bisa pilih di antara kelas-kelas mapping-nya (dropdown otomatis dibatasi) |
+| **Jurnal Mengajar Kelas** | Sama, dibatasi ke kelas mapping-nya |
+| **Status WhatsApp Ortu** | Histori notifikasi Alfa untuk siswa di kelas-kelas mapping-nya, dengan filter bulan |
 
-2. **`bootstrap/app.php`** — mendaftarkan middleware di atas untuk
-   semua halaman.
+Guru BK **tidak** mendapat akses ke "Absensi & Jurnal Mengajar" (itu
+khusus guru yang benar-benar mengajar mapel & punya jadwal jam
+pelajaran) maupun "Laporan Jurnal/Absensi Tiap Mapel" (levelnya per
+mapel, bukan ranah BK).
 
-3. **`app/Http/Controllers/MengajarController.php`** —
-   `cariJurnalUntukSesi()` diperkuat dengan jalur cadangan (fallback):
-   kalau pencarian lewat tabel penghubung (`jurnal_mengajar_slots`)
-   entah kenapa tidak ketemu, sistem otomatis coba cari langsung ke
-   tabel `jurnal_mengajars`. Ini jaga-jaga murni (defensif), bukan
-   berarti saya menemukan bug di situ — tapi memperkecil kemungkinan
-   penyebab lain di masa depan.
+## File yang ditambah/diubah
+
+| File | Keterangan |
+|---|---|
+| `database/migrations/..._add_guru_bk_role_to_users_table.php` | Tambah `guru_bk` ke enum role |
+| `database/migrations/..._create_guru_bk_kelas_table.php` | Tabel mapping Guru BK ↔ Kelas |
+| `app/Models/GuruBkKelas.php` | Model baru |
+| `app/Models/User.php` | + `isGuruBk()`, `bkKelas()`, `kelasBk()`, label role |
+| `app/Http/Controllers/UserController.php` | Validasi role terima `guru_bk` |
+| `app/Http/Controllers/GuruBkController.php` | Controller baru — CRUD mapping (Kurikulum/Admin) |
+| `app/Http/Controllers/WaliKelasController.php` | Diperluas: mendukung multi-kelas untuk Guru BK (sebelumnya cuma 1 kelas untuk Wali Kelas) |
+| `app/Http/Controllers/NotifikasiWhatsappController.php` | Diperluas: cakupan data untuk Guru BK |
+| `app/Http/Controllers/DashboardController.php` | + dashboard khusus Guru BK |
+| `routes/web.php` | + route mapping, + `guru_bk` di middleware terkait |
+| `resources/views/users/index.blade.php` | + opsi role "Guru BK" |
+| `resources/views/kurikulum/guru-bk/index.blade.php` | View baru — halaman mapping |
+| `resources/views/walikelas/absensi-bulanan.blade.php` & `jurnal-kelas.blade.php` | Dropdown kelas ikut muncul untuk Guru BK |
+| `resources/views/notifikasi-wa/index.blade.php` | Info kelas mapping untuk Guru BK |
+| `resources/views/dashboard/guru-bk.blade.php` | View baru — dashboard Guru BK |
+| `resources/views/layouts/app.blade.php` | Menu sidebar disesuaikan (section "Wali Kelas" di-relabel "Monitoring Kelas" karena sekarang dipakai 2 peran) |
 
 ## Cara pasang
 
-1. Salin 3 file di atas ke project Anda (timpa yang lama).
-2. Tidak perlu migration.
+1. Salin semua file di atas ke project Anda (timpa yang lama).
+2. Jalankan migration:
+   ```bash
+   php artisan migrate
+   ```
 3. Clear cache:
    ```bash
-   php artisan config:clear
    php artisan route:clear
+   php artisan view:clear
+   php artisan config:clear
    ```
-4. **PENTING saat testing**: setelah pasang, lakukan **hard refresh**
-   di browser (`Ctrl+Shift+R` di Chrome/Firefox Windows) minimal
-   sekali di awal, supaya browser benar-benar membuang cache versi
-   lama yang mungkin masih tersimpan dari sebelum perbaikan ini.
+4. Test:
+   - Buat 1 akun baru role "Guru BK" di Kelola Pengguna.
+   - Login sebagai Kurikulum/Admin → buka **Mapping Guru BK** →
+     mapping akun tsb ke 2-3 kelas berbeda.
+   - Login sebagai akun Guru BK tsb → dashboard harus menampilkan
+     semua kelas yang di-mapping tadi.
+   - Buka Rekap Absensi Bulanan → dropdown kelas harus HANYA
+     menampilkan kelas mapping-nya (bukan semua kelas sekolah).
+   - Coba akses kelas LAIN (bukan mapping-nya) lewat URL langsung
+     (mis. ganti angka ID di URL) → harus muncul error 403 "Anda
+     tidak memiliki akses ke kelas ini."
+   - Cek menu Status WhatsApp Ortu → data juga otomatis terbatas ke
+     kelas mapping-nya.
 
-## Kalau masih terjadi setelah ini
+## Catatan
 
-Kalau setelah pasang & hard refresh masalahnya masih muncul, tolong
-info detail berikut supaya saya bisa telusuri lebih spesifik:
-1. Setelah simpan ulang, apakah muncul pesan sukses ("berhasil
-   disimpan") di halaman?
-2. Untuk melihat "tidak berubah"-nya, apakah Anda me-refresh halaman
-   (F5) atau pakai tombol Back browser?
-3. Kalau dicek langsung di database (tabel `absensi_siswas`, cari
-   baris siswa & tanggal itu) — apakah `status`-nya benar sudah
-   berubah di database, meski tampilan web belum?
-
-Jawaban poin 3 akan sangat menentukan: kalau di database SUDAH
-berubah tapi tampilan belum — pasti soal cache/tampilan (perbaikan
-ini seharusnya sudah cukup). Kalau di database TERNYATA belum
-berubah juga — berarti ada bug lain yang belum ketemu, dan saya perlu
-gali lebih dalam dengan info itu.
+- Mapping Guru BK bersifat **per Tahun Ajaran** (sama seperti mapping
+  guru mapel) — kalau tahun ajaran baru diaktifkan nanti, mapping
+  perlu diinput ulang untuk tahun ajaran itu.
+- Belum ada fitur import Excel untuk mapping Guru BK (baru manual
+  1-per-1 lewat form). Kalau nanti jumlah Guru BK & kelasnya banyak
+  dan perlu import massal, saya bisa tambahkan mengikuti pola yang
+  sama seperti import Mapping Guru Mengajar.
