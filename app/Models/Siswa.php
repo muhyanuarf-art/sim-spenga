@@ -29,4 +29,10 @@ class Siswa extends Model
     {
         return $this->hasMany(AbsensiSiswa::class, 'siswa_id');
     }
+
+    // ==== Modul BK ====
+    public function kasusBk(): HasMany { return $this->hasMany(KasusSiswa::class, 'siswa_id'); }
+    public function pembinaanBk(): HasMany { return $this->hasMany(PembinaanSiswa::class, 'siswa_id'); }
+    public function penguranganPoinBk(): HasMany { return $this->hasMany(PenguranganPoinSiswa::class, 'siswa_id'); }
+    public function pemanggilanOrtuBk(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'siswa_id'); }
 }

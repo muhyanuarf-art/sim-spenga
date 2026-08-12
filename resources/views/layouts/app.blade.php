@@ -60,6 +60,37 @@
                 </a>
             @endif
 
+            @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
+                <p class="nav-section">BK</p>
+                @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
+                <a href="{{ route('bk.dashboard') }}" class="nav-link {{ request()->routeIs('bk.dashboard') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🧭</span> Dashboard BK
+                </a>
+                @endif
+                <a href="{{ route('bk.kasus.index') }}" class="nav-link {{ request()->routeIs('bk.kasus.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">📁</span> Kasus/Pelanggaran
+                </a>
+                @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
+                <a href="{{ route('bk.pembinaan.index') }}" class="nav-link {{ request()->routeIs('bk.pembinaan.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🤝</span> Pembinaan
+                </a>
+                <a href="{{ route('bk.pengurangan.index') }}" class="nav-link {{ request()->routeIs('bk.pengurangan.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">➖</span> Pengurangan Poin
+                </a>
+                <a href="{{ route('bk.pemanggilan.index') }}" class="nav-link {{ request()->routeIs('bk.pemanggilan.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">📞</span> Pemanggilan Orang Tua
+                </a>
+                <a href="{{ route('bk.siswa.index') }}" class="nav-link {{ request()->routeIs('bk.siswa.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🔍</span> Monitoring Siswa
+                </a>
+                @endif
+                @if(in_array($user->role, ['guru_bk', 'admin']))
+                <a href="{{ route('bk.jenis-pelanggaran.index') }}" class="nav-link {{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🗂️</span> Data Pelanggaran (Master)
+                </a>
+                @endif
+            @endif
+
             @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || ($user->role === 'guru' && $user->isWaliKelas()))
                 <p class="nav-section">Monitoring Kelas</p>
                 <a href="{{ route('walikelas.absensi-bulanan') }}" class="nav-link {{ request()->routeIs('walikelas.absensi-bulanan') ? 'nav-active' : '' }}">

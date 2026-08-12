@@ -1,6 +1,13 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BkDashboardController;
+use App\Http\Controllers\BkJenisPelanggaranController;
+use App\Http\Controllers\BkKasusController;
+use App\Http\Controllers\BkPemanggilanController;
+use App\Http\Controllers\BkPembinaanController;
+use App\Http\Controllers\BkPenguranganPoinController;
+use App\Http\Controllers\BkSiswaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
@@ -28,6 +35,50 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
+    // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),
+    // Guru BK (kelola penuh sesuai kelas mapping), Kurikulum/Kepsek (view semua).
+    Route::prefix('bk')->name('bk.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
+        Route::get('dashboard', [BkDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('siswa', [BkSiswaController::class, 'index'])->name('siswa.index');
+        Route::get('siswa/{siswa}', [BkSiswaController::class, 'show'])->name('siswa.show');
+
+        Route::get('kasus', [BkKasusController::class, 'index'])->name('kasus.index');
+        Route::patch('kasus/{kasus}/status', [BkKasusController::class, 'updateStatus'])->name('kasus.update-status');
+
+        Route::get('pembinaan', [BkPembinaanController::class, 'index'])->name('pembinaan.index');
+        Route::get('pengurangan', [BkPenguranganPoinController::class, 'index'])->name('pengurangan.index');
+        Route::get('pemanggilan', [BkPemanggilanController::class, 'index'])->name('pemanggilan.index');
+
+        // Lapor kasus baru: Guru (semua jenis), Guru BK, Admin — TIDAK Kurikulum/Kepsek.
+        Route::middleware('role:guru,guru_bk,admin')->group(function () {
+            Route::get('kasus/create', [BkKasusController::class, 'create'])->name('kasus.create');
+            Route::post('kasus', [BkKasusController::class, 'store'])->name('kasus.store');
+        });
+
+        // Kelola poin/pembinaan/pemanggilan/master data: KHUSUS Guru BK & Admin
+        // (Bagian 20 spec: "jangan beri akses pengurangan poin ke semua guru").
+        Route::middleware('role:guru_bk,admin')->group(function () {
+            Route::post('kasus/{kasus}/batalkan', [BkKasusController::class, 'batalkan'])->name('kasus.batalkan');
+
+            Route::post('pembinaan', [BkPembinaanController::class, 'store'])->name('pembinaan.store');
+            Route::put('pembinaan/{pembinaan}', [BkPembinaanController::class, 'update'])->name('pembinaan.update');
+            Route::post('pembinaan/{pembinaan}/evaluasi-harian', [BkPembinaanController::class, 'storeEvaluasiHarian'])->name('pembinaan.evaluasi-harian');
+
+            Route::post('pengurangan', [BkPenguranganPoinController::class, 'store'])->name('pengurangan.store');
+            Route::post('pengurangan/{pengurangan}/batalkan', [BkPenguranganPoinController::class, 'batalkan'])->name('pengurangan.batalkan');
+
+            Route::post('pemanggilan', [BkPemanggilanController::class, 'store'])->name('pemanggilan.store');
+
+            Route::prefix('jenis-pelanggaran')->name('jenis-pelanggaran.')->group(function () {
+                Route::get('/', [BkJenisPelanggaranController::class, 'index'])->name('index');
+                Route::post('/', [BkJenisPelanggaranController::class, 'store'])->name('store');
+                Route::put('/{jenisPelanggaran}', [BkJenisPelanggaranController::class, 'update'])->name('update');
+            });
+        });
+    });
 
     // ===== GURU MAPEL: absensi siswa + jurnal mengajar =====
     Route::prefix('mengajar')->name('mengajar.')->middleware('role:guru,kurikulum,admin')->group(function () {

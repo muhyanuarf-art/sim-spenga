@@ -1,94 +1,159 @@
-# Fitur Baru: Role & Menu Guru BK
+# Modul BK — Manajemen Kasus, Pelanggaran, Poin & Pembinaan Siswa
 
-## Apa yang dibuat
+## STATUS
+Implementasi Langkah 2-4 selesai (desain database, backend, UI).
+Langkah 5 (testing) perlu Anda jalankan di server sungguhan karena
+saya tidak punya akses PHP/database untuk eksekusi langsung di sini.
 
-Role baru **Guru BK**, dengan menu monitoring absensi yang otomatis
-menampilkan **hanya kelas-kelas yang di-mapping-kan** kepadanya oleh
-Kurikulum/Admin (bisa lebih dari 1 kelas per Guru BK) — persis
-seperti yang diminta.
+## FILE YANG DIBUAT (33 file)
 
-## Alur kerjanya
+**Migration (6):** `jenis_pelanggarans`, `kasus_siswas`, `pembinaan_siswas`,
+`evaluasi_pembinaans`, `pengurangan_poin_siswas`, `pemanggilan_orangtuas`.
 
-1. **Admin** membuat akun pengguna baru dengan role **"Guru BK"** di
-   menu Kelola Pengguna.
-2. **Kurikulum/Admin** membuka menu baru **"Mapping Guru BK"**, lalu
-   menentukan Guru BK tsb bertanggung jawab memantau kelas apa saja
-   (mis. Pak Budi bertanggung jawab atas kelas 7A, 7B, 8C).
-3. **Guru BK** login → dashboard otomatis menampilkan ringkasan
-   semua kelas mapping-nya + siswa Alfa hari ini lintas kelas
-   tersebut, dan bisa buka Rekap Absensi Bulanan / Jurnal Kelas /
-   Status WhatsApp Ortu — semuanya otomatis dibatasi hanya ke
-   kelas-kelas mapping-nya (tidak bisa lihat kelas lain, termasuk
-   kalau URL-nya diakali langsung).
+**Model (6):** `JenisPelanggaran`, `KasusSiswa`, `PembinaanSiswa`,
+`EvaluasiPembinaan`, `PenguranganPoinSiswa`, `PemanggilanOrangTua`.
 
-## Menu yang didapat Guru BK
+**Service (1):** `PoinSiswaService` — **satu-satunya tempat** rumus poin
+aktif & rekomendasi tahap dihitung (Bagian 24 spec).
 
-| Menu | Cakupan |
+**Support (1):** `BkAccessScope` (trait) — aturan cakupan akses per role,
+dipakai bersama semua controller BK.
+
+**Controller (7):** `BkDashboardController`, `BkSiswaController`,
+`BkKasusController`, `BkPembinaanController`, `BkPenguranganPoinController`,
+`BkPemanggilanController`, `BkJenisPelanggaranController`.
+
+**View (9):** dashboard, monitoring siswa, profil siswa (halaman sentral),
+kasus (index+create), pembinaan, pengurangan, pemanggilan, master pelanggaran.
+
+## FILE YANG DIUBAH
+
+| File | Perubahan |
 |---|---|
-| **Dashboard** | Ringkasan semua kelas mapping-nya, badge "🚩 X Alfa" per kelas, daftar siswa Alfa hari ini lintas kelas |
-| **Rekap Absensi Bulanan** | Bisa pilih di antara kelas-kelas mapping-nya (dropdown otomatis dibatasi) |
-| **Jurnal Mengajar Kelas** | Sama, dibatasi ke kelas mapping-nya |
-| **Status WhatsApp Ortu** | Histori notifikasi Alfa untuk siswa di kelas-kelas mapping-nya, dengan filter bulan |
+| `app/Models/Siswa.php` | + 4 relasi baru (kasusBk, pembinaanBk, dst) — additive, tidak mengubah relasi lama |
+| `routes/web.php` | + grup route `bk.*` |
+| `resources/views/layouts/app.blade.php` | + section menu "BK" di sidebar |
 
-Guru BK **tidak** mendapat akses ke "Absensi & Jurnal Mengajar" (itu
-khusus guru yang benar-benar mengajar mapel & punya jadwal jam
-pelajaran) maupun "Laporan Jurnal/Absensi Tiap Mapel" (levelnya per
-mapel, bukan ranah BK).
+## PERUBAHAN DATABASE
 
-## File yang ditambah/diubah
+6 tabel baru, semua **additive** (tidak mengubah kolom/tabel lama sama
+sekali). Detail kolom ada di masing-masing file migration (sudah dikomentari).
 
-| File | Keterangan |
-|---|---|
-| `database/migrations/..._add_guru_bk_role_to_users_table.php` | Tambah `guru_bk` ke enum role |
-| `database/migrations/..._create_guru_bk_kelas_table.php` | Tabel mapping Guru BK ↔ Kelas |
-| `app/Models/GuruBkKelas.php` | Model baru |
-| `app/Models/User.php` | + `isGuruBk()`, `bkKelas()`, `kelasBk()`, label role |
-| `app/Http/Controllers/UserController.php` | Validasi role terima `guru_bk` |
-| `app/Http/Controllers/GuruBkController.php` | Controller baru — CRUD mapping (Kurikulum/Admin) |
-| `app/Http/Controllers/WaliKelasController.php` | Diperluas: mendukung multi-kelas untuk Guru BK (sebelumnya cuma 1 kelas untuk Wali Kelas) |
-| `app/Http/Controllers/NotifikasiWhatsappController.php` | Diperluas: cakupan data untuk Guru BK |
-| `app/Http/Controllers/DashboardController.php` | + dashboard khusus Guru BK |
-| `routes/web.php` | + route mapping, + `guru_bk` di middleware terkait |
-| `resources/views/users/index.blade.php` | + opsi role "Guru BK" |
-| `resources/views/kurikulum/guru-bk/index.blade.php` | View baru — halaman mapping |
-| `resources/views/walikelas/absensi-bulanan.blade.php` & `jurnal-kelas.blade.php` | Dropdown kelas ikut muncul untuk Guru BK |
-| `resources/views/notifikasi-wa/index.blade.php` | Info kelas mapping untuk Guru BK |
-| `resources/views/dashboard/guru-bk.blade.php` | View baru — dashboard Guru BK |
-| `resources/views/layouts/app.blade.php` | Menu sidebar disesuaikan (section "Wali Kelas" di-relabel "Monitoring Kelas" karena sekarang dipakai 2 peran) |
+## RELASI
 
-## Cara pasang
+```
+Siswa hasMany KasusSiswa, PembinaanSiswa, PenguranganPoinSiswa, PemanggilanOrangTua
+KasusSiswa belongsTo Siswa, Kelas, JenisPelanggaran, User(pelapor); hasMany PembinaanSiswa, PemanggilanOrangTua
+PembinaanSiswa belongsTo Siswa, KasusSiswa, User(petugas); hasMany EvaluasiPembinaan
+PenguranganPoinSiswa belongsTo Siswa, User(petugas)
+PemanggilanOrangTua belongsTo Siswa, KasusSiswa, User(petugas)
+```
 
-1. Salin semua file di atas ke project Anda (timpa yang lama).
-2. Jalankan migration:
-   ```bash
-   php artisan migrate
-   ```
-3. Clear cache:
-   ```bash
-   php artisan route:clear
-   php artisan view:clear
-   php artisan config:clear
-   ```
-4. Test:
-   - Buat 1 akun baru role "Guru BK" di Kelola Pengguna.
-   - Login sebagai Kurikulum/Admin → buka **Mapping Guru BK** →
-     mapping akun tsb ke 2-3 kelas berbeda.
-   - Login sebagai akun Guru BK tsb → dashboard harus menampilkan
-     semua kelas yang di-mapping tadi.
-   - Buka Rekap Absensi Bulanan → dropdown kelas harus HANYA
-     menampilkan kelas mapping-nya (bukan semua kelas sekolah).
-   - Coba akses kelas LAIN (bukan mapping-nya) lewat URL langsung
-     (mis. ganti angka ID di URL) → harus muncul error 403 "Anda
-     tidak memiliki akses ke kelas ini."
-   - Cek menu Status WhatsApp Ortu → data juga otomatis terbatas ke
-     kelas mapping-nya.
+## KEPUTUSAN DESAIN PENTING (sesuai konfirmasi Anda)
 
-## Catatan
+1. **Siapa boleh lapor kasus**: semua role `guru` (termasuk guru mapel biasa,
+   wali kelas, guru_bk), plus admin. Kurikulum/Kepsek tidak melapor (hanya lihat).
+2. **Tidak ada workflow approval formal** untuk Tahap 5-7 — Kepala Sekolah
+   bisa **melihat semuanya** (dashboard, profil siswa, semua laporan) tapi
+   keputusan approval tetap manual di luar sistem (rapat/koordinasi),
+   sesuai prinsip "jangan sistem yang putuskan sanksi berat" (Bagian 16 spec).
+3. **Role `guru_bk` di-reuse** dari fitur monitoring absensi sebelumnya —
+   cakupan akses data BK mengikuti mapping kelas yang sama
+   (`guru_bk_kelas`, menu **Mapping Guru BK** yang sudah ada).
 
-- Mapping Guru BK bersifat **per Tahun Ajaran** (sama seperti mapping
-  guru mapel) — kalau tahun ajaran baru diaktifkan nanti, mapping
-  perlu diinput ulang untuk tahun ajaran itu.
-- Belum ada fitur import Excel untuk mapping Guru BK (baru manual
-  1-per-1 lewat form). Kalau nanti jumlah Guru BK & kelasnya banyak
-  dan perlu import massal, saya bisa tambahkan mengikuti pola yang
-  sama seperti import Mapping Guru Mengajar.
+## HAL PENTING YANG PERLU DIPAHAMI
+
+### Poin Aktif & Tahap — dihitung LIVE, bukan disimpan
+`PoinSiswaService::poinAktif()` selalu menghitung ulang dari SUM transaksi
+aktif (`kasus_siswas` dikurangi `pengurangan_poin_siswas`, yang belum
+dibatalkan). Tidak ada kolom `total_poin` statis di tabel `siswas` yang
+bisa "nyasar"/tidak sinkron.
+
+### Koreksi kesalahan = Batalkan, BUKAN hapus
+Kasus & pengurangan poin yang salah input **tidak dihapus dari database**.
+Ada tombol "Batalkan" (khusus Guru BK/Admin) yang mengisi kolom
+`dibatalkan_at`, `dibatalkan_oleh_id`, `alasan_pembatalan` — baris tetap
+ada di database (audit trail), hanya tidak lagi dihitung ke saldo poin.
+
+### Validasi poin sesuai kategori
+Form Tambah Kasus **menolak** kombinasi tidak valid, misal "Ringan + 50
+poin" — divalidasi server-side via `PoinSiswaService::validasiPoinSesuaiKategori()`,
+bukan cuma di JavaScript (jadi tidak bisa diakali lewat DevTools).
+
+### Pengurangan poin tidak bisa melebihi saldo
+`BkPenguranganPoinController::store()` menghitung ulang poin aktif
+TERKINI di server sebelum menyimpan — kalau jumlah pengurangan melebihi
+saldo aktif, transaksi **ditolak** dengan pesan error, bukan diam-diam
+memotong angkanya.
+
+### Tahap pembinaan: rekomendasi otomatis, keputusan tetap manual
+Sistem menghitung **rekomendasi** tahap 1-5 dari poin aktif (ditampilkan
+sebagai hint di form Catat Pembinaan), tapi BK **selalu memilih sendiri**
+tahap final (1-7) saat mencatat pembinaan — sistem tidak pernah otomatis
+menjatuhkan Tahap 6/7 (skorsing dll).
+
+## CARA PASANG
+
+```bash
+php artisan migrate
+php artisan route:clear
+php artisan view:clear
+```
+
+Tidak ada `.env` baru yang perlu diisi untuk modul ini.
+
+## LANGKAH TESTING (sesuai Bagian 31 spec — tolong jalankan manual)
+
+1. Login sebagai **Guru BK** (atau Admin) → menu **Data Pelanggaran (Master)**
+   → tambah beberapa jenis pelanggaran contoh (Terlambat/Ringan/5,
+   Membolos/Sedang/20, dst).
+2. Login sebagai **guru biasa** → menu **BK → Kasus/Pelanggaran** → Catat
+   Kasus Baru → pilih siswa, pilih jenis "Terlambat" (otomatis isi kategori
+   & poin) → simpan.
+   **Cek**: buka profil siswa tsb → Poin Aktif harus **5**.
+3. Tambah kasus lagi untuk siswa yang sama, mis. "Membolos" (+20).
+   **Cek**: Poin Aktif harus **25**, Rekomendasi tahap harus **Tahap 2**.
+4. Login sebagai **Guru BK** → buka profil siswa itu → **Kurangi Poin** →
+   isi 10 → simpan.
+   **Cek**: Poin Aktif harus **15**.
+5. Coba **Kurangi Poin** lagi dengan jumlah **20** (melebihi 15 yang
+   tersisa).
+   **Cek**: harus **DITOLAK** dengan pesan error, bukan menghasilkan
+   poin minus.
+6. Cek **riwayat pelanggaran tetap ada** di timeline profil siswa (kedua
+   kasus di atas masih tampil, tidak hilang meski sudah ada pengurangan).
+7. Cek **tahap pembinaan berubah mengikuti poin aktif** (15 → rekomendasi
+   Tahap 1, bukan lagi Tahap 2).
+8. Login sebagai **guru mapel biasa** (bukan wali kelas/BK) → coba akses
+   halaman **Pengurangan Poin** → harus **403 Forbidden** (tidak
+   diizinkan sama sekali, sesuai role middleware).
+9. Coba lapor 2 kasus di 2 tab berbeda nyaris bersamaan untuk siswa yang
+   sama, lalu kurangi poin di 2 tab juga nyaris bersamaan — pastikan
+   tidak ada data setengah jadi (transaksi dibungkus `DB::transaction`).
+
+## CATATAN / KETERBATASAN YANG DISENGAJA (supaya tidak over-engineering di awal)
+
+- **Belum ada export PDF/Excel** khusus modul BK (Bagian 27 spec bilang
+  "integrasikan dengan fitur export yang sudah ada" — project sudah
+  punya `maatwebsite/excel` untuk **import**, tapi belum ada pola
+  **export** yang established untuk saya ikuti; kalau dibutuhkan,
+  beri tahu saya, nanti saya tambahkan mengikuti pola serupa).
+- **Audit trail** yang dibangun bersifat pragmatis (siapa & kapan
+  tercatat di setiap transaksi + mekanisme batalkan-bukan-hapus untuk
+  koreksi), BUKAN tabel log generik yang mencatat setiap perubahan
+  field satu-per-satu. Ini keputusan sengaja untuk menjaga
+  kesederhanaan (prinsip Bagian 33: "kesederhanaan" diprioritaskan
+  di atas fitur canggih yang belum tentu dibutuhkan).
+- Tombol "Batalkan" pada Pengurangan Poin masih pakai `prompt()`
+  browser untuk isi alasan pembatalan (sederhana, berfungsi, tapi
+  bukan modal yang sama rapinya dengan form lain) — bisa dirapikan
+  nanti kalau diperlukan.
+- Import Excel untuk master Data Pelanggaran belum ada (baru CRUD
+  manual) — bisa ditambahkan menyusul pola `SiswaImport` yang sudah ada.
+
+## TINDAKAN BERIKUTNYA
+
+Setelah Anda testing dan konfirmasi semua skenario di atas berjalan
+sesuai harapan, beri tahu saya kalau ada yang perlu disesuaikan
+(misal: rentang poin per kategori beda dengan kebijakan sekolah, atau
+mau tambah fitur export/import).
