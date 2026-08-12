@@ -72,7 +72,10 @@ class BkSiswaController extends Controller
         $pemanggilan = PemanggilanOrangTua::with('petugas')
             ->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
 
-        // Gabungkan jadi 1 timeline kronologis (Bagian 14 spec: bukan cuma angka poin).
+        // Riwayat diurutkan KRONOLOGIS dari yang PALING AWAL ke yang PALING
+        // BARU (permintaan: "urutkan berdasarkan tanggal serta inputan awal
+        // sampai akhir"), lalu diberi nomor urut di tampilan (lihat
+        // resources/views/bk/siswa/show.blade.php).
         $timeline = collect()
             ->concat($kasus->map(fn ($k) => [
                 'tanggal' => $k->tanggal_kejadian, 'jenis' => 'kasus', 'data' => $k,
@@ -86,7 +89,7 @@ class BkSiswaController extends Controller
             ->concat($pemanggilan->map(fn ($p) => [
                 'tanggal' => $p->tanggal, 'jenis' => 'pemanggilan', 'data' => $p,
             ]))
-            ->sortByDesc(fn ($item) => $item['tanggal']->format('Y-m-d') . '-' . $item['data']->id)
+            ->sortBy(fn ($item) => $item['tanggal']->format('Y-m-d') . '-' . $item['data']->id)
             ->values();
 
         $jenisList = JenisPelanggaran::where('is_active', true)->orderBy('kategori')->orderBy('nama')->get();

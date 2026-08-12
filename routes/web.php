@@ -46,7 +46,6 @@ Route::middleware('auth')->group(function () {
         Route::get('siswa/{siswa}', [BkSiswaController::class, 'show'])->name('siswa.show');
 
         Route::get('kasus', [BkKasusController::class, 'index'])->name('kasus.index');
-        Route::patch('kasus/{kasus}/status', [BkKasusController::class, 'updateStatus'])->name('kasus.update-status');
 
         Route::get('pembinaan', [BkPembinaanController::class, 'index'])->name('pembinaan.index');
         Route::get('pengurangan', [BkPenguranganPoinController::class, 'index'])->name('pengurangan.index');
@@ -62,6 +61,7 @@ Route::middleware('auth')->group(function () {
         // (Bagian 20 spec: "jangan beri akses pengurangan poin ke semua guru").
         Route::middleware('role:guru_bk,admin')->group(function () {
             Route::post('kasus/{kasus}/batalkan', [BkKasusController::class, 'batalkan'])->name('kasus.batalkan');
+            Route::patch('kasus/{kasus}/status', [BkKasusController::class, 'updateStatus'])->name('kasus.update-status');
 
             Route::post('pembinaan', [BkPembinaanController::class, 'store'])->name('pembinaan.store');
             Route::put('pembinaan/{pembinaan}', [BkPembinaanController::class, 'update'])->name('pembinaan.update');

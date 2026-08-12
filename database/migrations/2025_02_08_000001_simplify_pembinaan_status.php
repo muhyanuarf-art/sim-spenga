@@ -25,6 +25,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            DB::table('pembinaan_siswas')->where('status', 'Pembinaan')->update(['status' => 'Berlangsung']);
+            return;
+        }
         // Perlebar dulu supaya value lama valid lagi sebelum dipetakan balik.
         DB::statement("ALTER TABLE pembinaan_siswas MODIFY status ENUM('Direncanakan','Berlangsung','Selesai','Tidak Berhasil','Pembinaan') NOT NULL DEFAULT 'Direncanakan'");
 

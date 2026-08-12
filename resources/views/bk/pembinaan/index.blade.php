@@ -13,6 +13,14 @@
                     <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
                 @endforeach
             </select>
+            @if($kelasList->isNotEmpty())
+            <select name="kelas_id" class="input max-w-[180px]" onchange="this.form.submit()">
+                <option value="">Semua Kelas</option>
+                @foreach($kelasList as $k)
+                    <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                @endforeach
+            </select>
+            @endif
         </form>
 
         <div class="overflow-x-auto -mx-5">

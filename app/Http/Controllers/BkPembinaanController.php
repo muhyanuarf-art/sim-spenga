@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EvaluasiPembinaan;
 use App\Models\KasusSiswa;
+use App\Models\Kelas;
 use App\Models\PembinaanSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -27,9 +28,17 @@ class BkPembinaanController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        if ($request->filled('kelas_id')) {
+            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+        }
 
         $data = $query->paginate(20)->withQueryString();
-        return view('bk.pembinaan.index', compact('data'));
+
+        $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
+            ? Kelas::orderBy('nama_kelas')->get()
+            : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
+
+        return view('bk.pembinaan.index', compact('data', 'kelasList'));
     }
 
     public function store(Request $request, PoinSiswaService $poinService)
@@ -46,7 +55,8 @@ class BkPembinaanController extends Controller
             'jenis_pembinaan' => ['required', 'string'],
             'catatan_bk' => ['required', 'string'],
             'status' => ['required', 'in:Pembinaan,Selesai'],
-            'hasil_pembinaan' => ['nullable', 'string', 'required_if:status,Selesai'],
+            'hasil_pembinaan' => ['nullable', 'string'],
+            'bukti_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // maks 5MB
             'tanggal_evaluasi_berikutnya' => ['nullable', 'date'],
             'ruang_refleksi_selesai' => ['nullable', 'date'],
         ]);
@@ -55,6 +65,10 @@ class BkPembinaanController extends Controller
         // Tahap otomatis dari sistem, berdasarkan poin aktif TERKINI siswa.
         // Minimal Tahap 1 kalau poin aktif belum masuk rentang manapun.
         $tahap = $poinService->rekomendasiTahap($poinService->poinAktif($siswa)) ?? 1;
+
+        if ($request->hasFile('bukti_file')) {
+            $validated['bukti_file'] = $request->file('bukti_file')->store('bk/bukti-pembinaan', 'public');
+        }
 
         $pembinaan = PembinaanSiswa::create([
             ...$validated,
@@ -81,7 +95,11 @@ class BkPembinaanController extends Controller
     {
         $validated = $request->validate([
             'status' => ['required', 'in:Pembinaan,Selesai'],
-            'hasil_pembinaan' => ['nullable', 'string', 'required_if:status,Selesai'],
+            // Hasil pembinaan sengaja dibuat opsional (bukan wajib) supaya
+            // status bisa langsung ditandai "Selesai" dengan 1 klik dari
+            // halaman Profil Perilaku Siswa — hasilnya boleh dilengkapi
+            // belakangan.
+            'hasil_pembinaan' => ['nullable', 'string'],
             'tanggal_evaluasi_berikutnya' => ['nullable', 'date'],
         ]);
 

@@ -54,7 +54,8 @@
 
     {{-- Timeline --}}
     <div class="card p-5">
-        <p class="font-bold text-slate-800 mb-4">Riwayat Perkembangan</p>
+        <p class="font-bold text-slate-800 mb-1">Riwayat Perkembangan</p>
+        <p class="text-xs text-slate-400 mb-4">Diurutkan dari catatan paling awal ke paling baru.</p>
         @if($timeline->isEmpty())
             <p class="text-sm text-slate-400 py-8 text-center">Belum ada riwayat.</p>
         @else
@@ -64,7 +65,10 @@
             <div class="flex gap-3 border-l-2 pl-4 pb-3
                 {{ $item['jenis'] === 'kasus' ? 'border-rose-200' : ($item['jenis'] === 'pengurangan' ? 'border-emerald-200' : ($item['jenis'] === 'pembinaan' ? 'border-violet-200' : 'border-sky-200')) }}">
                 <div class="flex-1">
-                    <p class="text-xs text-slate-400">{{ $item['tanggal']->translatedFormat('d F Y') }}</p>
+                    <p class="text-xs text-slate-400">
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold mr-1">{{ $loop->iteration }}</span>
+                        {{ $item['tanggal']->translatedFormat('d F Y') }}
+                    </p>
 
                     @if($item['jenis'] === 'kasus')
                         <p class="font-semibold text-slate-800">
@@ -72,24 +76,61 @@
                             <span class="badge bg-rose-50 text-rose-700 ml-1">+{{ $d->poin }} poin</span>
                             @if($d->dibatalkan_at)<span class="badge bg-slate-100 text-slate-400 ml-1">Dibatalkan</span>@endif
                         </p>
-                        <p class="text-sm text-slate-500">Kategori {{ $d->kategori }} &middot; Dilaporkan {{ $d->guruPelapor->name ?? '-' }} &middot; Status: {{ $d->status }}</p>
+                        <p class="text-sm text-slate-500">Kategori {{ $d->kategori }} &middot; Dilaporkan {{ $d->guruPelapor->name ?? '-' }}</p>
                         @if($d->bukti_catatan)<p class="text-xs text-slate-400 italic">Catatan: {{ $d->bukti_catatan }}</p>@endif
                         @if($d->bukti_file_url)
                             <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
                                 📎 Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
                             </a>
                         @endif
-                        @if($d->dibatalkan_at)<p class="text-xs text-slate-400 italic">Alasan batal: {{ $d->alasan_pembatalan }}</p>@endif
+                        @if($d->dibatalkan_at)
+                            <p class="text-xs text-slate-400 italic">Alasan batal: {{ $d->alasan_pembatalan }}</p>
+                        @elseif($bisaKelolaPoin)
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="text-xs text-slate-400">Status:</span>
+                                <form method="POST" action="{{ route('bk.kasus.update-status', $d) }}">
+                                    @csrf @method('PATCH')
+                                    <select name="status" onchange="this.form.submit()" class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
+                                        @foreach(['Baru','Diproses','Dalam Pembinaan','Selesai'] as $s)
+                                            <option value="{{ $s }}" {{ $d->status === $s ? 'selected' : '' }}>{{ $s }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Menandai "Selesai" otomatis menyelesaikan pembinaan terkait juga.</p>
+                        @else
+                            <p class="text-sm text-slate-500">Status: {{ $d->status }}</p>
+                        @endif
 
                     @elseif($item['jenis'] === 'pembinaan')
                         <p class="font-semibold text-slate-800">
                             {{ $d->jenis_pembinaan }}
                             <span class="badge bg-violet-50 text-violet-700 ml-1">Tahap {{ $d->tahap }}</span>
-                            <span class="badge bg-slate-100 text-slate-600 ml-1">{{ $d->status }}</span>
                         </p>
                         <p class="text-sm text-slate-500">{{ $d->catatan_bk }}</p>
                         @if($d->hasil_pembinaan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pembinaan }}</p>@endif
-                        <p class="text-xs text-slate-400">Petugas: {{ $d->petugas->name ?? '-' }}</p>
+                        @if($d->bukti_file_url)
+                            <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
+                                📎 Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
+                            </a>
+                        @endif
+                        <p class="text-xs text-slate-400 mt-1">Petugas: {{ $d->petugas->name ?? '-' }}</p>
+                        @if($bisaKelolaPoin)
+                            <div class="mt-1 flex items-center gap-2">
+                                <span class="text-xs text-slate-400">Status:</span>
+                                <form method="POST" action="{{ route('bk.pembinaan.update', $d) }}">
+                                    @csrf @method('PUT')
+                                    <input type="hidden" name="hasil_pembinaan" value="{{ $d->hasil_pembinaan }}">
+                                    <select name="status" onchange="this.form.submit()" class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
+                                        <option value="Pembinaan" {{ $d->status === 'Pembinaan' ? 'selected' : '' }}>Pembinaan</option>
+                                        <option value="Selesai" {{ $d->status === 'Selesai' ? 'selected' : '' }}>Selesai</option>
+                                    </select>
+                                </form>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Menandai "Selesai" otomatis menyelesaikan kasus terkait juga.</p>
+                        @else
+                            <span class="badge bg-slate-100 text-slate-600 mt-1 inline-block">{{ $d->status }}</span>
+                        @endif
 
                     @elseif($item['jenis'] === 'pengurangan')
                         <p class="font-semibold text-slate-800">
@@ -109,6 +150,11 @@
                         </p>
                         <p class="text-sm text-slate-500">{{ $d->alasan }}</p>
                         @if($d->hasil_pertemuan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pertemuan }}</p>@endif
+                        @if($d->bukti_file_url)
+                            <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
+                                📎 Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
+                            </a>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -190,7 +236,7 @@
                 Tahap ditentukan otomatis oleh sistem dari poin aktif saat ini:
                 <b class="text-violet-600">{{ $ringkasan['rekomendasi_tahap'] ? 'Tahap '.$ringkasan['rekomendasi_tahap'] : 'Tahap 1' }}</b>
             </p>
-            <form method="POST" action="{{ route('bk.pembinaan.store') }}" class="space-y-3">
+            <form method="POST" action="{{ route('bk.pembinaan.store') }}" enctype="multipart/form-data" class="space-y-3">
                 @csrf
                 <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
                 <div>
@@ -236,6 +282,11 @@
                 <div x-show="status === 'Selesai'">
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Pembinaan</label>
                     <textarea name="hasil_pembinaan" rows="2" class="input"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Upload Bukti — Foto/PDF (opsional)</label>
+                    <input type="file" name="bukti_file" accept=".jpg,.jpeg,.png,.pdf" class="input">
+                    <p class="text-xs text-slate-400 mt-1">Format JPG/PNG/PDF, maksimal 5MB. Boleh dikosongkan.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Evaluasi Berikutnya (opsional)</label>
@@ -291,7 +342,7 @@
     <div x-show="modal === 'pemanggilan'" x-cloak class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @keydown.escape.window="modal=null">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" @click.outside="modal=null" x-data="{ hadir: '1' }">
             <p class="font-bold text-lg text-slate-800 mb-4">Catat Pemanggilan Orang Tua — {{ $siswa->nama }}</p>
-            <form method="POST" action="{{ route('bk.pemanggilan.store') }}" class="space-y-3">
+            <form method="POST" action="{{ route('bk.pemanggilan.store') }}" enctype="multipart/form-data" class="space-y-3">
                 @csrf
                 <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
                 <div>
@@ -321,6 +372,11 @@
                 <div x-show="hadir === '1'">
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Pertemuan</label>
                     <textarea name="hasil_pertemuan" rows="2" class="input"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Upload Bukti — Foto/PDF (opsional)</label>
+                    <input type="file" name="bukti_file" accept=".jpg,.jpeg,.png,.pdf" class="input">
+                    <p class="text-xs text-slate-400 mt-1">Format JPG/PNG/PDF, maksimal 5MB. Boleh dikosongkan.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Kesepakatan (opsional)</label>

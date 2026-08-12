@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JenisPelanggaran;
 use App\Models\KasusSiswa;
 use App\Models\Kelas;
+use App\Models\PembinaanSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
@@ -133,7 +134,24 @@ class BkKasusController extends Controller
     public function updateStatus(Request $request, KasusSiswa $kasus)
     {
         $validated = $request->validate(['status' => ['required', 'in:Baru,Diproses,Dalam Pembinaan,Selesai']]);
-        $kasus->update($validated);
+
+        DB::transaction(function () use ($kasus, $validated) {
+            $kasus->update($validated);
+
+            // Integrasi otomatis (supaya pengguna tidak perlu update status di
+            // 2 tempat terpisah): kalau kasus ditandai "Selesai", semua
+            // pembinaan terkait yang masih berjalan ikut ditandai "Selesai"
+            // juga. Poin siswa TIDAK terpengaruh sama sekali oleh status ini
+            // — poin hanya berkurang lewat "Kurangi Poin" atau kalau kasus
+            // dibatalkan (lihat PoinSiswaService::totalPelanggaran, yang
+            // pakai scope aktif()/dibatalkan_at, bukan kolom status).
+            if ($validated['status'] === 'Selesai') {
+                PembinaanSiswa::where('kasus_siswa_id', $kasus->id)
+                    ->where('status', '!=', 'Selesai')
+                    ->update(['status' => 'Selesai']);
+            }
+        });
+
         return back()->with('success', 'Status kasus diperbarui.');
     }
 }

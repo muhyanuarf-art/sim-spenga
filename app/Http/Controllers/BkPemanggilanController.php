@@ -38,8 +38,13 @@ class BkPemanggilanController extends Controller
             'alasan' => ['required', 'string'],
             'ortu_hadir' => ['required', 'boolean'],
             'hasil_pertemuan' => ['nullable', 'string', 'required_if:ortu_hadir,1'],
+            'bukti_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // maks 5MB
             'kesepakatan' => ['nullable', 'string'],
         ]);
+
+        if ($request->hasFile('bukti_file')) {
+            $validated['bukti_file'] = $request->file('bukti_file')->store('bk/bukti-pemanggilan', 'public');
+        }
 
         $pemanggilan = PemanggilanOrangTua::create([
             ...$validated,

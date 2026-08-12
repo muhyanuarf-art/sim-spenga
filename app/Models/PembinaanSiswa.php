@@ -10,7 +10,7 @@ class PembinaanSiswa extends Model
 {
     protected $fillable = [
         'siswa_id', 'kasus_siswa_id', 'tahun_ajaran_id', 'tanggal', 'tahap',
-        'jenis_pembinaan', 'catatan_bk', 'hasil_pembinaan', 'status',
+        'jenis_pembinaan', 'catatan_bk', 'hasil_pembinaan', 'bukti_file', 'status',
         'tanggal_evaluasi_berikutnya', 'ruang_refleksi_selesai', 'petugas_id',
     ];
 
@@ -21,6 +21,11 @@ class PembinaanSiswa extends Model
             'tanggal_evaluasi_berikutnya' => 'date',
             'ruang_refleksi_selesai' => 'date',
         ];
+    }
+
+    public function getBuktiFileUrlAttribute(): ?string
+    {
+        return $this->bukti_file ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->bukti_file) : null;
     }
 
     public function siswa(): BelongsTo { return $this->belongsTo(Siswa::class, 'siswa_id'); }
