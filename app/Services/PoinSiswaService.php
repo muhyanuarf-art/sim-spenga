@@ -95,7 +95,7 @@ class PoinSiswaService
         }
 
         $pembinaanBerjalan = PembinaanSiswa::where('siswa_id', $siswa->id)
-            ->whereIn('status', ['Direncanakan', 'Berlangsung'])
+            ->where('status', 'Pembinaan')
             ->exists();
 
         return $pembinaanBerjalan ? 'Dalam Pembinaan' : 'Perlu Tindak Lanjut';
