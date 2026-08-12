@@ -1,10 +1,10 @@
 @extends('layouts.app')
-@section('title', 'Dashboard BK')
+@section('title', 'Pantau Pelanggaran')
 
 @section('content')
 <div class="space-y-6">
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-rose-600 via-rose-600 to-orange-500 text-white px-5 py-4 shadow-lg shadow-rose-500/20">
-        <p class="font-bold flex items-center gap-2">🧭 Dashboard BK</p>
+        <p class="font-bold flex items-center gap-2">🧭 Pantau Pelanggaran</p>
         <p class="text-sm text-white/80">Pantau kasus, pembinaan, dan perkembangan perilaku siswa.</p>
         <div class="absolute -right-6 -bottom-10 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
     </div>

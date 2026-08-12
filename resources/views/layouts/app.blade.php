@@ -61,10 +61,10 @@
             @endif
 
             @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <p class="nav-section">BK</p>
+                <p class="nav-section">PELANGGARAN</p>
                 @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
                 <a href="{{ route('bk.dashboard') }}" class="nav-link {{ request()->routeIs('bk.dashboard') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🧭</span> Dashboard BK
+                    <span class="text-lg">🧭</span> Pantau Pelanggaran
                 </a>
                 @endif
                 <a href="{{ route('bk.kasus.index') }}" class="nav-link {{ request()->routeIs('bk.kasus.*') ? 'nav-active' : '' }}">
