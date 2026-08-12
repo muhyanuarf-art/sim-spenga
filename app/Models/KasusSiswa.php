@@ -11,13 +11,18 @@ class KasusSiswa extends Model
     protected $fillable = [
         'siswa_id', 'kelas_id', 'jenis_pelanggaran_id', 'tahun_ajaran_id',
         'tanggal_kejadian', 'nama_pelanggaran', 'kategori', 'poin', 'kronologi',
-        'guru_pelapor_id', 'bukti_catatan', 'status',
+        'guru_pelapor_id', 'bukti_catatan', 'bukti_file', 'status',
         'dibatalkan_at', 'dibatalkan_oleh_id', 'alasan_pembatalan',
     ];
 
     protected function casts(): array
     {
         return ['tanggal_kejadian' => 'date', 'dibatalkan_at' => 'datetime'];
+    }
+
+    public function getBuktiFileUrlAttribute(): ?string
+    {
+        return $this->bukti_file ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->bukti_file) : null;
     }
 
     public function siswa(): BelongsTo { return $this->belongsTo(Siswa::class, 'siswa_id'); }

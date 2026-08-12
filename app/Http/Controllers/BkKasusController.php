@@ -72,33 +72,44 @@ class BkKasusController extends Controller
         $validated = $request->validate([
             'siswa_id' => ['required', 'exists:siswas,id'],
             'tanggal_kejadian' => ['required', 'date', 'before_or_equal:today'],
-            'jenis_pelanggaran_id' => ['nullable', 'exists:jenis_pelanggarans,id'],
+            // Jenis pelanggaran WAJIB dipilih dari master — Kategori & Poin
+            // TIDAK diterima dari form sama sekali (lihat di bawah), supaya
+            // tidak bisa diakali lewat DevTools/request manual. Keduanya
+            // SELALU diambil ulang dari master berdasarkan jenis ini.
+            'jenis_pelanggaran_id' => ['required', 'exists:jenis_pelanggarans,id'],
             'nama_pelanggaran' => ['required', 'string', 'max:255'],
-            'kategori' => ['required', 'in:Ringan,Sedang,Berat,Sangat Berat'],
-            'poin' => ['required', 'integer', 'min:1', 'max:100'],
-            'kronologi' => ['required', 'string'],
+            'kronologi' => ['required', 'string', 'min:10'],
             'bukti_catatan' => ['nullable', 'string'],
+            'bukti_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // maks 5MB
         ]);
 
-        if (!$poinService->validasiPoinSesuaiKategori($validated['kategori'], (int) $validated['poin'])) {
-            [$min, $max] = PoinSiswaService::RENTANG_KATEGORI[$validated['kategori']];
-            return back()->withInput()->withErrors([
-                'poin' => "Poin untuk kategori {$validated['kategori']} harus antara {$min}-{$max} (bukan {$validated['poin']}).",
-            ]);
-        }
-
+        $jenis = JenisPelanggaran::findOrFail($validated['jenis_pelanggaran_id']);
         $siswa = Siswa::findOrFail($validated['siswa_id']);
 
+        $buktiFilePath = null;
+        if ($request->hasFile('bukti_file')) {
+            $buktiFilePath = $request->file('bukti_file')->store('bk/bukti-pelanggaran', 'public');
+        }
+
         KasusSiswa::create([
-            ...$validated,
+            'siswa_id' => $validated['siswa_id'],
             'kelas_id' => $siswa->kelas_id,
+            'jenis_pelanggaran_id' => $jenis->id,
             'tahun_ajaran_id' => $tahunAjaran->id,
+            'tanggal_kejadian' => $validated['tanggal_kejadian'],
+            'nama_pelanggaran' => $validated['nama_pelanggaran'],
+            // Kategori & poin diambil LANGSUNG dari master (bukan dari input form).
+            'kategori' => $jenis->kategori,
+            'poin' => $jenis->poin_default,
+            'kronologi' => $validated['kronologi'],
+            'bukti_catatan' => $validated['bukti_catatan'] ?? null,
+            'bukti_file' => $buktiFilePath,
             'guru_pelapor_id' => $request->user()->id,
             'status' => 'Baru',
         ]);
 
         return redirect()->route('bk.siswa.show', $siswa)
-            ->with('success', "Kasus untuk {$siswa->nama} berhasil dicatat ({$validated['poin']} poin).");
+            ->with('success', "Kasus untuk {$siswa->nama} berhasil dicatat ({$jenis->poin_default} poin).");
     }
 
     /** Batalkan kasus yang salah input — TIDAK dihapus, hanya ditandai batal (Bagian 21 & 29 spec). */
