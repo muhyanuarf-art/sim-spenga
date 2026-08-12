@@ -42,7 +42,15 @@
                         <td class="font-bold {{ $r['poin_aktif'] > 0 ? 'text-rose-600' : 'text-slate-400' }}">{{ $r['poin_aktif'] }}</td>
                         <td>{{ $r['tahap_saat_ini'] ? 'Tahap '.$r['tahap_saat_ini'] : '-' }}</td>
                         <td>
-                            <span class="badge {{ $r['status'] === 'Normal' ? 'bg-emerald-50 text-emerald-700' : ($r['status'] === 'Dalam Pembinaan' ? 'bg-amber-50 text-amber-700' : 'bg-sky-50 text-sky-700') }}">
+                            @php
+                                $statusBadge = match ($r['status']) {
+                                    'Normal' => 'bg-emerald-50 text-emerald-700',
+                                    'Dalam Pembinaan' => 'bg-amber-50 text-amber-700',
+                                    'Selesai' => 'bg-teal-50 text-teal-700',
+                                    default => 'bg-sky-50 text-sky-700', // Menunggu Pembinaan
+                                };
+                            @endphp
+                            <span class="badge {{ $statusBadge }}">
                                 {{ $r['status'] }}
                             </span>
                         </td>

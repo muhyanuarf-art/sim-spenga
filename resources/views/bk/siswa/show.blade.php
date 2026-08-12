@@ -44,8 +44,15 @@
         <x-stat-card color="emerald" icon="🤝" label="Pembinaan" :value="$ringkasan['jumlah_pembinaan']" />
     </div>
 
-    <div class="rounded-xl px-4 py-3 text-sm
-        {{ $ringkasan['status'] === 'Normal' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : ($ringkasan['status'] === 'Dalam Pembinaan' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-sky-50 text-sky-700 border border-sky-100') }}">
+    @php
+        $statusBoxClass = match ($ringkasan['status']) {
+            'Normal' => 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+            'Dalam Pembinaan' => 'bg-amber-50 text-amber-700 border border-amber-100',
+            'Selesai' => 'bg-teal-50 text-teal-700 border border-teal-100',
+            default => 'bg-sky-50 text-sky-700 border border-sky-100', // Menunggu Pembinaan
+        };
+    @endphp
+    <div class="rounded-xl px-4 py-3 text-sm {{ $statusBoxClass }}">
         Status: <b>{{ $ringkasan['status'] }}</b>
         <span class="text-xs opacity-70">
             (Total pelanggaran historis: +{{ $ringkasan['total_pelanggaran'] }}, total pengurangan: -{{ $ringkasan['total_pengurangan'] }})

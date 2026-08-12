@@ -86,7 +86,12 @@ class PoinSiswaService
             ->value('tahap');
     }
 
-    /** Status siswa yang mudah dibaca (dipakai di badge UI) — hindari label negatif (Bagian 26 spec). */
+    /**
+     * Status siswa yang mudah dibaca (dipakai di badge UI) — hindari label negatif (Bagian 26 spec).
+     * Statusnya SELALU mengikuti record Pembinaan PALING TERAKHIR (bukan sekadar
+     * "apakah pernah ada pembinaan berjalan"), supaya otomatis berubah tiap kali
+     * ada laporan/pembinaan baru dicatat oleh BK.
+     */
     public function statusSiswa(Siswa $siswa): string
     {
         $poinAktif = $this->poinAktif($siswa);
@@ -94,11 +99,16 @@ class PoinSiswaService
             return 'Normal';
         }
 
-        $pembinaanBerjalan = PembinaanSiswa::where('siswa_id', $siswa->id)
-            ->where('status', 'Pembinaan')
-            ->exists();
+        $pembinaanTerakhir = PembinaanSiswa::where('siswa_id', $siswa->id)
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->first();
 
-        return $pembinaanBerjalan ? 'Dalam Pembinaan' : 'Perlu Tindak Lanjut';
+        return match ($pembinaanTerakhir?->status) {
+            'Selesai' => 'Selesai',
+            'Pembinaan' => 'Dalam Pembinaan',
+            default => 'Menunggu Pembinaan', // ada poin aktif, tapi belum pernah dicatat pembinaan
+        };
     }
 
     public function validasiPoinSesuaiKategori(string $kategori, int $poin): bool
