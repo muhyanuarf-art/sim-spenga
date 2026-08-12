@@ -55,7 +55,7 @@ class BkDashboardController extends Controller
             ->sortByDesc('poin_aktif')->values();
 
         $siswaDalamPembinaan = Siswa::with('kelas')->whereIn('id',
-            (clone $pembinaanQuery)->whereIn('status', ['Direncanakan', 'Berlangsung'])->distinct()->pluck('siswa_id')
+            (clone $pembinaanQuery)->where('status', 'Pembinaan')->distinct()->pluck('siswa_id')
         )->get()->map(fn ($s) => ['siswa' => $s, ...$poinService->ringkasan($s)])->values();
 
         $butuhPemanggilanOrtu = Siswa::with('kelas')->whereIn('id', $siswaIdsRelevan)->get()

@@ -184,9 +184,12 @@
     {{-- ===== MODAL: Catat Pembinaan ===== --}}
     @if($bisaKelolaPoin)
     <div x-show="modal === 'pembinaan'" x-cloak class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @keydown.escape.window="modal=null">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" @click.outside="modal=null" x-data="{ status: 'Direncanakan' }">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" @click.outside="modal=null" x-data="{ status: 'Pembinaan' }">
             <p class="font-bold text-lg text-slate-800 mb-1">Catat Pembinaan — {{ $siswa->nama }}</p>
-            <p class="text-xs text-slate-400 mb-4">Rekomendasi sistem berdasarkan poin aktif: <b>{{ $ringkasan['rekomendasi_tahap'] ? 'Tahap '.$ringkasan['rekomendasi_tahap'] : '-' }}</b> (keputusan akhir tetap milik BK)</p>
+            <p class="text-xs text-slate-400 mb-4">
+                Tahap ditentukan otomatis oleh sistem dari poin aktif saat ini:
+                <b class="text-violet-600">{{ $ringkasan['rekomendasi_tahap'] ? 'Tahap '.$ringkasan['rekomendasi_tahap'] : 'Tahap 1' }}</b>
+            </p>
             <form method="POST" action="{{ route('bk.pembinaan.store') }}" class="space-y-3">
                 @csrf
                 <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
@@ -205,12 +208,10 @@
                         <input type="date" name="tanggal" value="{{ now()->toDateString() }}" required class="input">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tahap</label>
-                        <select name="tahap" required class="input">
-                            @for($t = 1; $t <= 7; $t++)
-                                <option value="{{ $t }}" {{ $t == ($ringkasan['rekomendasi_tahap'] ?? 1) ? 'selected' : '' }}>Tahap {{ $t }}</option>
-                            @endfor
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tahap <span class="text-slate-300 font-normal">(otomatis)</span></label>
+                        <div class="input bg-slate-50 text-slate-500 flex items-center font-bold">
+                            Tahap {{ $ringkasan['rekomendasi_tahap'] ?? 1 }}
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -228,13 +229,11 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
                     <select name="status" x-model="status" required class="input">
-                        <option value="Direncanakan">Direncanakan</option>
-                        <option value="Berlangsung">Berlangsung</option>
+                        <option value="Pembinaan">Pembinaan</option>
                         <option value="Selesai">Selesai</option>
-                        <option value="Tidak Berhasil">Tidak Berhasil</option>
                     </select>
                 </div>
-                <div x-show="status === 'Selesai' || status === 'Tidak Berhasil'">
+                <div x-show="status === 'Selesai'">
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Pembinaan</label>
                     <textarea name="hasil_pembinaan" rows="2" class="input"></textarea>
                 </div>

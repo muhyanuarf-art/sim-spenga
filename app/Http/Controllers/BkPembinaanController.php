@@ -7,6 +7,7 @@ use App\Models\KasusSiswa;
 use App\Models\PembinaanSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
 use Illuminate\Http\Request;
 
@@ -31,7 +32,7 @@ class BkPembinaanController extends Controller
         return view('bk.pembinaan.index', compact('data'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PoinSiswaService $poinService)
     {
         $tahunAjaran = TahunAjaran::aktif();
         abort_if(!$tahunAjaran, 422, 'Tidak ada tahun ajaran aktif.');
@@ -40,26 +41,36 @@ class BkPembinaanController extends Controller
             'siswa_id' => ['required', 'exists:siswas,id'],
             'kasus_siswa_id' => ['nullable', 'exists:kasus_siswas,id'],
             'tanggal' => ['required', 'date'],
-            'tahap' => ['required', 'integer', 'min:1', 'max:7'],
+            // Tahap TIDAK diterima dari form — selalu dihitung otomatis di
+            // bawah dari poin aktif siswa (App\Services\PoinSiswaService).
             'jenis_pembinaan' => ['required', 'string'],
             'catatan_bk' => ['required', 'string'],
-            'status' => ['required', 'in:Direncanakan,Berlangsung,Selesai,Tidak Berhasil'],
-            'hasil_pembinaan' => ['nullable', 'string', 'required_if:status,Selesai,Tidak Berhasil'],
+            'status' => ['required', 'in:Pembinaan,Selesai'],
+            'hasil_pembinaan' => ['nullable', 'string', 'required_if:status,Selesai'],
             'tanggal_evaluasi_berikutnya' => ['nullable', 'date'],
             'ruang_refleksi_selesai' => ['nullable', 'date'],
         ]);
 
+        $siswa = Siswa::findOrFail($validated['siswa_id']);
+        // Tahap otomatis dari sistem, berdasarkan poin aktif TERKINI siswa.
+        // Minimal Tahap 1 kalau poin aktif belum masuk rentang manapun.
+        $tahap = $poinService->rekomendasiTahap($poinService->poinAktif($siswa)) ?? 1;
+
         $pembinaan = PembinaanSiswa::create([
             ...$validated,
+            'tahap' => $tahap,
             'tahun_ajaran_id' => $tahunAjaran->id,
             'petugas_id' => $request->user()->id,
         ]);
 
-        // Kalau kasus terkait, otomatis update status kasus jadi "Dalam Pembinaan"
+        // Kasus terkait ikut ter-update statusnya: kalau pembinaan ini
+        // langsung dicatat "Selesai", kasus juga langsung "Selesai" (supaya
+        // hilang dari daftar "Kasus Belum Selesai"). Kalau masih berjalan,
+        // kasus jadi "Dalam Pembinaan".
         if ($pembinaan->kasus_siswa_id) {
             KasusSiswa::where('id', $pembinaan->kasus_siswa_id)
                 ->where('status', '!=', 'Selesai')
-                ->update(['status' => 'Dalam Pembinaan']);
+                ->update(['status' => $pembinaan->status === 'Selesai' ? 'Selesai' : 'Dalam Pembinaan']);
         }
 
         return redirect()->route('bk.siswa.show', $pembinaan->siswa_id)
@@ -69,12 +80,20 @@ class BkPembinaanController extends Controller
     public function update(Request $request, PembinaanSiswa $pembinaan)
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:Direncanakan,Berlangsung,Selesai,Tidak Berhasil'],
-            'hasil_pembinaan' => ['nullable', 'string', 'required_if:status,Selesai,Tidak Berhasil'],
+            'status' => ['required', 'in:Pembinaan,Selesai'],
+            'hasil_pembinaan' => ['nullable', 'string', 'required_if:status,Selesai'],
             'tanggal_evaluasi_berikutnya' => ['nullable', 'date'],
         ]);
 
         $pembinaan->update($validated);
+
+        // Sama seperti di store(): kalau pembinaan ini diubah jadi "Selesai"
+        // dan terkait 1 kasus, kasus itu ikut ditandai "Selesai" — otomatis
+        // hilang dari daftar "Kasus Belum Selesai" di Dashboard BK.
+        if ($pembinaan->kasus_siswa_id && $pembinaan->status === 'Selesai') {
+            KasusSiswa::where('id', $pembinaan->kasus_siswa_id)->update(['status' => 'Selesai']);
+        }
+
         return back()->with('success', 'Pembinaan berhasil diperbarui.');
     }
 

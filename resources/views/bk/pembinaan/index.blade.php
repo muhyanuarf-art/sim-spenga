@@ -9,7 +9,7 @@
         <form method="GET" class="flex flex-wrap gap-3 mb-4">
             <select name="status" class="input max-w-[200px]" onchange="this.form.submit()">
                 <option value="">Semua Status</option>
-                @foreach(['Direncanakan','Berlangsung','Selesai','Tidak Berhasil'] as $s)
+                @foreach(['Pembinaan','Selesai'] as $s)
                     <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
                 @endforeach
             </select>
@@ -27,7 +27,7 @@
                         <td><span class="badge bg-violet-50 text-violet-700">Tahap {{ $p->tahap }}</span></td>
                         <td class="text-slate-500">{{ $p->jenis_pembinaan }}</td>
                         <td>
-                            <span class="badge {{ $p->status === 'Selesai' ? 'bg-emerald-50 text-emerald-700' : ($p->status === 'Tidak Berhasil' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700') }}">
+                            <span class="badge {{ $p->status === 'Selesai' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
                                 {{ $p->status }}
                             </span>
                         </td>
