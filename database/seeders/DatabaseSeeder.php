@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             MataPelajaranSeeder::class,
             JamPelajaranSeeder::class,
             SiswaSeeder::class,
+            JenisPelanggaranSeeder::class,
         ]);
     }
 }
