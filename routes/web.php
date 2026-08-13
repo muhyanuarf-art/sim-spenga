@@ -18,6 +18,7 @@ use App\Http\Controllers\LaporanGuruController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
 use App\Http\Controllers\NotifikasiWhatsappController;
+use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
@@ -35,6 +36,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ===== PORTAL ORANG TUA: absensi & pelanggaran anak (read-only) =====
+    Route::prefix('ortu')->name('ortu.')->middleware('role:orang_tua')->group(function () {
+        Route::get('/', [OrangTuaController::class, 'index'])->name('index');
+        Route::get('anak/{siswa}', [OrangTuaController::class, 'show'])->name('show');
+    });
 
     // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
     // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),

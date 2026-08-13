@@ -21,6 +21,12 @@ class DashboardController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
         $today = now()->translatedFormat('l'); // nama hari
 
+        // Orang Tua/Wali Siswa: langsung ke portal anaknya (halaman terpisah,
+        // supaya bisa punya menu sendiri: pilih anak jika lebih dari 1).
+        if ($user->role === 'orang_tua') {
+            return redirect()->route('ortu.index');
+        }
+
         // Admin & Kepala Sekolah: ringkasan sekolah menyeluruh
         if ($user->role === 'admin' || $user->role === 'kepala_sekolah') {
             $totalSiswa = Siswa::where('is_active', true)->count();

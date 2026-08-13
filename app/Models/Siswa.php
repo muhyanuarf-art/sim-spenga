@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Siswa extends Model
@@ -35,4 +36,12 @@ class Siswa extends Model
     public function pembinaanBk(): HasMany { return $this->hasMany(PembinaanSiswa::class, 'siswa_id'); }
     public function penguranganPoinBk(): HasMany { return $this->hasMany(PenguranganPoinSiswa::class, 'siswa_id'); }
     public function pemanggilanOrtuBk(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'siswa_id'); }
+
+    /** Akun-akun Orang Tua/Wali (users.role = orang_tua) yang ditautkan ke siswa ini. */
+    public function orangTuaAkun(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'orang_tua_siswa', 'siswa_id', 'user_id')
+            ->withPivot('hubungan')
+            ->withTimestamps();
+    }
 }

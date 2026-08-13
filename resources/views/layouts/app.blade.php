@@ -49,9 +49,21 @@
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1 text-base">
             @php $user = auth()->user(); @endphp
 
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-active' : '' }}">
-                <span class="text-lg">🏠</span> Dashboard
+            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') || request()->routeIs('ortu.*') ? 'nav-active' : '' }}">
+                <span class="text-lg">🏠</span> {{ $user->role === 'orang_tua' ? 'Beranda' : 'Dashboard' }}
             </a>
+
+            @if($user->role === 'orang_tua')
+                <p class="nav-section">Portal Orang Tua</p>
+                @foreach($user->anakAsuh()->orderBy('nama')->get() as $anak)
+                    <a href="{{ route('ortu.show', $anak) }}" class="nav-link {{ request()->routeIs('ortu.show') && request()->route('siswa')?->id === $anak->id ? 'nav-active' : '' }}">
+                        <span class="text-lg">🧒</span> {{ $anak->nama }}
+                    </a>
+                @endforeach
+                @if($user->anakAsuh()->count() === 0)
+                    <p class="px-3 text-xs text-blue-200/70">Belum ada data anak yang ditautkan. Hubungi Admin sekolah.</p>
+                @endif
+            @endif
 
             @if($user->role === 'guru' || $user->role === 'admin')
                 <p class="nav-section">Guru Mapel</p>

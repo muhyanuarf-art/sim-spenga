@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -36,6 +37,7 @@ class User extends Authenticatable
     public function isKurikulum(): bool { return $this->role === 'kurikulum'; }
     public function isGuru(): bool { return $this->role === 'guru'; }
     public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
+    public function isOrangTua(): bool { return $this->role === 'orang_tua'; }
     public function isWaliKelas(): bool { return $this->kelasWali()->exists(); }
 
     // ==== Relations ====
@@ -76,6 +78,20 @@ class User extends Authenticatable
         return $this->hasMany(JurnalMengajar::class, 'guru_id');
     }
 
+    /** Anak (siswa) yang ditautkan ke akun Orang Tua ini. */
+    public function anakAsuh(): BelongsToMany
+    {
+        return $this->belongsToMany(Siswa::class, 'orang_tua_siswa', 'user_id', 'siswa_id')
+            ->withPivot('hubungan')
+            ->withTimestamps();
+    }
+
+    /** Cek apakah akun Orang Tua ini ditautkan ke siswa tertentu. */
+    public function bisaAksesAnak(Siswa $siswa): bool
+    {
+        return $this->anakAsuh()->where('siswas.id', $siswa->id)->exists();
+    }
+
     public function roleLabel(): string
     {
         return match ($this->role) {
@@ -83,6 +99,7 @@ class User extends Authenticatable
             'kepala_sekolah' => 'Kepala Sekolah',
             'kurikulum' => 'Kurikulum',
             'guru_bk' => 'Guru BK',
+            'orang_tua' => 'Orang Tua/Wali Siswa',
             'guru' => $this->isWaliKelas() ? 'Guru / Wali Kelas' : 'Guru Mapel',
             default => ucfirst($this->role),
         };
