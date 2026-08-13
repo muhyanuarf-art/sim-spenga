@@ -1,0 +1,23 @@
+diff --git a/app/Http/Controllers/DashboardController.php b/app/Http/Controllers/DashboardController.php
+index 41d3ba3..b43cef6 100644
+--- a/app/Http/Controllers/DashboardController.php
++++ b/app/Http/Controllers/DashboardController.php
+@@ -88,6 +88,18 @@ class DashboardController extends Controller
+             ));
+         }
+ 
++        // Kesiswaan: view-only, HANYA monitoring kehadiran siswa (bukan
++        // jurnal mengajar guru ataupun mapping kelas — itu urusan
++        // Kurikulum). Tidak ada tautan ke halaman lain di sini, karena
++        // role ini memang tidak diberi akses ke halaman manapun selain
++        // dashboard.
++        if ($user->role === 'kesiswaan') {
++            $totalSiswa = Siswa::where('is_active', true)->count();
++            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
++
++            return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'tahunAjaran'));
++        }
++
+         // Guru BK: monitoring absensi lintas kelas sesuai mapping-nya
+         if ($user->role === 'guru_bk') {
+             $kelasBk = $user->kelasBk();
