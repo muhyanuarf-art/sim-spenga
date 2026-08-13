@@ -13,7 +13,6 @@
                 <option value="kurikulum" {{ request('role')=='kurikulum'?'selected':'' }}>Kurikulum</option>
                 <option value="guru" {{ request('role')=='guru'?'selected':'' }}>Guru</option>
                 <option value="guru_bk" {{ request('role')=='guru_bk'?'selected':'' }}>Guru BK</option>
-                <option value="orang_tua" {{ request('role')=='orang_tua'?'selected':'' }}>Orang Tua</option>
             </select>
             <button class="btn-outline">Cari</button>
         </form>
@@ -34,17 +33,8 @@
                 <option value="kurikulum">Kurikulum</option>
                 <option value="kepala_sekolah">Kepala Sekolah</option>
                 <option value="admin">Admin</option>
-                <option value="orang_tua">Orang Tua/Wali Siswa</option>
             </select>
             <input type="text" name="no_hp" placeholder="No. HP (opsional)" class="input">
-            <div class="sm:col-span-3" x-show="role === 'orang_tua'" x-cloak>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tautkan ke Anak (bisa pilih lebih dari 1, tahan Ctrl/Cmd untuk memilih beberapa)</label>
-                <select name="anak_ids[]" multiple size="6" class="input">
-                    @foreach($siswaList as $s)
-                        <option value="{{ $s->id }}">{{ $s->nama }} — {{ $s->nis }} ({{ $s->kelas->nama_kelas ?? '-' }})</option>
-                    @endforeach
-                </select>
-            </div>
             <button type="submit" class="btn-primary h-[38px]">Simpan</button>
         </form>
     </div>
@@ -61,9 +51,6 @@
                         <td>{{ $u->email }}</td>
                         <td>
                             <span class="badge bg-brand-50 text-brand-700">{{ $u->roleLabel() }}</span>
-                            @if($u->role === 'orang_tua' && $u->anakAsuh->isNotEmpty())
-                                <p class="text-[11px] text-slate-400 mt-1">Anak: {{ $u->anakAsuh->pluck('nama')->join(', ') }}</p>
-                            @endif
                         </td>
                         <td>
                             @if($u->is_active)<span class="badge bg-emerald-50 text-emerald-700">Aktif</span>
@@ -93,7 +80,6 @@
                                     <option value="kurikulum" {{ $u->role === 'kurikulum' ? 'selected' : '' }}>Kurikulum</option>
                                     <option value="kepala_sekolah" {{ $u->role === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
                                     <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                                    <option value="orang_tua" {{ $u->role === 'orang_tua' ? 'selected' : '' }}>Orang Tua/Wali Siswa</option>
                                 </select>
                                 <input type="text" name="no_hp" value="{{ $u->no_hp }}" placeholder="No. HP (opsional)" class="input">
                                 <label class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold">
@@ -101,14 +87,6 @@
                                     <input type="checkbox" name="is_active" value="1" {{ $u->is_active ? 'checked' : '' }} class="rounded">
                                     Aktif
                                 </label>
-                                <div class="sm:col-span-3" x-show="role === 'orang_tua'" x-cloak>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tautkan ke Anak (bisa pilih lebih dari 1, tahan Ctrl/Cmd untuk memilih beberapa)</label>
-                                    <select name="anak_ids[]" multiple size="6" class="input">
-                                        @foreach($siswaList as $s)
-                                            <option value="{{ $s->id }}" {{ $u->anakAsuh->contains('id', $s->id) ? 'selected' : '' }}>{{ $s->nama }} — {{ $s->nis }} ({{ $s->kelas->nama_kelas ?? '-' }})</option>
-                                        @endforeach
-                                    </select>
-                                </div>
                                 <div class="flex gap-2 sm:col-span-3">
                                     <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                                     <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>
