@@ -2,16 +2,16 @@
 
 namespace Database\Seeders;
 
+use App\Models\OrangTua;
 use App\Models\Siswa;
-use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class OrangTuaSeeder extends Seeder
 {
     /**
-     * Contoh akun demo Orang Tua, ditautkan ke 2 siswa pertama kelas 7A
-     * (dari SiswaSeeder) supaya alur portal Orang Tua bisa langsung dicoba.
+     * Contoh akun demo Orang Tua (login pakai NIS), ditautkan ke 2 siswa
+     * pertama kelas 7A (dari SiswaSeeder) supaya alur portal Orang Tua
+     * bisa langsung dicoba. Password sama untuk semua akun demo: "password".
      */
     public function run(): void
     {
@@ -24,15 +24,14 @@ class OrangTuaSeeder extends Seeder
             return; // SiswaSeeder belum jalan / kelas 7A belum ada
         }
 
-        $ortu = User::updateOrCreate(
-            ['email' => 'ortu@spenga.sch.id'],
-            [
-                'name' => 'Orang Tua Contoh',
-                'password' => Hash::make('password'),
-                'role' => 'orang_tua',
-            ]
-        );
-
-        $ortu->anakAsuh()->sync($anakContoh->pluck('id'));
+        foreach ($anakContoh as $siswa) {
+            OrangTua::updateOrCreate(
+                ['siswa_id' => $siswa->id],
+                [
+                    'nis' => $siswa->nis,
+                    'password' => 'password',
+                ]
+            );
+        }
     }
 }
