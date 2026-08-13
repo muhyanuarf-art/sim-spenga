@@ -1,0 +1,243 @@
+From 699047836a3d4f054ca5ac067c68c23e8cd25d61 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Thu, 13 Aug 2026 08:08:53 +0000
+Subject: [PATCH] feat: samakan dashboard Kesiswaan dengan dashboard BK (tanpa
+ Jurnal Kelas) + tambah menu Pantau Pelanggaran view-only
+
+---
+ app/Http/Controllers/DashboardController.php  | 25 ++++++---
+ app/Models/User.php                           |  1 +
+ app/Support/BkAccessScope.php                 | 10 ++--
+ resources/views/dashboard/kesiswaan.blade.php | 52 ++++++++++++++++---
+ resources/views/layouts/app.blade.php         | 11 +++-
+ routes/web.php                                | 18 ++++---
+ 6 files changed, 91 insertions(+), 26 deletions(-)
+
+diff --git a/app/Http/Controllers/DashboardController.php b/app/Http/Controllers/DashboardController.php
+index b43cef6..29080b6 100644
+--- a/app/Http/Controllers/DashboardController.php
++++ b/app/Http/Controllers/DashboardController.php
+@@ -88,16 +88,29 @@ class DashboardController extends Controller
+             ));
+         }
+ 
+-        // Kesiswaan: view-only, HANYA monitoring kehadiran siswa (bukan
+-        // jurnal mengajar guru ataupun mapping kelas — itu urusan
+-        // Kurikulum). Tidak ada tautan ke halaman lain di sini, karena
+-        // role ini memang tidak diberi akses ke halaman manapun selain
+-        // dashboard.
++        // Kesiswaan: view-only, monitoring kehadiran siswa se-sekolah
++        // (bukan per-mapping seperti Guru BK) + pantauan pelanggaran yang
++        // datanya berasal dari inputan Guru BK (lihat modul BK, akses
++        // view-only diatur lewat middleware role di routes).
+         if ($user->role === 'kesiswaan') {
+             $totalSiswa = Siswa::where('is_active', true)->count();
+             $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
+ 
+-            return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'tahunAjaran'));
++            $rekapPerKelas = Kelas::orderBy('nama_kelas')->get()->map(function ($kelas) {
++                $totalSiswaKelas = $kelas->siswas()->where('is_active', true)->count();
++                $alfaHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
++                    ->whereDate('tanggal', now()->toDateString())
++                    ->where('status', 'Alfa')
++                    ->distinct('siswa_id')
++                    ->count('siswa_id');
++                return [
++                    'kelas' => $kelas,
++                    'total_siswa' => $totalSiswaKelas,
++                    'alfa_hari_ini' => $alfaHariIni,
++                ];
++            });
++
++            return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'rekapPerKelas', 'tahunAjaran'));
+         }
+ 
+         // Guru BK: monitoring absensi lintas kelas sesuai mapping-nya
+diff --git a/app/Models/User.php b/app/Models/User.php
+index f0a50c5..42e2396 100644
+--- a/app/Models/User.php
++++ b/app/Models/User.php
+@@ -36,6 +36,7 @@ class User extends Authenticatable
+     public function isKurikulum(): bool { return $this->role === 'kurikulum'; }
+     public function isGuru(): bool { return $this->role === 'guru'; }
+     public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
++    public function isKesiswaan(): bool { return $this->role === 'kesiswaan'; }
+     public function isWaliKelas(): bool { return $this->kelasWali()->exists(); }
+ 
+     // ==== Relations ====
+diff --git a/app/Support/BkAccessScope.php b/app/Support/BkAccessScope.php
+index 642371b..1618b30 100644
+--- a/app/Support/BkAccessScope.php
++++ b/app/Support/BkAccessScope.php
+@@ -7,9 +7,9 @@ use App\Models\User;
+ 
+ /**
+  * Aturan cakupan akses modul BK (Bagian 20 spec):
+- * - Admin, Kurikulum, Kepala Sekolah: semua siswa/kelas (view; hanya
+- *   Admin & Guru BK yang boleh MENGUBAH data — dicek terpisah per aksi
+- *   lewat middleware role di routes).
++ * - Admin, Kurikulum, Kepala Sekolah, Kesiswaan: semua siswa/kelas (view;
++ *   hanya Admin & Guru BK yang boleh MENGUBAH data — dicek terpisah per
++ *   aksi lewat middleware role di routes).
+  * - Guru BK: siswa di kelas-kelas yang di-mapping-kan kepadanya
+  *   (tabel guru_bk_kelas — reuse dari fitur monitoring absensi).
+  * - Wali Kelas: siswa di kelasnya sendiri saja.
+@@ -21,7 +21,7 @@ trait BkAccessScope
+ {
+     protected function bkBisaAksesSiswa(User $user, Siswa $siswa): bool
+     {
+-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
++        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+             return true;
+         }
+         if ($user->role === 'guru_bk') {
+@@ -36,7 +36,7 @@ trait BkAccessScope
+     /** Daftar kelas_id yang boleh diakses user (dipakai untuk filter query listing). Null = boleh semua. */
+     protected function bkKelasIdsUntukUser(User $user): ?array
+     {
+-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
++        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+             return null; // semua kelas
+         }
+         if ($user->role === 'guru_bk') {
+diff --git a/resources/views/dashboard/kesiswaan.blade.php b/resources/views/dashboard/kesiswaan.blade.php
+index 5cd4e02..4ced5a0 100644
+--- a/resources/views/dashboard/kesiswaan.blade.php
++++ b/resources/views/dashboard/kesiswaan.blade.php
+@@ -3,17 +3,53 @@
+ 
+ @section('content')
+ <div class="space-y-6">
+-    @if(!$tahunAjaran)
++    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-violet-600 to-indigo-500 text-white px-5 py-4 shadow-lg shadow-violet-500/20">
++        <div class="relative z-10">
++            <p class="font-bold flex items-center gap-2">🧭 Dashboard Kesiswaan</p>
++            <p class="text-sm text-white/80">
++                Memantau kehadiran siswa di seluruh kelas ({{ $totalSiswa }} siswa aktif).
++            </p>
++        </div>
++        <div class="absolute -right-6 -bottom-10 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
++    </div>
++
++    @if($rekapPerKelas->isEmpty())
+         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
+-            ⚠️ Belum ada Tahun Ajaran aktif.
++            ⚠️ Belum ada data kelas.
++        </div>
++    @else
++        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
++            @foreach($rekapPerKelas as $r)
++            <a href="{{ route('walikelas.absensi-bulanan', $r['kelas']) }}"
++               class="relative overflow-hidden rounded-2xl border p-4 transition block
++                    {{ $r['alfa_hari_ini'] > 0 ? 'border-rose-200 bg-gradient-to-br from-rose-50 to-white hover:shadow-md' : 'border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:shadow-md' }}">
++                <p class="font-bold text-slate-800">Kelas {{ $r['kelas']->nama_kelas }}</p>
++                <p class="text-xs text-slate-400 mb-2">{{ $r['total_siswa'] }} siswa</p>
++                @if($r['alfa_hari_ini'] > 0)
++                    <span class="badge bg-rose-100 text-rose-700">🚩 {{ $r['alfa_hari_ini'] }} Alfa hari ini</span>
++                @else
++                    <span class="badge bg-emerald-100 text-emerald-700">✅ Aman hari ini</span>
++                @endif
++            </a>
++            @endforeach
+         </div>
+-    @endif
+ 
+-    <div class="grid grid-cols-2 gap-4 max-w-md">
+-        <x-stat-card color="brand" icon="🎓" label="Total Siswa Aktif" :value="$totalSiswa" />
+-        <x-stat-card color="rose" icon="🚩" label="Alfa Hari Ini" :value="$siswaAlfaHariIni->count()" />
+-    </div>
++        <x-alfa-widget :data="$siswaAlfaHariIni" title="Siswa Alfa Hari Ini — Seluruh Sekolah" />
+ 
+-    <x-alfa-widget :data="$siswaAlfaHariIni" />
++        <div class="card p-5">
++            <p class="font-bold text-slate-800 mb-1">Menu Monitoring</p>
++            <p class="text-sm text-slate-400 mb-4">Pantau lebih detail per kelas lewat menu berikut (bisa ganti kelas di dalamnya).</p>
++            <div class="grid sm:grid-cols-2 gap-3">
++                <a href="{{ route('walikelas.absensi-bulanan') }}" class="card p-4 hover:shadow-md hover:border-violet-200 transition group">
++                    <div class="w-9 h-9 rounded-xl bg-violet-500 text-white flex items-center justify-center text-lg mb-2 shadow-lg shadow-violet-500/30">📅</div>
++                    <p class="font-semibold text-slate-800 group-hover:text-violet-600 text-sm">Rekap Absensi Bulanan</p>
++                </a>
++                <a href="{{ route('notifikasi-wa.index') }}" class="card p-4 hover:shadow-md hover:border-emerald-200 transition group">
++                    <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-lg mb-2 shadow-lg shadow-emerald-500/30">📲</div>
++                    <p class="font-semibold text-slate-800 group-hover:text-emerald-600 text-sm">Status WhatsApp Ortu</p>
++                </a>
++            </div>
++        </div>
++    @endif
+ </div>
+ @endsection
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+index c7424ba..d465b3c 100644
+--- a/resources/views/layouts/app.blade.php
++++ b/resources/views/layouts/app.blade.php
+@@ -91,14 +91,23 @@
+                 @endif
+             @endif
+ 
+-            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || ($user->role === 'guru' && $user->isWaliKelas()))
++            @if($user->role === 'kesiswaan')
++                <p class="nav-section">PELANGGARAN</p>
++                <a href="{{ route('bk.dashboard') }}" class="nav-link {{ request()->routeIs('bk.dashboard') ? 'nav-active' : '' }}">
++                    <span class="text-lg">🧭</span> Pantau Pelanggaran
++                </a>
++            @endif
++
++            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
+                 <p class="nav-section">Monitoring Kelas</p>
+                 <a href="{{ route('walikelas.absensi-bulanan') }}" class="nav-link {{ request()->routeIs('walikelas.absensi-bulanan') ? 'nav-active' : '' }}">
+                     <span class="text-lg">📊</span> Rekap Absensi Bulanan
+                 </a>
++                @if($user->role !== 'kesiswaan')
+                 <a href="{{ route('walikelas.jurnal-kelas') }}" class="nav-link {{ request()->routeIs('walikelas.jurnal-kelas') ? 'nav-active' : '' }}">
+                     <span class="text-lg">📔</span> Jurnal Mengajar Kelas
+                 </a>
++                @endif
+             @endif
+ 
+             @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
+diff --git a/routes/web.php b/routes/web.php
+index baea851..8f6ace2 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -56,8 +56,8 @@ Route::middleware('auth')->group(function () {
+ 
+     // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
+     // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),
+-    // Guru BK (kelola penuh sesuai kelas mapping), Kurikulum/Kepsek (view semua).
+-    Route::prefix('bk')->name('bk.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
++    // Guru BK (kelola penuh sesuai kelas mapping), Kurikulum/Kepsek/Kesiswaan (view semua).
++    Route::prefix('bk')->name('bk.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
+         Route::get('dashboard', [BkDashboardController::class, 'index'])->name('dashboard');
+ 
+         Route::get('siswa', [BkSiswaController::class, 'index'])->name('siswa.index');
+@@ -107,9 +107,15 @@ Route::middleware('auth')->group(function () {
+     });
+ 
+     // ===== WALI KELAS / GURU BK: rekap absensi bulanan + jurnal kelas =====
+-    Route::prefix('wali-kelas')->name('walikelas.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
+-        Route::get('absensi-bulanan/{kelas?}', [WaliKelasController::class, 'absensiBulanan'])->name('absensi-bulanan');
+-        Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
++    // Kesiswaan HANYA dapat akses rekap absensi bulanan (bukan jurnal
++    // kelas — itu tetap urusan Guru/Wali Kelas/BK/Kurikulum/Kepsek).
++    Route::prefix('wali-kelas')->name('walikelas.')->group(function () {
++        Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
++            Route::get('absensi-bulanan/{kelas?}', [WaliKelasController::class, 'absensiBulanan'])->name('absensi-bulanan');
++        });
++        Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
++            Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
++        });
+     });
+ 
+     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====
+@@ -120,7 +126,7 @@ Route::middleware('auth')->group(function () {
+ 
+     // ===== STATUS WHATSAPP ORTU: histori notifikasi Alfa (semua role,
+     // cakupan datanya dibatasi per role di controller) =====
+-    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
++    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
+         Route::get('notifikasi-wa', [NotifikasiWhatsappController::class, 'index'])->name('notifikasi-wa.index');
+     });
+ 
+-- 
+2.43.0
+
