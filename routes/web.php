@@ -56,8 +56,8 @@ Route::middleware('auth')->group(function () {
 
     // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
     // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),
-    // Guru BK (kelola penuh sesuai kelas mapping), Kurikulum/Kepsek (view semua).
-    Route::prefix('bk')->name('bk.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
+    // Guru BK (kelola penuh sesuai kelas mapping), Kurikulum/Kepsek/Kesiswaan (view semua).
+    Route::prefix('bk')->name('bk.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
         Route::get('dashboard', [BkDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('siswa', [BkSiswaController::class, 'index'])->name('siswa.index');
@@ -107,9 +107,15 @@ Route::middleware('auth')->group(function () {
     });
 
     // ===== WALI KELAS / GURU BK: rekap absensi bulanan + jurnal kelas =====
-    Route::prefix('wali-kelas')->name('walikelas.')->middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
-        Route::get('absensi-bulanan/{kelas?}', [WaliKelasController::class, 'absensiBulanan'])->name('absensi-bulanan');
-        Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
+    // Kesiswaan HANYA dapat akses rekap absensi bulanan (bukan jurnal
+    // kelas — itu tetap urusan Guru/Wali Kelas/BK/Kurikulum/Kepsek).
+    Route::prefix('wali-kelas')->name('walikelas.')->group(function () {
+        Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
+            Route::get('absensi-bulanan/{kelas?}', [WaliKelasController::class, 'absensiBulanan'])->name('absensi-bulanan');
+        });
+        Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
+            Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
+        });
     });
 
     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====
@@ -120,7 +126,7 @@ Route::middleware('auth')->group(function () {
 
     // ===== STATUS WHATSAPP ORTU: histori notifikasi Alfa (semua role,
     // cakupan datanya dibatasi per role di controller) =====
-    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
+    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
         Route::get('notifikasi-wa', [NotifikasiWhatsappController::class, 'index'])->name('notifikasi-wa.index');
     });
 

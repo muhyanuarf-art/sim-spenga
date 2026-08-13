@@ -88,16 +88,29 @@ class DashboardController extends Controller
             ));
         }
 
-        // Kesiswaan: view-only, HANYA monitoring kehadiran siswa (bukan
-        // jurnal mengajar guru ataupun mapping kelas — itu urusan
-        // Kurikulum). Tidak ada tautan ke halaman lain di sini, karena
-        // role ini memang tidak diberi akses ke halaman manapun selain
-        // dashboard.
+        // Kesiswaan: view-only, monitoring kehadiran siswa se-sekolah
+        // (bukan per-mapping seperti Guru BK) + pantauan pelanggaran yang
+        // datanya berasal dari inputan Guru BK (lihat modul BK, akses
+        // view-only diatur lewat middleware role di routes).
         if ($user->role === 'kesiswaan') {
             $totalSiswa = Siswa::where('is_active', true)->count();
             $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
 
-            return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'tahunAjaran'));
+            $rekapPerKelas = Kelas::orderBy('nama_kelas')->get()->map(function ($kelas) {
+                $totalSiswaKelas = $kelas->siswas()->where('is_active', true)->count();
+                $alfaHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
+                    ->whereDate('tanggal', now()->toDateString())
+                    ->where('status', 'Alfa')
+                    ->distinct('siswa_id')
+                    ->count('siswa_id');
+                return [
+                    'kelas' => $kelas,
+                    'total_siswa' => $totalSiswaKelas,
+                    'alfa_hari_ini' => $alfaHariIni,
+                ];
+            });
+
+            return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'rekapPerKelas', 'tahunAjaran'));
         }
 
         // Guru BK: monitoring absensi lintas kelas sesuai mapping-nya

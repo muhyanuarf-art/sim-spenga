@@ -91,14 +91,23 @@
                 @endif
             @endif
 
-            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || ($user->role === 'guru' && $user->isWaliKelas()))
+            @if($user->role === 'kesiswaan')
+                <p class="nav-section">PELANGGARAN</p>
+                <a href="{{ route('bk.dashboard') }}" class="nav-link {{ request()->routeIs('bk.dashboard') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🧭</span> Pantau Pelanggaran
+                </a>
+            @endif
+
+            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
                 <p class="nav-section">Monitoring Kelas</p>
                 <a href="{{ route('walikelas.absensi-bulanan') }}" class="nav-link {{ request()->routeIs('walikelas.absensi-bulanan') ? 'nav-active' : '' }}">
                     <span class="text-lg">📊</span> Rekap Absensi Bulanan
                 </a>
+                @if($user->role !== 'kesiswaan')
                 <a href="{{ route('walikelas.jurnal-kelas') }}" class="nav-link {{ request()->routeIs('walikelas.jurnal-kelas') ? 'nav-active' : '' }}">
                     <span class="text-lg">📔</span> Jurnal Mengajar Kelas
                 </a>
+                @endif
             @endif
 
             @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))

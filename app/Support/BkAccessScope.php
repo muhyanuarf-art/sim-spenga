@@ -7,9 +7,9 @@ use App\Models\User;
 
 /**
  * Aturan cakupan akses modul BK (Bagian 20 spec):
- * - Admin, Kurikulum, Kepala Sekolah: semua siswa/kelas (view; hanya
- *   Admin & Guru BK yang boleh MENGUBAH data — dicek terpisah per aksi
- *   lewat middleware role di routes).
+ * - Admin, Kurikulum, Kepala Sekolah, Kesiswaan: semua siswa/kelas (view;
+ *   hanya Admin & Guru BK yang boleh MENGUBAH data — dicek terpisah per
+ *   aksi lewat middleware role di routes).
  * - Guru BK: siswa di kelas-kelas yang di-mapping-kan kepadanya
  *   (tabel guru_bk_kelas — reuse dari fitur monitoring absensi).
  * - Wali Kelas: siswa di kelasnya sendiri saja.
@@ -21,7 +21,7 @@ trait BkAccessScope
 {
     protected function bkBisaAksesSiswa(User $user, Siswa $siswa): bool
     {
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return true;
         }
         if ($user->role === 'guru_bk') {
@@ -36,7 +36,7 @@ trait BkAccessScope
     /** Daftar kelas_id yang boleh diakses user (dipakai untuk filter query listing). Null = boleh semua. */
     protected function bkKelasIdsUntukUser(User $user): ?array
     {
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return null; // semua kelas
         }
         if ($user->role === 'guru_bk') {

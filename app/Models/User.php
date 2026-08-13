@@ -36,6 +36,7 @@ class User extends Authenticatable
     public function isKurikulum(): bool { return $this->role === 'kurikulum'; }
     public function isGuru(): bool { return $this->role === 'guru'; }
     public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
+    public function isKesiswaan(): bool { return $this->role === 'kesiswaan'; }
     public function isWaliKelas(): bool { return $this->kelasWali()->exists(); }
 
     // ==== Relations ====
