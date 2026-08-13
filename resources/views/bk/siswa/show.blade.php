@@ -60,22 +60,69 @@
     </div>
 
     {{-- Timeline --}}
-    <div class="card p-5">
-        <p class="font-bold text-slate-800 mb-1">Riwayat Perkembangan</p>
-        <p class="text-xs text-slate-400 mb-4">Diurutkan dari catatan paling awal ke paling baru.</p>
+    <div class="card p-5" @if($timeline->isNotEmpty()) x-data="{ filter: 'semua' }" @endif>
+        <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+            <div>
+                <p class="font-bold text-slate-800 mb-1">Riwayat Perkembangan</p>
+                <p class="text-xs text-slate-400">Diurutkan dari catatan paling awal ke paling baru &middot; {{ $timeline->count() }} catatan.</p>
+            </div>
+            @if($timeline->isNotEmpty())
+            <div class="flex flex-wrap gap-1.5">
+                <button type="button" @click="filter = 'semua'"
+                    :class="filter === 'semua' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                    class="text-xs font-semibold px-3 py-1.5 rounded-full transition">
+                    Semua ({{ $timeline->count() }})
+                </button>
+                @foreach([
+                    'kasus' => ['📁', 'Kasus'],
+                    'pembinaan' => ['🤝', 'Pembinaan'],
+                    'pengurangan' => ['✅', 'Pengurangan'],
+                    'pemanggilan' => ['📞', 'Panggil Ortu'],
+                ] as $jenisKey => [$icon, $label])
+                    @php $jumlahJenis = $timeline->where('jenis', $jenisKey)->count(); @endphp
+                    @if($jumlahJenis > 0)
+                    <button type="button" @click="filter = '{{ $jenisKey }}'"
+                        :class="filter === '{{ $jenisKey }}' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                        class="text-xs font-semibold px-3 py-1.5 rounded-full transition">
+                        {{ $icon }} {{ $label }} ({{ $jumlahJenis }})
+                    </button>
+                    @endif
+                @endforeach
+            </div>
+            @endif
+        </div>
+
         @if($timeline->isEmpty())
             <p class="text-sm text-slate-400 py-8 text-center">Belum ada riwayat.</p>
         @else
-        <div class="space-y-3">
+        <div class="space-y-0">
             @foreach($timeline as $item)
-            @php $d = $item['data']; @endphp
-            <div class="flex gap-3 border-l-2 pl-4 pb-3
-                {{ $item['jenis'] === 'kasus' ? 'border-rose-200' : ($item['jenis'] === 'pengurangan' ? 'border-emerald-200' : ($item['jenis'] === 'pembinaan' ? 'border-violet-200' : 'border-sky-200')) }}">
-                <div class="flex-1">
-                    <p class="text-xs text-slate-400">
-                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold mr-1">{{ $loop->iteration }}</span>
-                        {{ $item['tanggal']->translatedFormat('d F Y') }}
-                    </p>
+            @php
+                $d = $item['data'];
+                $tampilan = match ($item['jenis']) {
+                    'kasus' => ['📁', 'bg-rose-100 text-rose-600', 'Kasus/Pelanggaran'],
+                    'pembinaan' => ['🤝', 'bg-violet-100 text-violet-600', 'Pembinaan'],
+                    'pengurangan' => ['✅', 'bg-emerald-100 text-emerald-600', 'Pengurangan Poin'],
+                    default => ['📞', 'bg-sky-100 text-sky-600', 'Pemanggilan Orang Tua'],
+                };
+                [$ikon, $kelasIkon, $labelJenis] = $tampilan;
+            @endphp
+            <div x-show="filter === 'semua' || filter === '{{ $item['jenis'] }}'" x-cloak class="flex gap-3">
+                {{-- Node ikon + garis penghubung --}}
+                <div class="flex flex-col items-center shrink-0">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 {{ $kelasIkon }}">{{ $ikon }}</div>
+                    @if(!$loop->last)<div class="w-px flex-1 bg-slate-200 my-1" style="min-height: 0.5rem;"></div>@endif
+                </div>
+
+                {{-- Kartu isi --}}
+                <div class="flex-1 rounded-xl bg-slate-50 border border-slate-100 p-3.5 mb-3">
+                    <div class="flex items-center justify-between flex-wrap gap-x-3 gap-y-0.5 mb-1.5">
+                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-400">#{{ $loop->iteration }} &middot; {{ $labelJenis }}</span>
+                        <span class="text-xs text-slate-400 whitespace-nowrap">
+                            {{ $item['tanggal']->translatedFormat('d F Y') }}
+                            <span class="text-slate-300">&middot; {{ $item['tanggal']->diffForHumans() }}</span>
+                        </span>
+                    </div>
 
                     @if($item['jenis'] === 'kasus')
                         <p class="font-semibold text-slate-800">
