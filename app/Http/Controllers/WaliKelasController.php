@@ -13,8 +13,8 @@ class WaliKelasController extends Controller
      * Rekap absensi bulanan 1 lembar: NIS, Nama, Tanggal 1-31, Sakit, Izin, Alfa, Jumlah.
      * Bisa dipilih bulan berapapun sepanjang tahun ajaran berjalan.
      *
-     * Dipakai oleh 3 kelompok pengguna:
-     * - Admin/Kurikulum/Kepala Sekolah: bebas pilih kelas manapun.
+     * Dipakai oleh 4 kelompok pengguna:
+     * - Admin/Kurikulum/Kepala Sekolah/Kesiswaan: bebas pilih kelas manapun.
      * - Guru (Wali Kelas): terkunci ke 1 kelas walinya sendiri.
      * - Guru BK: bebas pilih di antara kelas-kelas yang di-mapping-kan
      *   kepadanya (lihat menu Mapping Guru BK oleh Kurikulum/Admin).
@@ -25,7 +25,7 @@ class WaliKelasController extends Controller
         $kelas = $kelas ?? $this->resolveKelasDefault($user);
         $daftarKelas = $this->resolveDaftarKelasPilihan($user);
 
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             $kelasId = $request->get('kelas_id', $kelas?->id);
             $kelas = Kelas::findOrFail($kelasId);
         } elseif ($user->role === 'guru_bk') {
@@ -138,7 +138,7 @@ class WaliKelasController extends Controller
         if ($user->role === 'guru_bk') {
             return $user->kelasBk()->first();
         }
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return Kelas::orderBy('nama_kelas')->first();
         }
         return $this->resolveKelasWali($user);
@@ -150,7 +150,7 @@ class WaliKelasController extends Controller
         if ($user->role === 'guru_bk') {
             return $user->kelasBk();
         }
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return Kelas::orderBy('nama_kelas')->get();
         }
         return collect(); // wali kelas: terkunci ke 1 kelas, dropdown tidak dipakai

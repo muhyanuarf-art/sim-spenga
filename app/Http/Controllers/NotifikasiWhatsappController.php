@@ -31,7 +31,7 @@ class NotifikasiWhatsappController extends Controller
             ->whereYear('tanggal', $tahun);
 
         $kelasWali = null;
-        $bisaFilterKelas = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah']);
+        $bisaFilterKelas = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan']);
         $tanpaAksesData = false;
         $kelasBkList = collect();
 
