@@ -1,0 +1,50 @@
+diff --git a/routes/web.php b/routes/web.php
+index ea6e727..baea851 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
+             Route::put('/{guruMengajar}', [GuruMengajarController::class, 'update'])->name('update');
+             Route::delete('/{guruMengajar}', [GuruMengajarController::class, 'destroy'])->name('destroy');
+             Route::get('/import', [GuruMengajarController::class, 'importForm'])->name('import.form');
++            Route::get('/template', [GuruMengajarController::class, 'template'])->name('template');
+             Route::post('/import', [GuruMengajarController::class, 'import'])->name('import');
+         });
+ 
+@@ -147,11 +148,13 @@ Route::middleware('auth')->group(function () {
+             Route::put('/{jadwal}', [JadwalController::class, 'update'])->name('update');
+             Route::delete('/{jadwal}', [JadwalController::class, 'destroy'])->name('destroy');
+             Route::get('/import', [JadwalController::class, 'importForm'])->name('import.form');
++            Route::get('/template', [JadwalController::class, 'template'])->name('template');
+             Route::post('/import', [JadwalController::class, 'import'])->name('import');
+         });
+ 
+         Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);
+         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
++        Route::get('siswa-import/template', [SiswaController::class, 'template'])->name('siswa.template');
+         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');
+ 
+         Route::get('data-orangtua', [OrangTuaController::class, 'index'])->name('orangtua-akun.index');
+@@ -162,7 +165,15 @@ Route::middleware('auth')->group(function () {
+         Route::delete('data-orangtua/{orangTua}', [OrangTuaController::class, 'destroy'])->name('orangtua-akun.destroy');
+ 
+         Route::resource('kelas', KelasController::class)->except(['create', 'edit', 'show'])->parameters(['kelas' => 'kelas']);
++        Route::get('kelas-import', [KelasController::class, 'importForm'])->name('kelas.import.form');
++        Route::get('kelas-import/template', [KelasController::class, 'template'])->name('kelas.template');
++        Route::post('kelas-import', [KelasController::class, 'import'])->name('kelas.import');
++
+         Route::resource('mapel', MataPelajaranController::class)->except(['create', 'edit', 'show']);
++        Route::get('mapel-import', [MataPelajaranController::class, 'importForm'])->name('mapel.import.form');
++        Route::get('mapel-import/template', [MataPelajaranController::class, 'template'])->name('mapel.template');
++        Route::post('mapel-import', [MataPelajaranController::class, 'import'])->name('mapel.import');
++
+         Route::resource('tahun-ajaran', TahunAjaranController::class)
+             ->except(['create', 'edit', 'show'])
+             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
+@@ -179,6 +190,7 @@ Route::middleware('auth')->group(function () {
+         Route::resource('jam-pelajaran', JamPelajaranController::class)
+             ->except(['create', 'edit', 'show'])
+             ->parameters(['jam-pelajaran' => 'jamPelajaran']);
++        Route::post('jam-pelajaran-salin', [JamPelajaranController::class, 'salin'])->name('jam-pelajaran.salin');
+         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
+     });
+ });
