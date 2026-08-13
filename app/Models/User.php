@@ -83,6 +83,7 @@ class User extends Authenticatable
             'kepala_sekolah' => 'Kepala Sekolah',
             'kurikulum' => 'Kurikulum',
             'guru_bk' => 'Guru BK',
+            'kesiswaan' => 'Kesiswaan',
             'guru' => $this->isWaliKelas() ? 'Guru / Wali Kelas' : 'Guru Mapel',
             default => ucfirst($this->role),
         };

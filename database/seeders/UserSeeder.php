@@ -59,5 +59,11 @@ class UserSeeder extends Seeder
                 ]
             );
         }
+
+        // Salah satu guru dijadikan contoh akun Kesiswaan (role view-only,
+        // lihat dashboard yang sama persis dengan Kurikulum). Di database
+        // sungguhan, admin cukup ganti role guru manapun lewat menu
+        // Kelola Pengguna -> Edit -> pilih role "Kesiswaan".
+        User::where('email', 'guru4@spenga.sch.id')->update(['role' => 'kesiswaan']);
     }
 }

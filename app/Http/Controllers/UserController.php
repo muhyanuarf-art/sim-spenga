@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    private const ROLES = ['admin', 'kepala_sekolah', 'kurikulum', 'guru', 'guru_bk'];
+    private const ROLES = ['admin', 'kepala_sekolah', 'kurikulum', 'guru', 'guru_bk', 'kesiswaan'];
 
     public function index(Request $request)
     {
