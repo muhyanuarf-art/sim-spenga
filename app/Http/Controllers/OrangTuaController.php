@@ -2,107 +2,95 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AbsensiSiswa;
-use App\Models\KasusSiswa;
-use App\Models\PemanggilanOrangTua;
-use App\Models\PembinaanSiswa;
+use App\Exports\TemplateExport;
+use App\Imports\OrangTuaImport;
+use App\Models\Kelas;
+use App\Models\OrangTua;
 use App\Models\Siswa;
-use App\Services\PoinSiswaService;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
-/**
- * Portal khusus akun Orang Tua/Wali Siswa (role: orang_tua).
- * Read-only: hanya menampilkan Absensi & Pelanggaran anak yang ditautkan
- * ke akun tersebut (lihat User::anakAsuh / tabel orang_tua_siswa).
- * Tidak ada aksi lapor/edit apa pun di sini — itu tetap domain guru/BK.
- */
 class OrangTuaController extends Controller
 {
-    /** Daftar anak yang ditautkan ke akun ini. Kalau cuma 1 anak, langsung ke profilnya. */
     public function index(Request $request)
     {
-        $user = $request->user();
-        $anakList = $user->anakAsuh()->with('kelas')->orderBy('nama')->get();
+        $query = OrangTua::with('siswa.kelas')
+            ->when($request->kelas_id, fn ($q) => $q->whereHas('siswa', fn ($s) => $s->where('kelas_id', $request->kelas_id)))
+            ->when($request->search, function ($q) use ($request) {
+                $q->where(function ($qq) use ($request) {
+                    $qq->where('nis', 'like', "%{$request->search}%")
+                       ->orWhereHas('siswa', fn ($s) => $s->where('nama', 'like', "%{$request->search}%"));
+                });
+            });
 
-        if ($anakList->isEmpty()) {
-            return view('ortu.index', ['anakList' => $anakList, 'ringkasanPerAnak' => collect()]);
-        }
+        $akunOrtu = $query->latest()->paginate(25)->withQueryString();
+        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        $jumlahSiswaBelumPunyaAkun = Siswa::where('is_active', true)
+            ->whereDoesntHave('orangTua')
+            ->count();
 
-        if ($anakList->count() === 1) {
-            return redirect()->route('ortu.show', $anakList->first());
-        }
-
-        $poinService = app(PoinSiswaService::class);
-        $ringkasanPerAnak = $anakList->mapWithKeys(function ($anak) use ($poinService) {
-            $bulan = now()->month;
-            $tahun = now()->year;
-            $absenBulanIni = AbsensiSiswa::where('siswa_id', $anak->id)
-                ->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)
-                ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
-                ->get();
-            $final = AbsensiSiswa::finalPerHari($absenBulanIni);
-
-            return [$anak->id => [
-                'sakit' => $final->where('status', 'Sakit')->count(),
-                'izin' => $final->where('status', 'Izin')->count(),
-                'alfa' => $final->where('status', 'Alfa')->count(),
-                'poin_aktif' => $poinService->poinAktif($anak),
-            ]];
-        });
-
-        return view('ortu.index', compact('anakList', 'ringkasanPerAnak'));
+        return view('orangtua.index', compact('akunOrtu', 'kelasList', 'jumlahSiswaBelumPunyaAkun'));
     }
 
-    /** Profil 1 anak: rekap absensi bulanan + riwayat pelanggaran/pembinaan. */
-    public function show(Request $request, Siswa $siswa, PoinSiswaService $poinService)
+    public function importForm()
     {
-        $user = $request->user();
-        abort_unless($user->bisaAksesAnak($siswa), 403, 'Anda tidak memiliki akses ke data siswa ini.');
+        return view('orangtua.import');
+    }
 
-        $anakList = $user->anakAsuh()->orderBy('nama')->get();
+    public function import(Request $request)
+    {
+        $request->validate(['file' => ['required', 'mimes:xlsx,xls,csv']]);
 
-        // ==== Rekap Absensi Bulanan ====
-        $bulan = (int) $request->get('bulan', now()->month);
-        $tahun = (int) $request->get('tahun', now()->year);
-        $jumlahHari = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
+        $import = new OrangTuaImport();
+        Excel::import($import, $request->file('file'));
 
-        $absensiRaw = AbsensiSiswa::where('siswa_id', $siswa->id)
-            ->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)
-            ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
-            ->get();
-
-        $harian = array_fill(1, $jumlahHari, null);
-        $sakit = $izin = $alfa = $hadir = 0;
-
-        foreach (AbsensiSiswa::finalPerHari($absensiRaw) as $final) {
-            $tgl = (int) $final->tanggal->format('j');
-            $mapelNama = $final->jurnal?->mapel?->nama_mapel ?? '-';
-            $harian[$tgl] = ['status' => $final->status, 'keterangan' => $final->keterangan, 'mapel' => $mapelNama];
-
-            if ($final->status === 'Sakit') $sakit++;
-            if ($final->status === 'Izin') $izin++;
-            if ($final->status === 'Alfa') $alfa++;
+        $pesan = "Berhasil membuat {$import->dibuat} akun orang tua baru (password default: password).";
+        if (! empty($import->dilewatiSudahAda)) {
+            $pesan .= ' ' . count($import->dilewatiSudahAda) . ' NIS dilewati karena sudah punya akun.';
         }
-        $hadir = collect($harian)->filter()->count();
+        if (! empty($import->dilewatiTidakDitemukan)) {
+            $pesan .= ' ' . count($import->dilewatiTidakDitemukan) . ' NIS dilewati karena data siswa tidak ditemukan: '
+                . implode(', ', array_slice($import->dilewatiTidakDitemukan, 0, 10))
+                . (count($import->dilewatiTidakDitemukan) > 10 ? ', ...' : '');
+        }
 
-        // ==== Riwayat Pelanggaran & Pembinaan (ringkas, read-only) ====
-        $ringkasan = $poinService->ringkasan($siswa);
+        return redirect()->route('orangtua-akun.index')->with('success', $pesan);
+    }
 
-        $kasus = KasusSiswa::with(['jenisPelanggaran'])
-            ->where('siswa_id', $siswa->id)->aktif()->orderByDesc('tanggal_kejadian')->get();
-        $pembinaan = PembinaanSiswa::with('petugas')->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
-        $pemanggilan = PemanggilanOrangTua::with('petugas')->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
+    public function template()
+    {
+        return Excel::download(new TemplateExport(
+            ['nis'],
+            [
+                ['2526001'],
+                ['2526002'],
+            ],
+            'Import Akun Orang Tua',
+            [
+                'Petunjuk:',
+                '- Kolom nis wajib diisi sesuai NIS siswa yang sudah terdaftar di menu Data Siswa.',
+                '- NIS yang tidak ditemukan di Data Siswa akan otomatis dilewati.',
+                '- NIS yang sudah punya akun orang tua akan dilewati (tidak menimpa password lama).',
+                '- Password default akun baru adalah "password". Orang tua wajib menggantinya',
+                '  setelah login pertama. Admin bisa mereset password dari menu Data Orang Tua.',
+                '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
+            ]
+        ), 'template-import-akun-orangtua.xlsx');
+    }
 
-        $timeline = collect()
-            ->concat($kasus->map(fn ($k) => ['tanggal' => $k->tanggal_kejadian, 'jenis' => 'kasus', 'data' => $k]))
-            ->concat($pembinaan->map(fn ($p) => ['tanggal' => $p->tanggal, 'jenis' => 'pembinaan', 'data' => $p]))
-            ->concat($pemanggilan->map(fn ($p) => ['tanggal' => $p->tanggal, 'jenis' => 'pemanggilan', 'data' => $p]))
-            ->sortByDesc(fn ($item) => $item['tanggal']->format('Y-m-d') . '-' . $item['data']->id)
-            ->values();
+    public function resetPassword(OrangTua $orangTua)
+    {
+        $orangTua->update([
+            'password' => OrangTuaImport::PASSWORD_DEFAULT,
+            'password_diubah_at' => null,
+        ]);
 
-        return view('ortu.show', compact(
-            'siswa', 'anakList', 'bulan', 'tahun', 'jumlahHari', 'harian',
-            'sakit', 'izin', 'alfa', 'hadir', 'ringkasan', 'timeline'
-        ));
+        return back()->with('success', "Password akun orang tua NIS {$orangTua->nis} berhasil direset ke default.");
+    }
+
+    public function destroy(OrangTua $orangTua)
+    {
+        $orangTua->delete();
+        return back()->with('success', 'Akun orang tua berhasil dihapus.');
     }
 }

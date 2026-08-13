@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SIM-SPENGA</title>
+    <title>Portal Orang Tua - SIM-SPENGA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,28 +17,32 @@
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
             <div class="w-16 h-16 mx-auto rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-white font-extrabold text-2xl mb-4">SP</div>
-            <h1 class="text-white text-2xl font-extrabold">SIM-SPENGA</h1>
-            <p class="text-brand-50/80 text-sm mt-1">Sistem Informasi Manajemen SMP Negeri 3 Bumiayu</p>
-            <p class="text-brand-50/80 text-sm mt-1">Aplikasi Monitoring Guru dan Siswa</p>
+            <h1 class="text-white text-2xl font-extrabold">Portal Orang Tua</h1>
+            <p class="text-brand-50/80 text-sm mt-1">SIM-SPENGA — SMP Negeri 3 Bumiayu</p>
         </div>
 
         <div class="bg-white rounded-2xl shadow-2xl p-8">
-            <h2 class="text-lg font-bold text-slate-800 mb-1">Masuk ke Akun Anda</h2>
-            <p class="text-sm text-slate-400 mb-6">Silakan login menggunakan email dan password.</p>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Pantau Perkembangan Anak Anda</h2>
+            <p class="text-sm text-slate-400 mb-6">Login menggunakan NIS anak Anda.</p>
 
             @if($errors->any())
                 <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">
                     {{ $errors->first() }}
                 </div>
             @endif
+            @if(session('success'))
+                <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-            <form method="POST" action="{{ route('login') }}" class="space-y-4">
+            <form method="POST" action="{{ route('orangtua.login') }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5">NIS Anak</label>
+                    <input type="text" name="nis" value="{{ old('nis') }}" required autofocus
                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/30 focus:border-brand-600"
-                           placeholder="nama@spenga.sch.id">
+                           placeholder="Contoh: 2526001">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
@@ -54,12 +58,13 @@
                     Masuk
                 </button>
             </form>
+
+            <p class="text-xs text-slate-400 text-center mt-5">
+                Belum punya akun atau lupa password? Hubungi Wali Kelas atau Admin sekolah.
+            </p>
         </div>
 
-        <p class="text-center text-brand-50/80 text-sm mt-6">
-            Orang tua/wali siswa? <a href="{{ route('orangtua.login') }}" class="underline font-semibold">Login di sini</a>
-        </p>
-        <p class="text-center text-brand-50/60 text-xs mt-4">© {{ date('Y') }} SIM-SPENGA · SMP Negeri 3 Bumiayu</p>
+        <p class="text-center text-brand-50/60 text-xs mt-6">© {{ date('Y') }} SIM-SPENGA · SMP Negeri 3 Bumiayu</p>
     </div>
 
 </body>

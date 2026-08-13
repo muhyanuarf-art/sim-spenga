@@ -11,12 +11,22 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'orangtua' => [
+            'driver' => 'session',
+            'provider' => 'orangtuas',
+        ],
     ],
 
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+
+        'orangtuas' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\OrangTua::class,
         ],
     ],
 

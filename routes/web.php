@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\OrangTuaLoginController;
 use App\Http\Controllers\BkDashboardController;
 use App\Http\Controllers\BkJenisPelanggaranController;
 use App\Http\Controllers\BkKasusController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
 use App\Http\Controllers\NotifikasiWhatsappController;
 use App\Http\Controllers\OrangTuaController;
+use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
@@ -33,15 +35,24 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [LoginController::class, 'store']);
 });
 
+// ===== PORTAL ORANG TUA: login terpisah pakai NIS (guard 'orangtua') =====
+Route::prefix('orangtua')->name('orangtua.')->group(function () {
+    Route::middleware('guest:orangtua')->group(function () {
+        Route::get('login', [OrangTuaLoginController::class, 'create'])->name('login');
+        Route::post('login', [OrangTuaLoginController::class, 'store']);
+    });
+
+    Route::middleware('auth:orangtua')->group(function () {
+        Route::post('logout', [OrangTuaLoginController::class, 'destroy'])->name('logout');
+        Route::get('dashboard', [OrangTuaDashboardController::class, 'index'])->name('dashboard');
+        Route::get('ganti-password', [OrangTuaDashboardController::class, 'gantiPasswordForm'])->name('ganti-password.form');
+        Route::post('ganti-password', [OrangTuaDashboardController::class, 'gantiPassword'])->name('ganti-password');
+    });
+});
+
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-    // ===== PORTAL ORANG TUA: absensi & pelanggaran anak (read-only) =====
-    Route::prefix('ortu')->name('ortu.')->middleware('role:orang_tua')->group(function () {
-        Route::get('/', [OrangTuaController::class, 'index'])->name('index');
-        Route::get('anak/{siswa}', [OrangTuaController::class, 'show'])->name('show');
-    });
 
     // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
     // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),
@@ -142,6 +153,13 @@ Route::middleware('auth')->group(function () {
         Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);
         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');
+
+        Route::get('data-orangtua', [OrangTuaController::class, 'index'])->name('orangtua-akun.index');
+        Route::get('data-orangtua/import', [OrangTuaController::class, 'importForm'])->name('orangtua-akun.import.form');
+        Route::post('data-orangtua/import', [OrangTuaController::class, 'import'])->name('orangtua-akun.import');
+        Route::get('data-orangtua/template', [OrangTuaController::class, 'template'])->name('orangtua-akun.template');
+        Route::post('data-orangtua/{orangTua}/reset-password', [OrangTuaController::class, 'resetPassword'])->name('orangtua-akun.reset-password');
+        Route::delete('data-orangtua/{orangTua}', [OrangTuaController::class, 'destroy'])->name('orangtua-akun.destroy');
 
         Route::resource('kelas', KelasController::class)->except(['create', 'edit', 'show'])->parameters(['kelas' => 'kelas']);
         Route::resource('mapel', MataPelajaranController::class)->except(['create', 'edit', 'show']);
