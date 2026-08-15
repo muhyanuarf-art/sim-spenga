@@ -157,6 +157,9 @@
                 <a href="{{ route('tahun-ajaran.index') }}" class="nav-link {{ request()->routeIs('tahun-ajaran.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">📅</span> Tahun Ajaran
                 </a>
+                <a href="{{ route('pengaturan-sekolah.edit') }}" class="nav-link {{ request()->routeIs('pengaturan-sekolah.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🏫</span> Pengaturan Sekolah
+                </a>
             @endif
 
             @if($user->role === 'admin')

@@ -21,6 +21,7 @@ use App\Http\Controllers\MengajarController;
 use App\Http\Controllers\NotifikasiWhatsappController;
 use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\OrangTuaDashboardController;
+use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
@@ -184,6 +185,13 @@ Route::middleware('auth')->group(function () {
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
+    });
+
+    // ===== PENGATURAN SEKOLAH: data relatif tetap (lokasi, kepala sekolah, dst)
+    // dipakai otomatis di semua halaman Cetak. Admin & Kurikulum yang mengelola. =====
+    Route::middleware('role:admin,kurikulum')->group(function () {
+        Route::get('pengaturan-sekolah', [PengaturanSekolahController::class, 'edit'])->name('pengaturan-sekolah.edit');
+        Route::put('pengaturan-sekolah', [PengaturanSekolahController::class, 'update'])->name('pengaturan-sekolah.update');
     });
 
     // ===== REKAPITULASI: dilihat Admin, Kurikulum, DAN Kepala Sekolah (view-only) =====

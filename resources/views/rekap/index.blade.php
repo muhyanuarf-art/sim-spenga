@@ -101,6 +101,12 @@
             <span>&middot; = tidak ada jadwal mengajar hari itu</span>
             <span class="text-slate-400">Hover angka untuk detail tanggal.</span>
         </div>
+
+        <x-blok-tanda-tangan
+            jabatan="Kepala Sekolah"
+            :nama="$pengaturanSekolahGlobal->nama_kepala_sekolah"
+            :nip="$pengaturanSekolahGlobal->nip_kepala_sekolah"
+        />
     </div>
 
     <div class="card p-5 print-section" id="print-rekap-kelas">
@@ -123,6 +129,12 @@
                 </tbody>
             </table>
         </div>
+
+        <x-blok-tanda-tangan
+            jabatan="Kepala Sekolah"
+            :nama="$pengaturanSekolahGlobal->nama_kepala_sekolah"
+            :nip="$pengaturanSekolahGlobal->nip_kepala_sekolah"
+        />
     </div>
 </div>
 @endsection

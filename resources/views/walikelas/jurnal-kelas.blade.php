@@ -65,6 +65,12 @@
                 </tbody>
             </table>
         </div>
+
+        <x-blok-tanda-tangan
+            jabatan="Wali Kelas {{ $kelas->nama_kelas }}"
+            :nama="$kelas->waliKelas->name ?? null"
+            :nip="$kelas->waliKelas->nip ?? null"
+        />
     </div>
 </div>
 @endsection

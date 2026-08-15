@@ -131,6 +131,12 @@
                 <span><b>A</b> = Alfa</span>
                 <span>Kolom kosong = Hadir / tidak ada pertemuan mapel ini pada tanggal tsb</span>
             </div>
+
+            <x-blok-tanda-tangan
+                jabatan="Guru Mata Pelajaran {{ $mapelAktif->nama_mapel ?? '' }} - Kelas {{ $kelasAktif->nama_kelas ?? '' }}"
+                :nama="$guru->name ?? null"
+                :nip="$guru->nip ?? null"
+            />
         </div>
     @endif
 </div>

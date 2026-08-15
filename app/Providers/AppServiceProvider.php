@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\PengaturanSekolah;
 use App\Models\TahunAjaran;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
@@ -22,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
         // di Top Bar Header tanpa perlu di-passing manual dari tiap controller.
         View::composer('layouts.app', function ($view) {
             $view->with('tahunAjaranAktifGlobal', TahunAjaran::aktif());
+        });
+
+        // Dipakai di '*' (bukan cuma layouts.app) supaya juga otomatis kebaca
+        // di dalam @section('content') milik tiap halaman Cetak — kalau cuma
+        // di-compose ke layouts.app saja, isi @section sudah selesai dirender
+        // duluan sebelum composer layout itu jalan, jadi variabelnya tidak
+        // sempat terlihat di sana. PengaturanSekolah::current() sendiri sudah
+        // di-cache per-request, jadi ini tidak menambah query berulang.
+        View::composer('*', function ($view) {
+            $view->with('pengaturanSekolahGlobal', PengaturanSekolah::current());
         });
 
         // Batasi laju kirim WhatsApp: maksimal 20 pesan/menit. Fonnte
