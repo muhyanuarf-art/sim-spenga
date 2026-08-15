@@ -42,8 +42,11 @@ class KelasController extends Controller
 
     public function destroy(Kelas $kelas)
     {
-        $kelas->delete();
-        return back()->with('success', 'Kelas berhasil dihapus.');
+        return $this->hapusAtauGagalDenganPesan(
+            $kelas,
+            'Kelas berhasil dihapus.',
+            'Kelas ini tidak dapat dihapus karena masih memiliki data terkait (siswa, jadwal, atau data lain).'
+        );
     }
 
     public function importForm()

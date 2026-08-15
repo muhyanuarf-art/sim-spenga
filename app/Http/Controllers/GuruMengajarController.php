@@ -67,8 +67,11 @@ class GuruMengajarController extends Controller
 
     public function destroy(GuruMengajarKelas $guruMengajar)
     {
-        $guruMengajar->delete();
-        return back()->with('success', 'Mapping berhasil dihapus.');
+        return $this->hapusAtauGagalDenganPesan(
+            $guruMengajar,
+            'Mapping berhasil dihapus.',
+            'Mapping ini tidak dapat dihapus karena masih dipakai di jadwal pelajaran.'
+        );
     }
 
     public function importForm()

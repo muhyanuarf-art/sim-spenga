@@ -19,7 +19,6 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $tahunAjaran = TahunAjaran::aktif();
-        $today = now()->translatedFormat('l'); // nama hari
 
         // Admin & Kepala Sekolah: ringkasan sekolah menyeluruh
         if ($user->role === 'admin' || $user->role === 'kepala_sekolah') {

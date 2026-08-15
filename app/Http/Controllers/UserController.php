@@ -64,8 +64,16 @@ class UserController extends Controller
         return back()->with('success', 'Pengguna berhasil diperbarui.');
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        if ($request->user()->id === $user->id) {
+            return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+            return back()->with('error', 'Tidak dapat menghapus admin terakhir yang tersisa.');
+        }
+
         $user->delete();
         return back()->with('success', 'Pengguna berhasil dihapus.');
     }

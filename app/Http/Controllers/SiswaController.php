@@ -71,8 +71,17 @@ class SiswaController extends Controller
     public function import(Request $request)
     {
         $request->validate(['file' => ['required', 'mimes:xlsx,xls,csv']]);
-        Excel::import(new SiswaImport(), $request->file('file'));
-        return redirect()->route('siswa.index')->with('success', 'Import data siswa berhasil.');
+        $import = new SiswaImport();
+        Excel::import($import, $request->file('file'));
+
+        $pesan = 'Import data siswa berhasil.';
+        if (! empty($import->dilewatiKelasTidakDitemukan)) {
+            $daftar = array_filter($import->dilewatiKelasTidakDitemukan);
+            $pesan .= ' ' . count($import->dilewatiKelasTidakDitemukan) . ' baris dilewati karena kode_kelas tidak ditemukan'
+                . ($daftar ? ' (NIS: ' . implode(', ', array_slice($daftar, 0, 10)) . (count($daftar) > 10 ? ', ...' : '') . ')' : '.');
+        }
+
+        return redirect()->route('siswa.index')->with('success', $pesan);
     }
 
     public function template()

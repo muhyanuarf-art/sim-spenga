@@ -56,8 +56,11 @@ class JamPelajaranController extends Controller
 
     public function destroy(JamPelajaran $jamPelajaran)
     {
-        $jamPelajaran->delete();
-        return back()->with('success', 'Jam pelajaran berhasil dihapus.');
+        return $this->hapusAtauGagalDenganPesan(
+            $jamPelajaran,
+            'Jam pelajaran berhasil dihapus.',
+            'Jam pelajaran ini tidak dapat dihapus karena masih dipakai di jadwal pelajaran.'
+        );
     }
 
     public function salin(Request $request)

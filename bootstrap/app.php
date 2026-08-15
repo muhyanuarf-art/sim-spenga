@@ -13,7 +13,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
-            'wali_kelas' => \App\Http\Middleware\EnsureWaliKelas::class,
         ]);
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\NoCacheHeaders::class,

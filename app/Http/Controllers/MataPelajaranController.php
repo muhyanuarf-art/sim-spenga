@@ -38,8 +38,11 @@ class MataPelajaranController extends Controller
 
     public function destroy(MataPelajaran $mapel)
     {
-        $mapel->delete();
-        return back()->with('success', 'Mata pelajaran berhasil dihapus.');
+        return $this->hapusAtauGagalDenganPesan(
+            $mapel,
+            'Mata pelajaran berhasil dihapus.',
+            'Mata pelajaran ini tidak dapat dihapus karena masih dipakai di jadwal atau data lain.'
+        );
     }
 
     public function importForm()

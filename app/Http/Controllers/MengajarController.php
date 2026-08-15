@@ -104,6 +104,14 @@ class MengajarController extends Controller
         $jadwalAwal = $slotJadwal->first();
         $jadwalAkhir = $slotJadwal->last();
 
+        $siswaIdsKelas = $jadwalAwal->kelas->siswas()->where('is_active', true)->pluck('id');
+        $siswaIdsAsing = collect(array_keys($validated['absensi']))
+            ->map(fn ($id) => (int) $id)
+            ->diff($siswaIdsKelas);
+        if ($siswaIdsAsing->isNotEmpty()) {
+            abort(422, 'Ada siswa pada data absensi yang bukan anggota kelas ini.');
+        }
+
         DB::transaction(function () use ($validated, $slotJadwal, $jadwalAwal, $jadwalAkhir) {
             $jurnal = $this->cariJurnalUntukSesi($slotJadwal, $validated['tanggal']);
 

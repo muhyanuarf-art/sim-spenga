@@ -14,10 +14,14 @@ use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
  */
 class SiswaImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
+    /** @var array<int,string> NIS yang dilewati karena kode_kelas tidak ditemukan. */
+    public array $dilewatiKelasTidakDitemukan = [];
+
     public function model(array $row)
     {
         $kelas = Kelas::where('nama_kelas', trim($row['kode_kelas']))->first();
         if (! $kelas) {
+            $this->dilewatiKelasTidakDitemukan[] = trim($row['nis'] ?? '');
             return null;
         }
 

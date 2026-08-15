@@ -95,9 +95,15 @@ class JadwalController extends Controller
             'jam_pelajaran_id' => [
                 'required',
                 Rule::exists('jam_pelajarans', 'id')->where(fn ($q) => $q->where('hari', $request->hari)),
+                Rule::unique('jadwal_pelajarans', 'jam_pelajaran_id')
+                    ->where(fn ($q) => $q->where('hari', $request->hari)
+                        ->where('guru_id', $request->guru_id)
+                        ->where('tahun_ajaran_id', $tahunAjaran->id)
+                        ->where('kelas_id', '!=', $request->kelas_id)),
             ],
         ], [
             'jam_pelajaran_id.exists' => 'Jam pelajaran yang dipilih tidak sesuai dengan hari yang dipilih.',
+            'jam_pelajaran_id.unique' => 'Guru tersebut sudah dijadwalkan mengajar kelas lain di jam yang sama pada hari tersebut.',
             'guru_id.exists' => 'Guru tersebut tidak terdaftar mengajar mapel ini di kelas ini pada Mapping Guru Mengajar.',
         ]);
         $validated['tahun_ajaran_id'] = $tahunAjaran->id;
@@ -136,10 +142,16 @@ class JadwalController extends Controller
                         ->where('kelas_id', $jadwal->kelas_id)
                         ->where('tahun_ajaran_id', $jadwal->tahun_ajaran_id))
                     ->ignore($jadwal->id),
+                Rule::unique('jadwal_pelajarans', 'jam_pelajaran_id')
+                    ->where(fn ($q) => $q->where('hari', $request->hari)
+                        ->where('guru_id', $request->guru_id)
+                        ->where('tahun_ajaran_id', $jadwal->tahun_ajaran_id)
+                        ->where('kelas_id', '!=', $jadwal->kelas_id))
+                    ->ignore($jadwal->id),
             ],
         ], [
             'jam_pelajaran_id.exists' => 'Jam pelajaran yang dipilih tidak sesuai dengan hari yang dipilih.',
-            'jam_pelajaran_id.unique' => 'Kelas ini sudah punya jadwal lain di jam yang sama pada hari tersebut.',
+            'jam_pelajaran_id.unique' => 'Kelas ini sudah punya jadwal lain di jam yang sama pada hari tersebut, atau guru tersebut sudah dijadwalkan mengajar kelas lain di jam yang sama.',
             'guru_id.exists' => 'Guru tersebut tidak terdaftar mengajar mapel ini di kelas ini pada Mapping Guru Mengajar.',
         ]);
 

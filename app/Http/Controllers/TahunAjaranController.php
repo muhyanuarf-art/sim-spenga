@@ -42,7 +42,10 @@ class TahunAjaranController extends Controller
 
     public function destroy(TahunAjaran $tahunAjaran)
     {
-        $tahunAjaran->delete();
-        return back()->with('success', 'Tahun ajaran berhasil dihapus.');
+        return $this->hapusAtauGagalDenganPesan(
+            $tahunAjaran,
+            'Tahun ajaran berhasil dihapus.',
+            'Tahun ajaran ini tidak dapat dihapus karena masih memiliki data terkait (jadwal, mapping guru, atau data lain).'
+        );
     }
 }
