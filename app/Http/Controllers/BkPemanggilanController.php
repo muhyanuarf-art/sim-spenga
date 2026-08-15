@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kelas;
 use App\Models\PemanggilanOrangTua;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -22,8 +23,26 @@ class BkPemanggilanController extends Controller
             $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
         }
 
+        if ($request->filled('bulan')) {
+            $query->whereMonth('tanggal', $request->bulan);
+        }
+        if ($request->filled('tahun')) {
+            $query->whereYear('tanggal', $request->tahun);
+        }
+        if ($request->filled('status')) {
+            $query->where('ortu_hadir', $request->status === 'Hadir' ? 1 : 0);
+        }
+        if ($request->filled('kelas_id')) {
+            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+        }
+
         $data = $query->paginate(20)->withQueryString();
-        return view('bk.pemanggilan.index', compact('data'));
+
+        $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
+            ? Kelas::orderBy('nama_kelas')->get()
+            : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
+
+        return view('bk.pemanggilan.index', compact('data', 'kelasList'));
     }
 
     public function store(Request $request)

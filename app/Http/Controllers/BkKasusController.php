@@ -40,6 +40,12 @@ class BkKasusController extends Controller
         if ($request->filled('kelas_id')) {
             $query->where('kelas_id', $request->kelas_id);
         }
+        if ($request->filled('bulan')) {
+            $query->whereMonth('tanggal_kejadian', $request->bulan);
+        }
+        if ($request->filled('tahun')) {
+            $query->whereYear('tanggal_kejadian', $request->tahun);
+        }
 
         $data = $query->paginate(20)->withQueryString();
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Kelas;
 use App\Models\PenguranganPoinSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
@@ -24,8 +25,26 @@ class BkPenguranganPoinController extends Controller
             $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
         }
 
+        if ($request->filled('bulan')) {
+            $query->whereMonth('tanggal', $request->bulan);
+        }
+        if ($request->filled('tahun')) {
+            $query->whereYear('tanggal', $request->tahun);
+        }
+        if ($request->filled('status')) {
+            $request->status === 'Dibatalkan' ? $query->whereNotNull('dibatalkan_at') : $query->whereNull('dibatalkan_at');
+        }
+        if ($request->filled('kelas_id')) {
+            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+        }
+
         $data = $query->paginate(20)->withQueryString();
-        return view('bk.pengurangan.index', compact('data'));
+
+        $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
+            ? Kelas::orderBy('nama_kelas')->get()
+            : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
+
+        return view('bk.pengurangan.index', compact('data', 'kelasList'));
     }
 
     /**

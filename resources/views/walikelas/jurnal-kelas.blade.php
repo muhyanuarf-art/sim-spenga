@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="card p-5">
+    <div class="card p-5 no-print">
         <form method="GET" class="flex flex-wrap items-end gap-3">
             @if(in_array(auth()->user()->role, ['admin', 'kurikulum', 'kepala_sekolah', 'guru_bk']))
             <div>
@@ -31,10 +31,11 @@
                     @endforeach
                 </select>
             </div>
+            <button type="button" onclick="cetakBagian('print-jurnal-kelas')" class="btn-outline">🖨️ Cetak / Export PDF</button>
         </form>
     </div>
 
-    <div class="card p-5">
+    <div class="card p-5 print-section" id="print-jurnal-kelas">
         <p class="font-extrabold text-slate-800 text-lg mb-1">Jurnal Mengajar Kelas {{ $kelas->nama_kelas }}</p>
         <p class="text-sm text-slate-400 mb-4">Bulan {{ \Carbon\Carbon::create()->month($bulan)->translatedFormat('F') }} {{ $tahun }}</p>
 

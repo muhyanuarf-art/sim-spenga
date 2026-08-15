@@ -7,6 +7,35 @@
     <p class="text-sm text-slate-400">Riwayat pengurangan poin (penghargaan atas perubahan perilaku). Untuk mencatat pengurangan baru, buka profil siswa terkait.</p>
 
     <div class="card p-5">
+        <form method="GET" class="flex flex-wrap gap-3 mb-4">
+            <select name="status" class="input max-w-[180px]" onchange="this.form.submit()">
+                <option value="">Semua Status</option>
+                @foreach(['Aktif','Dibatalkan'] as $s)
+                    <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
+                @endforeach
+            </select>
+            @if($kelasList->isNotEmpty())
+            <select name="kelas_id" class="input max-w-[180px]" onchange="this.form.submit()">
+                <option value="">Semua Kelas</option>
+                @foreach($kelasList as $k)
+                    <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                @endforeach
+            </select>
+            @endif
+            <select name="bulan" class="input max-w-[160px]" onchange="this.form.submit()">
+                <option value="">Semua Bulan</option>
+                @foreach(range(1,12) as $b)
+                    <option value="{{ $b }}" {{ request('bulan') == $b ? 'selected' : '' }}>{{ \Carbon\Carbon::create()->month($b)->translatedFormat('F') }}</option>
+                @endforeach
+            </select>
+            <select name="tahun" class="input max-w-[130px]" onchange="this.form.submit()">
+                <option value="">Semua Tahun</option>
+                @foreach(range(now()->year - 1, now()->year + 1) as $y)
+                    <option value="{{ $y }}" {{ request('tahun') == $y ? 'selected' : '' }}>{{ $y }}</option>
+                @endforeach
+            </select>
+        </form>
+
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
                 <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Jumlah</th><th>Alasan</th><th>Petugas</th><th>Status</th>@if(in_array($user->role,['guru_bk','admin']))<th class="th-aksi">Aksi</th>@endif</tr></thead>

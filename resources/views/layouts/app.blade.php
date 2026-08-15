@@ -250,6 +250,51 @@
     .btn-chip-cancel { background:#f1f5f9; color:#64748b; }
     .btn-chip-cancel:hover { background:#e2e8f0; color:#334155; }
     .btn-chip-icon { padding:.4rem; width:2rem; height:2rem; justify-content:center; }
+
+    /* ===== Cetak / Print =====
+       Prinsip: yang tercetak HANYA bagian yang ditandai class "print-section".
+       Sidebar, header, form filter, tombol, dan elemen ber-class "no-print"
+       selalu disembunyikan saat print. Kalau sebuah halaman punya lebih dari
+       1 "print-section" (mis. halaman Rekapitulasi: Rekap Guru & Rekap
+       Kelas), yang benar-benar tercetak hanya section yang dipilih lewat
+       tombol Cetak-nya masing-masing (lihat fungsi cetakBagian() di bawah).
+    */
+    @media print {
+        aside, header, .no-print { display: none !important; }
+        body { background: #fff !important; }
+        main { padding: 0 !important; }
+        .card { box-shadow: none !important; border: 1px solid #cbd5e1 !important; }
+
+        /* Kalau halaman ini pakai cetakBagian() (body dapat class
+           "print-target-active"), sembunyikan semua print-section KECUALI
+           yang sedang dipilih. Kalau tidak (halaman dengan 1 section saja,
+           tombolnya masih window.print() biasa), semua print-section yang
+           ada otomatis tampil apa adanya. */
+        body.print-target-active .print-section { display: none !important; }
+        body.print-target-active .print-section.print-target-selected { display: block !important; }
+    }
 </style>
+<script>
+    /**
+     * Cetak HANYA 1 bagian tertentu di halaman (dipakai kalau halaman punya
+     * lebih dari 1 "print-section", mis. Rekapitulasi punya Rekap Guru &
+     * Rekap Kelas terpisah). Elemen lain yang juga ber-class "print-section"
+     * otomatis disembunyikan sementara selama proses cetak.
+     */
+    function cetakBagian(idElemen) {
+        document.querySelectorAll('.print-section').forEach(function (el) {
+            el.classList.remove('print-target-selected');
+        });
+        var target = document.getElementById(idElemen);
+        if (target) {
+            target.classList.add('print-target-selected');
+        }
+        document.body.classList.add('print-target-active');
+        window.print();
+    }
+    window.addEventListener('afterprint', function () {
+        document.body.classList.remove('print-target-active');
+    });
+</script>
 </body>
 </html>

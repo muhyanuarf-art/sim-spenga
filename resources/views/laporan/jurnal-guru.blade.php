@@ -4,7 +4,7 @@
 @section('content')
 <div class="space-y-6">
 
-    <div class="card p-5">
+    <div class="card p-5 no-print">
         <form method="GET" class="flex flex-wrap items-end gap-3">
             @if(!$isGuru)
             <div>
@@ -48,7 +48,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="button" onclick="window.print()" class="btn-outline">🖨️ Cetak</button>
+            <button type="button" onclick="cetakBagian('print-jurnal-guru')" class="btn-outline">🖨️ Cetak</button>
         </form>
     </div>
 
@@ -61,6 +61,7 @@
             ⚠️ {{ $guru->name }} belum diampukan mata pelajaran apapun oleh Kurikulum. Silakan atur di menu Mapping Guru Mengajar.
         </div>
     @else
+        <div class="print-section" id="print-jurnal-guru">
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="card p-5">
                 <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Jumlah Pertemuan</p>
@@ -117,6 +118,7 @@
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     @endif
 </div>

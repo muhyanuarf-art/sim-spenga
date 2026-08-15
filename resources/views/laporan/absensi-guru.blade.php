@@ -4,7 +4,7 @@
 @section('content')
 <div class="space-y-6">
 
-    <div class="card p-5">
+    <div class="card p-5 no-print">
         <form method="GET" class="flex flex-wrap items-end gap-3">
             @if(!$isGuru)
             <div>
@@ -58,7 +58,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="button" onclick="window.print()" class="btn-outline">🖨️ Cetak</button>
+            <button type="button" onclick="cetakBagian('print-absensi-guru')" class="btn-outline">🖨️ Cetak</button>
         </form>
     </div>
 
@@ -75,7 +75,7 @@
             ⚠️ {{ $guru->name }} belum mengajar {{ $mapelAktif->nama_mapel ?? 'mapel ini' }} di kelas manapun.
         </div>
     @else
-        <div class="card p-5">
+        <div class="card p-5 print-section" id="print-absensi-guru">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <p class="font-extrabold text-slate-800 text-lg">Absensi {{ $mapelAktif->nama_mapel ?? '-' }} - Kelas {{ $kelasAktif->nama_kelas ?? '-' }}</p>

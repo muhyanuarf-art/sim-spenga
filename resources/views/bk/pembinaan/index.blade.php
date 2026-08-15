@@ -21,6 +21,18 @@
                 @endforeach
             </select>
             @endif
+            <select name="bulan" class="input max-w-[160px]" onchange="this.form.submit()">
+                <option value="">Semua Bulan</option>
+                @foreach(range(1,12) as $b)
+                    <option value="{{ $b }}" {{ request('bulan') == $b ? 'selected' : '' }}>{{ \Carbon\Carbon::create()->month($b)->translatedFormat('F') }}</option>
+                @endforeach
+            </select>
+            <select name="tahun" class="input max-w-[130px]" onchange="this.form.submit()">
+                <option value="">Semua Tahun</option>
+                @foreach(range(now()->year - 1, now()->year + 1) as $y)
+                    <option value="{{ $y }}" {{ request('tahun') == $y ? 'selected' : '' }}>{{ $y }}</option>
+                @endforeach
+            </select>
         </form>
 
         <div class="overflow-x-auto -mx-5">

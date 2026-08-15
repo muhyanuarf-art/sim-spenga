@@ -31,6 +31,12 @@ class BkPembinaanController extends Controller
         if ($request->filled('kelas_id')) {
             $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
         }
+        if ($request->filled('bulan')) {
+            $query->whereMonth('tanggal', $request->bulan);
+        }
+        if ($request->filled('tahun')) {
+            $query->whereYear('tanggal', $request->tahun);
+        }
 
         $data = $query->paginate(20)->withQueryString();
 
