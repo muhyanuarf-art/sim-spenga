@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\GuruBkKelas;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use App\Models\User;
 
 /**
@@ -62,5 +64,39 @@ trait BkAccessScope
         if ($kelasIds !== null && $kelasIds !== [] && ! in_array($siswa->kelas_id, $kelasIds, true)) {
             abort(403, 'Siswa ini di luar cakupan kelas Anda.');
         }
+    }
+
+    /**
+     * Guru BK yang tampil sebagai penanda tangan di bagian Cetak (Kasus,
+     * Pembinaan, Pemanggilan Orang Tua). TIDAK bisa dipilih manual lewat
+     * dropdown — otomatis menyesuaikan Guru BK yang benar-benar mengampu
+     * kelas yang sedang difilter (tabel guru_bk_kelas, tahun ajaran aktif):
+     * - Kalau ada filter kelas_id dan kelas itu punya Guru BK yang
+     *   di-mapping-kan, pakai Guru BK tsb.
+     * - Kalau tidak ada filter kelas (data lintas kelas) atau kelasnya
+     *   belum di-mapping ke Guru BK manapun, dan yang login memang akun
+     *   Guru BK, pakai dirinya sendiri.
+     * - Selain itu (mis. Admin lihat semua kelas tanpa filter, kelasnya
+     *   belum ada Guru BK-nya) dikembalikan null — kolom nama/NIP di
+     *   cetakan otomatis tampil titik-titik, tidak salah atribusi.
+     */
+    protected function bkGuruBkUntukCetak(User $user, ?int $kelasId): ?User
+    {
+        if ($kelasId) {
+            $tahunAjaran = TahunAjaran::aktif();
+            $mapping = GuruBkKelas::where('kelas_id', $kelasId)
+                ->when($tahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
+                ->with('guru')
+                ->first();
+            if ($mapping && $mapping->guru) {
+                return $mapping->guru;
+            }
+        }
+
+        if ($user->role === 'guru_bk') {
+            return $user;
+        }
+
+        return null;
     }
 }

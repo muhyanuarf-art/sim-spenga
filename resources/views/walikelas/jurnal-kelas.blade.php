@@ -66,10 +66,10 @@
             </table>
         </div>
 
-        <x-blok-tanda-tangan
-            jabatan="Wali Kelas {{ $kelas->nama_kelas }}"
-            :nama="$kelas->waliKelas->name ?? null"
-            :nip="$kelas->waliKelas->nip ?? null"
+        <x-blok-tanda-tangan-dua
+            jabatan-kanan="Wali Kelas {{ $kelas->nama_kelas }}"
+            :nama-kanan="$kelas->waliKelas->name ?? null"
+            :nip-kanan="$kelas->waliKelas->nip ?? null"
         />
     </div>
 </div>

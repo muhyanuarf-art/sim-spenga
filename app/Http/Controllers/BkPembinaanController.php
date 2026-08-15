@@ -38,13 +38,18 @@ class BkPembinaanController extends Controller
             $query->whereYear('tanggal', $request->tahun);
         }
 
+        // Data lengkap (tanpa pagination) khusus untuk bagian Cetak.
+        $dataCetak = (clone $query)->get();
+
         $data = $query->paginate(20)->withQueryString();
 
         $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
             ? Kelas::orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 
-        return view('bk.pembinaan.index', compact('data', 'kelasList'));
+        $guruBk = $this->bkGuruBkUntukCetak($user, $request->filled('kelas_id') ? (int) $request->kelas_id : null);
+
+        return view('bk.pembinaan.index', compact('data', 'dataCetak', 'kelasList', 'guruBk'));
     }
 
     public function store(Request $request, PoinSiswaService $poinService)

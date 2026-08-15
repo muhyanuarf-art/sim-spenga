@@ -94,10 +94,10 @@
             <span class="text-slate-400">&middot; Hover kode untuk lihat mapel penentu. Jika siswa tercatat beda status di beberapa mapel pada hari yang sama, status dari <b>jam pelajaran paling akhir</b> pada hari itu yang dipakai.</span>
         </div>
 
-        <x-blok-tanda-tangan
-            jabatan="Wali Kelas {{ $kelas->nama_kelas }}"
-            :nama="$kelas->waliKelas->name ?? null"
-            :nip="$kelas->waliKelas->nip ?? null"
+        <x-blok-tanda-tangan-dua
+            jabatan-kanan="Wali Kelas {{ $kelas->nama_kelas }}"
+            :nama-kanan="$kelas->waliKelas->name ?? null"
+            :nip-kanan="$kelas->waliKelas->nip ?? null"
         />
     </div>
 </div>

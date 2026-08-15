@@ -120,7 +120,7 @@
             </div>
 
             <x-blok-tanda-tangan
-                jabatan="Guru Mata Pelajaran {{ $mapelAktif->nama_mapel ?? '' }}"
+                jabatan="Guru {{ $mapelAktif->nama_mapel ?? '' }}"
                 :nama="$guru->name ?? null"
                 :nip="$guru->nip ?? null"
             />
