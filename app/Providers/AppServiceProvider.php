@@ -7,6 +7,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +31,28 @@ class AppServiceProvider extends ServiceProvider
         // KirimNotifikasiAlfaWhatsapp::middleware()).
         RateLimiter::for('notifikasi-wa', function () {
             return Limit::perMinute(20);
+        });
+
+        // Rate limit login (Bagian keamanan): cegah brute-force password.
+        // Dibatasi per kombinasi identitas (email/NIS) + IP, supaya 1 IP
+        // tidak bisa mencoba banyak akun sekaligus tanpa batas, sekaligus
+        // 1 akun tidak bisa dibrute-force dari banyak IP tanpa batas.
+        RateLimiter::for('login', function ($request) {
+            $key = Str::lower($request->input('email')) . '|' . $request->ip();
+            return Limit::perMinute(5)->by($key)->response(function () {
+                return back()->withErrors([
+                    'email' => 'Terlalu banyak percobaan login. Silakan coba lagi dalam beberapa saat.',
+                ]);
+            });
+        });
+
+        RateLimiter::for('login-ortu', function ($request) {
+            $key = Str::lower((string) $request->input('nis')) . '|' . $request->ip();
+            return Limit::perMinute(5)->by($key)->response(function () {
+                return back()->withErrors([
+                    'nis' => 'Terlalu banyak percobaan login. Silakan coba lagi dalam beberapa saat.',
+                ]);
+            });
         });
     }
 }

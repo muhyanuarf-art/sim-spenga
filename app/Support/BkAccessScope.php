@@ -48,4 +48,19 @@ trait BkAccessScope
         }
         return [];
     }
+
+    /**
+     * Validasi bahwa siswa yang dipilih memang berada dalam cakupan kelas
+     * user (BK/wali kelas), konsisten dengan filter dropdown di create().
+     * null atau [] dari bkKelasIdsUntukUser() berarti tidak dibatasi
+     * (sesuai perilaku dropdown yang sudah ada), jadi hanya menolak kalau
+     * cakupannya memang terbatas (non-kosong) TAPI siswa di luar itu.
+     */
+    protected function bkPastikanSiswaSesuaiCakupan(User $user, Siswa $siswa): void
+    {
+        $kelasIds = $this->bkKelasIdsUntukUser($user);
+        if ($kelasIds !== null && $kelasIds !== [] && ! in_array($siswa->kelas_id, $kelasIds, true)) {
+            abort(403, 'Siswa ini di luar cakupan kelas Anda.');
+        }
+    }
 }

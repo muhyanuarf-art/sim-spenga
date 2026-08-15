@@ -32,14 +32,14 @@ Route::get('/', fn () => redirect()->route('login'));
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'create'])->name('login');
-    Route::post('login', [LoginController::class, 'store']);
+    Route::post('login', [LoginController::class, 'store'])->middleware('throttle:login');
 });
 
 // ===== PORTAL ORANG TUA: login terpisah pakai NIS (guard 'orangtua') =====
 Route::prefix('orangtua')->name('orangtua.')->group(function () {
     Route::middleware('guest:orangtua')->group(function () {
         Route::get('login', [OrangTuaLoginController::class, 'create'])->name('login');
-        Route::post('login', [OrangTuaLoginController::class, 'store']);
+        Route::post('login', [OrangTuaLoginController::class, 'store'])->middleware('throttle:login-ortu');
     });
 
     Route::middleware('auth:orangtua')->group(function () {

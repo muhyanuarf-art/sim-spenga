@@ -86,6 +86,7 @@ class BkKasusController extends Controller
 
         $jenis = JenisPelanggaran::findOrFail($validated['jenis_pelanggaran_id']);
         $siswa = Siswa::findOrFail($validated['siswa_id']);
+        $this->bkPastikanSiswaSesuaiCakupan($request->user(), $siswa);
 
         $buktiFilePath = null;
         if ($request->hasFile('bukti_file')) {

@@ -49,11 +49,16 @@ class BkPenguranganPoinController extends Controller
         ]);
 
         $siswa = Siswa::findOrFail($validated['siswa_id']);
+        $this->bkPastikanSiswaSesuaiCakupan($request->user(), $siswa);
 
         return DB::transaction(function () use ($validated, $siswa, $tahunAjaran, $request, $poinService) {
-            // Kunci baris-baris terkait siswa ini selama transaksi supaya tidak
-            // ada 2 pengurangan poin diproses bersamaan dan sama-sama lolos
-            // validasi saldo (race condition).
+            // Kunci baris siswa ini selama transaksi (SELECT ... FOR UPDATE)
+            // supaya request pengurangan poin lain untuk siswa yang sama
+            // yang datang nyaris bersamaan HARUS menunggu transaksi ini
+            // selesai (baru boleh baca poin aktif terkini), bukan sama-sama
+            // membaca angka lama dan sama-sama lolos validasi saldo.
+            $siswa = Siswa::where('id', $siswa->id)->lockForUpdate()->firstOrFail();
+
             $poinAktifTerkini = $poinService->poinAktif($siswa);
 
             if ($validated['jumlah'] > $poinAktifTerkini) {

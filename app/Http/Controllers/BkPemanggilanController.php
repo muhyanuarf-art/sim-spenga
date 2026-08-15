@@ -42,6 +42,9 @@ class BkPemanggilanController extends Controller
             'kesepakatan' => ['nullable', 'string'],
         ]);
 
+        $siswa = Siswa::findOrFail($validated['siswa_id']);
+        $this->bkPastikanSiswaSesuaiCakupan($request->user(), $siswa);
+
         if ($request->hasFile('bukti_file')) {
             $validated['bukti_file'] = $request->file('bukti_file')->store('bk/bukti-pemanggilan', 'public');
         }

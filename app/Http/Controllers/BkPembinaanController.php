@@ -62,6 +62,7 @@ class BkPembinaanController extends Controller
         ]);
 
         $siswa = Siswa::findOrFail($validated['siswa_id']);
+        $this->bkPastikanSiswaSesuaiCakupan($request->user(), $siswa);
         // Tahap otomatis dari sistem, berdasarkan poin aktif TERKINI siswa.
         // Minimal Tahap 1 kalau poin aktif belum masuk rentang manapun.
         $tahap = $poinService->rekomendasiTahap($poinService->poinAktif($siswa)) ?? 1;
