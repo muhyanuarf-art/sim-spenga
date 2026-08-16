@@ -69,19 +69,27 @@ trait BkAccessScope
     /**
      * Guru BK yang tampil sebagai penanda tangan di bagian Cetak (Kasus,
      * Pembinaan, Pemanggilan Orang Tua). TIDAK bisa dipilih manual lewat
-     * dropdown — otomatis menyesuaikan Guru BK yang benar-benar mengampu
-     * kelas yang sedang difilter (tabel guru_bk_kelas, tahun ajaran aktif):
-     * - Kalau ada filter kelas_id dan kelas itu punya Guru BK yang
-     *   di-mapping-kan, pakai Guru BK tsb.
-     * - Kalau tidak ada filter kelas (data lintas kelas) atau kelasnya
-     *   belum di-mapping ke Guru BK manapun, dan yang login memang akun
-     *   Guru BK, pakai dirinya sendiri.
-     * - Selain itu (mis. Admin lihat semua kelas tanpa filter, kelasnya
-     *   belum ada Guru BK-nya) dikembalikan null — kolom nama/NIP di
-     *   cetakan otomatis tampil titik-titik, tidak salah atribusi.
+     * dropdown:
+     * - Kalau yang login memang akun Guru BK, tanda tangan SELALU akun itu
+     *   sendiri — tidak pernah Guru BK lain — karena dropdown Kelas untuk
+     *   akun Guru BK memang sudah dibatasi hanya ke kelas yang dia ampu
+     *   sendiri (lihat $kelasList di controller), jadi kelas manapun yang
+     *   dia pilih tetap kelasnya sendiri.
+     * - Untuk role yang boleh lihat semua kelas (Admin/Kurikulum/Kepala
+     *   Sekolah/Kesiswaan): kalau ada filter kelas_id dipilih, tanda tangan
+     *   menyesuaikan Guru BK yang benar-benar mengampu kelas itu (tabel
+     *   guru_bk_kelas, tahun ajaran aktif).
+     * - Selain itu (mis. Admin lihat semua kelas tanpa filter, atau
+     *   kelasnya belum di-mapping ke Guru BK manapun) dikembalikan null —
+     *   kolom nama/NIP di cetakan otomatis tampil titik-titik, tidak salah
+     *   atribusi.
      */
     protected function bkGuruBkUntukCetak(User $user, ?int $kelasId): ?User
     {
+        if ($user->role === 'guru_bk') {
+            return $user;
+        }
+
         if ($kelasId) {
             $tahunAjaran = TahunAjaran::aktif();
             $mapping = GuruBkKelas::where('kelas_id', $kelasId)
@@ -91,10 +99,6 @@ trait BkAccessScope
             if ($mapping && $mapping->guru) {
                 return $mapping->guru;
             }
-        }
-
-        if ($user->role === 'guru_bk') {
-            return $user;
         }
 
         return null;

@@ -36,10 +36,9 @@ class BkPemanggilanController extends Controller
             $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
         }
 
-        // Data lengkap (tanpa pagination) khusus untuk bagian Cetak.
-        $dataCetak = (clone $query)->get();
-
-        $data = $query->paginate(20)->withQueryString();
+        // Tanpa pagination — 1 tabel dipakai untuk tampilan layar sekaligus
+        // cetak/PDF, sesuai konvensi halaman Rekapitulasi.
+        $data = $query->get();
 
         $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
             ? Kelas::orderBy('nama_kelas')->get()
@@ -47,7 +46,7 @@ class BkPemanggilanController extends Controller
 
         $guruBk = $this->bkGuruBkUntukCetak($user, $request->filled('kelas_id') ? (int) $request->kelas_id : null);
 
-        return view('bk.pemanggilan.index', compact('data', 'dataCetak', 'kelasList', 'guruBk'));
+        return view('bk.pemanggilan.index', compact('data', 'kelasList', 'guruBk'));
     }
 
     public function store(Request $request)

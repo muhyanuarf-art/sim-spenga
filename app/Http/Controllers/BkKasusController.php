@@ -47,12 +47,10 @@ class BkKasusController extends Controller
             $query->whereYear('tanggal_kejadian', $request->tahun);
         }
 
-        // Data lengkap (tanpa pagination) khusus untuk ditampilkan di bagian
-        // Cetak, supaya yang tercetak mencakup semua baris sesuai filter —
-        // bukan cuma 20 baris yang sedang ditampilkan di halaman.
-        $dataCetak = (clone $query)->get();
-
-        $data = $query->paginate(20)->withQueryString();
+        // Tanpa pagination — supaya tabel yang tampil di layar SAMA PERSIS
+        // dengan yang dicetak/PDF-kan (1 tabel, bukan 2 versi terpisah),
+        // sesuai konvensi halaman Rekapitulasi.
+        $data = $query->get();
 
         $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
             ? Kelas::orderBy('nama_kelas')->get()
@@ -60,7 +58,7 @@ class BkKasusController extends Controller
 
         $guruBk = $this->bkGuruBkUntukCetak($user, $request->filled('kelas_id') ? (int) $request->kelas_id : null);
 
-        return view('bk.kasus.index', compact('data', 'dataCetak', 'kelasList', 'guruBk'));
+        return view('bk.kasus.index', compact('data', 'kelasList', 'guruBk'));
     }
 
     public function create(Request $request)
