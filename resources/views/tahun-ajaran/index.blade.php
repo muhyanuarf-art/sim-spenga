@@ -2,16 +2,40 @@
 @section('title', 'Tahun Ajaran')
 
 @section('content')
-<div class="space-y-6" x-data="{ showForm: false }">
-    <div class="rounded-xl bg-sky-50 border border-sky-200 text-sky-700 px-4 py-3 text-sm">
-        💡 Semua data pembelajaran (jadwal, mapping guru mengajar, mapping Guru BK, jurnal, absensi, rekap, dsb) di seluruh sistem ini
-        otomatis mengikuti <b>Tahun Ajaran &amp; Semester yang sedang Aktif</b> — cukup 1 yang aktif dalam satu waktu. Jadi kalau semester
-        baru dimulai: buat Tahun Ajaran baru dulu di bawah, salin mapping dari semester sebelumnya (tombol 📋 Salin Mapping), edit
-        baris yang berubah saja (mis. guru pensiun/pindah tugas), baru klik ✅ Aktifkan.
+<div class="space-y-6" x-data="{ showForm: false, showDuplikasi: false }">
+    <div class="flex justify-end gap-2">
+        <button @click="showDuplikasi = !showDuplikasi" class="btn-outline">📋 Salin Mapping Guru/Jadwal</button>
+        <button @click="showForm = !showForm" class="btn-primary">+ Tambah Tahun Ajaran</button>
     </div>
 
-    <div class="flex justify-end">
-        <button @click="showForm = !showForm" class="btn-primary">+ Tambah Tahun Ajaran</button>
+    <div class="card p-5" x-show="showDuplikasi" x-cloak x-transition>
+        <p class="font-bold text-slate-800 mb-1">Salin Mapping Guru Mengajar & Jadwal</p>
+        <p class="text-sm text-slate-400 mb-4">
+            Menyalin mapping Guru Mengajar dan Jadwal Pelajaran dari tahun ajaran sumber ke tahun ajaran tujuan,
+            supaya tidak perlu input ulang dari nol. Data yang sudah ada di tujuan otomatis dilewati (aman diulang).
+        </p>
+        <form method="POST" id="form-duplikasi-mapping" class="grid sm:grid-cols-3 gap-3 items-end"
+              x-data="{ tujuan: '{{ $tahunAjaran->first()->id ?? '' }}' }"
+              :action="tujuan ? `{{ url('tahun-ajaran') }}/${tujuan}/duplikasi` : '#'">
+            @csrf
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Dari (sumber)</label>
+                <select name="dari_tahun_ajaran_id" required class="input">
+                    @foreach($tahunAjaran as $t)
+                        <option value="{{ $t->id }}">{{ $t->labelPeriode() }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Ke (tujuan)</label>
+                <select name="tahun_ajaran_tujuan" x-model="tujuan" required class="input">
+                    @foreach($tahunAjaran as $t)
+                        <option value="{{ $t->id }}">{{ $t->labelPeriode() }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="btn-primary h-[38px]" onclick="return confirm('Salin mapping guru-mengajar & jadwal ke tahun ajaran tujuan?')">Salin Sekarang</button>
+        </form>
     </div>
 
     <div class="card p-5" x-show="showForm" x-cloak x-transition>
@@ -32,8 +56,8 @@
             <table class="table-clean w-full">
                 <thead><tr><th>Tahun Ajaran</th><th>Semester</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($tahunAjaran as $t)
-                <tbody x-data="{ editing: false, copying: false }">
-                    <tr x-show="!editing && !copying">
+                <tbody x-data="{ editing: false }">
+                    <tr x-show="!editing">
                         <td class="font-semibold">{{ $t->nama }}</td>
                         <td>{{ $t->semester }}</td>
                         <td>
@@ -50,9 +74,6 @@
                         <td class="td-aksi">
                             <div class="action-buttons">
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
-                                @if($tahunAjaran->count() > 1)
-                                <button type="button" @click="copying = true" class="btn-chip">📋 Salin Mapping</button>
-                                @endif
                                 @unless($t->is_active)
                                 <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $t) }}">
                                     @csrf
@@ -92,36 +113,6 @@
                                     <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                                     <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>
                                 </div>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr x-show="copying" x-cloak>
-                        <td colspan="4" class="bg-brand-50/40">
-                            <form method="POST" action="{{ route('tahun-ajaran.duplikasi', $t) }}" class="py-2">
-                                @csrf
-                                <p class="text-sm text-slate-600 mb-2">
-                                    Salin mapping guru mengajar, mapping Guru BK, &amp; jadwal pelajaran
-                                    <b>ke {{ $t->nama }} {{ $t->semester }}</b> dari:
-                                </p>
-                                <div class="grid sm:grid-cols-3 gap-3 items-end">
-                                    <select name="sumber_tahun_ajaran_id" required class="input">
-                                        <option value="">— Pilih Tahun Ajaran sumber —</option>
-                                        @foreach($tahunAjaran as $sumber)
-                                            @continue($sumber->id === $t->id)
-                                            <option value="{{ $sumber->id }}" {{ $sumber->is_active ? 'selected' : '' }}>
-                                                {{ $sumber->nama }} {{ $sumber->semester }}{{ $sumber->is_active ? ' (Aktif)' : '' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <div class="flex gap-2">
-                                        <button type="submit" class="btn-primary h-[38px]">Salin Sekarang</button>
-                                        <button type="button" @click="copying = false" class="btn-outline h-[38px]">Batal</button>
-                                    </div>
-                                </div>
-                                <p class="text-xs text-slate-400 mt-2">
-                                    Aman diulang — baris yang sudah ada di {{ $t->nama }} {{ $t->semester }} tidak akan ditimpa/dobel,
-                                    hanya yang belum ada yang ditambahkan. Setelah disalin, tinggal edit baris yang memang berubah saja.
-                                </p>
                             </form>
                         </td>
                     </tr>
