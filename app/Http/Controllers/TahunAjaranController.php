@@ -48,4 +48,41 @@ class TahunAjaranController extends Controller
             'Tahun ajaran ini tidak dapat dihapus karena masih memiliki data terkait (jadwal, mapping guru, atau data lain).'
         );
     }
+
+    /**
+     * Kunci periode (Tahap 2). Boleh Kurikulum & Admin (sama seperti akses
+     * modul Tahun Ajaran lainnya). Mengunci periode HANYA memblokir aksi
+     * tulis di modul yang dilindungi middleware 'periode-aktif', dan hanya
+     * berlaku kalau periode yang dikunci adalah yang sedang aktif.
+     */
+    public function kunci(TahunAjaran $tahunAjaran)
+    {
+        if ($tahunAjaran->isTerkunci()) {
+            return back()->with('error', 'Periode ini sudah terkunci.');
+        }
+
+        $tahunAjaran->update([
+            'terkunci' => true,
+            'terkunci_at' => now(),
+            'terkunci_oleh_id' => auth()->id(),
+        ]);
+
+        return back()->with('success', "Periode {$tahunAjaran->nama} {$tahunAjaran->semester} berhasil dikunci.");
+    }
+
+    /** Buka kunci periode — khusus Admin (Tahap 2). */
+    public function bukaKunci(TahunAjaran $tahunAjaran)
+    {
+        if (! auth()->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat membuka kunci periode.');
+        }
+
+        $tahunAjaran->update([
+            'terkunci' => false,
+            'terkunci_at' => null,
+            'terkunci_oleh_id' => null,
+        ]);
+
+        return back()->with('success', "Kunci periode {$tahunAjaran->nama} {$tahunAjaran->semester} berhasil dibuka.");
+    }
 }

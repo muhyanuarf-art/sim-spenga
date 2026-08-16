@@ -15,6 +15,7 @@ use App\Http\Controllers\GuruMengajarController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
 use App\Http\Controllers\KelasController;
+use App\Http\Controllers\KenaikanKelasController;
 use App\Http\Controllers\LaporanGuruController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
@@ -71,25 +72,30 @@ Route::middleware('auth')->group(function () {
         Route::get('pemanggilan', [BkPemanggilanController::class, 'index'])->name('pemanggilan.index');
 
         // Lapor kasus baru: Guru (semua jenis), Guru BK, Admin — TIDAK Kurikulum/Kepsek.
+        // 'periode-aktif' hanya di rute POST (tulis) — GET create tetap bebas dibuka.
         Route::middleware('role:guru,guru_bk,admin')->group(function () {
             Route::get('kasus/create', [BkKasusController::class, 'create'])->name('kasus.create');
-            Route::post('kasus', [BkKasusController::class, 'store'])->name('kasus.store');
+            Route::post('kasus', [BkKasusController::class, 'store'])->name('kasus.store')->middleware('periode-aktif');
         });
 
         // Kelola poin/pembinaan/pemanggilan/master data: KHUSUS Guru BK & Admin
         // (Bagian 20 spec: "jangan beri akses pengurangan poin ke semua guru").
+        // 'periode-aktif' hanya dipasang di aksi TULIS transaksi (bukan di
+        // sub-grup jenis-pelanggaran/master data, dan bukan di rute GET).
         Route::middleware('role:guru_bk,admin')->group(function () {
-            Route::post('kasus/{kasus}/batalkan', [BkKasusController::class, 'batalkan'])->name('kasus.batalkan');
-            Route::patch('kasus/{kasus}/status', [BkKasusController::class, 'updateStatus'])->name('kasus.update-status');
+            Route::middleware('periode-aktif')->group(function () {
+                Route::post('kasus/{kasus}/batalkan', [BkKasusController::class, 'batalkan'])->name('kasus.batalkan');
+                Route::patch('kasus/{kasus}/status', [BkKasusController::class, 'updateStatus'])->name('kasus.update-status');
 
-            Route::post('pembinaan', [BkPembinaanController::class, 'store'])->name('pembinaan.store');
-            Route::put('pembinaan/{pembinaan}', [BkPembinaanController::class, 'update'])->name('pembinaan.update');
-            Route::post('pembinaan/{pembinaan}/evaluasi-harian', [BkPembinaanController::class, 'storeEvaluasiHarian'])->name('pembinaan.evaluasi-harian');
+                Route::post('pembinaan', [BkPembinaanController::class, 'store'])->name('pembinaan.store');
+                Route::put('pembinaan/{pembinaan}', [BkPembinaanController::class, 'update'])->name('pembinaan.update');
+                Route::post('pembinaan/{pembinaan}/evaluasi-harian', [BkPembinaanController::class, 'storeEvaluasiHarian'])->name('pembinaan.evaluasi-harian');
 
-            Route::post('pengurangan', [BkPenguranganPoinController::class, 'store'])->name('pengurangan.store');
-            Route::post('pengurangan/{pengurangan}/batalkan', [BkPenguranganPoinController::class, 'batalkan'])->name('pengurangan.batalkan');
+                Route::post('pengurangan', [BkPenguranganPoinController::class, 'store'])->name('pengurangan.store');
+                Route::post('pengurangan/{pengurangan}/batalkan', [BkPenguranganPoinController::class, 'batalkan'])->name('pengurangan.batalkan');
 
-            Route::post('pemanggilan', [BkPemanggilanController::class, 'store'])->name('pemanggilan.store');
+                Route::post('pemanggilan', [BkPemanggilanController::class, 'store'])->name('pemanggilan.store');
+            });
 
             Route::prefix('jenis-pelanggaran')->name('jenis-pelanggaran.')->group(function () {
                 Route::get('/', [BkJenisPelanggaranController::class, 'index'])->name('index');
@@ -104,7 +110,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [MengajarController::class, 'index'])->name('index');
         // {ids} = id jadwal_pelajarans dipisah koma, mis. "12,13,14" untuk 1 sesi 3 jam berurutan
         Route::get('/{ids}', [MengajarController::class, 'form'])->where('ids', '[0-9,]+')->name('form');
-        Route::post('/{ids}', [MengajarController::class, 'store'])->where('ids', '[0-9,]+')->name('store');
+        Route::post('/{ids}', [MengajarController::class, 'store'])->where('ids', '[0-9,]+')->name('store')->middleware('periode-aktif');
     });
 
     // ===== WALI KELAS / GURU BK: rekap absensi bulanan + jurnal kelas =====
@@ -185,6 +191,15 @@ Route::middleware('auth')->group(function () {
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
+        Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
+        Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
+
+        // ===== KENAIKAN KELAS & RIWAYAT KELAS SISWA (Tahap 1) =====
+        Route::prefix('kenaikan-kelas')->name('kenaikan-kelas.')->group(function () {
+            Route::get('/', [KenaikanKelasController::class, 'index'])->name('index');
+            Route::post('/', [KenaikanKelasController::class, 'store'])->name('store');
+        });
+        Route::get('siswa/{siswa}/riwayat-kelas', [KenaikanKelasController::class, 'riwayat'])->name('siswa.riwayat-kelas');
     });
 
     // ===== PENGATURAN SEKOLAH: data relatif tetap (lokasi, kepala sekolah, dst)

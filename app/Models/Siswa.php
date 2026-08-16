@@ -41,4 +41,10 @@ class Siswa extends Model
     public function pembinaanBk(): HasMany { return $this->hasMany(PembinaanSiswa::class, 'siswa_id'); }
     public function penguranganPoinBk(): HasMany { return $this->hasMany(PenguranganPoinSiswa::class, 'siswa_id'); }
     public function pemanggilanOrtuBk(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'siswa_id'); }
+
+    /** Riwayat mutasi kelas (hasil Kenaikan Kelas), diurutkan dari periode paling awal. */
+    public function riwayatKelas(): HasMany
+    {
+        return $this->hasMany(RiwayatKelasSiswa::class, 'siswa_id')->orderBy('id');
+    }
 }

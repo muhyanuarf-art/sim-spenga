@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
+            'periode-aktif' => \App\Http\Middleware\EnsurePeriodeTidakTerkunci::class,
         ]);
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\NoCacheHeaders::class,

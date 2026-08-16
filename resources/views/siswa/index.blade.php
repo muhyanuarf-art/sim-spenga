@@ -63,6 +63,7 @@
                         </td>
                         <td class="td-aksi">
                             <div class="action-buttons">
+                                <a href="{{ route('siswa.riwayat-kelas', $s) }}" class="btn-chip btn-chip-cancel">🕘 Riwayat Kelas</a>
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
                                 <form method="POST" action="{{ route('siswa.destroy', $s) }}" onsubmit="return confirm('Hapus siswa ini?')">
                                     @csrf @method('DELETE')

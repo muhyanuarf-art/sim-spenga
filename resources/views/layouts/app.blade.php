@@ -145,6 +145,9 @@
                 <a href="{{ route('siswa.index') }}" class="nav-link {{ request()->routeIs('siswa.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">🧑‍🎓</span> Data Siswa
                 </a>
+                <a href="{{ route('kenaikan-kelas.index') }}" class="nav-link {{ request()->routeIs('kenaikan-kelas.*') ? 'nav-active' : '' }}">
+                    <span class="text-lg">🎓</span> Kenaikan Kelas
+                </a>
                 <a href="{{ route('orangtua-akun.index') }}" class="nav-link {{ request()->routeIs('orangtua-akun.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">👪</span> Data Orang Tua
                 </a>
@@ -193,6 +196,13 @@
                 <h1 class="font-semibold text-slate-800 text-base lg:text-lg">@yield('title', 'Dashboard')</h1>
             </div>
             <div class="flex items-center gap-3">
+                @php $periodeAktif = \App\Models\TahunAjaran::aktif(); @endphp
+                @if($periodeAktif)
+                    <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-700' }} hidden sm:inline-flex">
+                        📅 {{ $periodeAktif->labelSingkat() }}
+                        @if($periodeAktif->isTerkunci()) &nbsp;🔒 Terkunci @endif
+                    </span>
+                @endif
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
                     <p class="text-xs text-slate-400 leading-tight">{{ auth()->user()->roleLabel() }}</p>
@@ -207,6 +217,11 @@
             @if(session('success'))
                 <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm font-medium">
                     ✅ {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm font-medium">
+                    ⚠️ {{ session('error') }}
                 </div>
             @endif
             @if($errors->any())
