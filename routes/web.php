@@ -191,15 +191,8 @@ Route::middleware('auth')->group(function () {
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
-        Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
-        Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
-
-        // ===== KENAIKAN KELAS & RIWAYAT KELAS SISWA (Tahap 1) =====
-        Route::prefix('kenaikan-kelas')->name('kenaikan-kelas.')->group(function () {
-            Route::get('/', [KenaikanKelasController::class, 'index'])->name('index');
-            Route::post('/', [KenaikanKelasController::class, 'store'])->name('store');
-        });
-        Route::get('siswa/{siswa}/riwayat-kelas', [KenaikanKelasController::class, 'riwayat'])->name('siswa.riwayat-kelas');
+        Route::post('tahun-ajaran/{tahunAjaran}/duplikasi', [TahunAjaranController::class, 'duplikasiMapping'])->name('tahun-ajaran.duplikasi');
+>>>>>>> 50bb00c81a86a581483fd5558978c6afbe477d71
     });
 
     // ===== PENGATURAN SEKOLAH: data relatif tetap (lokasi, kepala sekolah, dst)
