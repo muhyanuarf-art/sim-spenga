@@ -9,6 +9,7 @@ use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -54,6 +55,11 @@ class GuruMengajarController extends Controller
 
     public function update(Request $request, GuruMengajarKelas $guruMengajar)
     {
+        // STEP 2 Bagian 8: cek periode MILIK BARIS INI (bukan periode aktif
+        // global) — mapping bisa saja bukan milik tahun ajaran yang sedang
+        // aktif sekarang.
+        PeriodeAkademik::pastikanTidakTerkunci($guruMengajar->tahunAjaran);
+
         $validated = $request->validate([
             'guru_id' => ['required', 'exists:users,id'],
             'kelas_id' => ['required', 'exists:kelas,id'],
@@ -67,6 +73,8 @@ class GuruMengajarController extends Controller
 
     public function destroy(GuruMengajarKelas $guruMengajar)
     {
+        PeriodeAkademik::pastikanTidakTerkunci($guruMengajar->tahunAjaran);
+
         return $this->hapusAtauGagalDenganPesan(
             $guruMengajar,
             'Mapping berhasil dihapus.',

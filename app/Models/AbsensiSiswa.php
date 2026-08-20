@@ -26,6 +26,16 @@ class AbsensiSiswa extends Model
     public function kelas(): BelongsTo { return $this->belongsTo(Kelas::class, 'kelas_id'); }
 
     /**
+     * STEP 2 Bagian 8 — sama seperti JurnalMengajar::periode(): tidak ada
+     * tahun_ajaran_id di absensi_siswas, periodenya diketahui lewat
+     * jurnal_mengajar_id -> jurnal_mengajars -> jadwal_pelajarans.
+     */
+    public function periode(): ?TahunAjaran
+    {
+        return $this->jurnal?->periode();
+    }
+
+    /**
      * Aturan "Absensi Kelas": kalau 1 siswa tercatat absen oleh lebih dari 1
      * guru mapel pada tanggal yang sama (mis. Hadir menurut guru jam ke-1,
      * tapi Alfa menurut guru jam ke-2 karena membolos di tengah hari), maka

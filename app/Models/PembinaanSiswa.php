@@ -31,5 +31,6 @@ class PembinaanSiswa extends Model
     public function siswa(): BelongsTo { return $this->belongsTo(Siswa::class, 'siswa_id'); }
     public function kasus(): BelongsTo { return $this->belongsTo(KasusSiswa::class, 'kasus_siswa_id'); }
     public function petugas(): BelongsTo { return $this->belongsTo(User::class, 'petugas_id'); }
+    public function tahunAjaran(): BelongsTo { return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id'); }
     public function evaluasiHarian(): HasMany { return $this->hasMany(EvaluasiPembinaan::class, 'pembinaan_siswa_id')->orderBy('hari_ke'); }
 }

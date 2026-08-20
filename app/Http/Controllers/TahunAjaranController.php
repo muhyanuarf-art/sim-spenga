@@ -83,8 +83,13 @@ class TahunAjaranController extends Controller
         return back()->with('success', "Tahun ajaran {$tahunAjaran->nama} {$tahunAjaran->semester} sekarang aktif.");
     }
 
+    /** STEP 2 Bagian 15: periode yang sudah terkunci tidak boleh dihapus sama sekali. */
     public function destroy(TahunAjaran $tahunAjaran)
     {
+        if ($tahunAjaran->isTerkunci()) {
+            return back()->with('error', 'Periode ini sudah terkunci dan tidak dapat dihapus. Buka kunci terlebih dahulu (khusus Admin) jika benar-benar perlu dihapus.');
+        }
+
         return $this->hapusAtauGagalDenganPesan(
             $tahunAjaran,
             'Tahun ajaran berhasil dihapus.',
@@ -93,10 +98,15 @@ class TahunAjaranController extends Controller
     }
 
     /**
-     * Kunci periode (Tahap 2). Boleh Kurikulum & Admin (sama seperti akses
-     * modul Tahun Ajaran lainnya). Mengunci periode HANYA memblokir aksi
-     * tulis di modul yang dilindungi middleware 'periode-aktif', dan hanya
-     * berlaku kalau periode yang dikunci adalah yang sedang aktif.
+     * STEP 2 — Tutup Semester (Bagian 5 & 6). Boleh Kurikulum & Admin (sama
+     * seperti akses modul Tahun Ajaran lainnya). Menutup periode menandai
+     * status = SELESAI + terkunci = true dalam 1 aksi atomik lewat
+     * TahunAjaran::tutup() (dibungkus transaksi di sini karena berpotensi
+     * dikembangkan lagi jadi beberapa perubahan sekaligus — Bagian 16).
+     * Ini HANYA memblokir aksi tulis pada data yang periodenya = periode
+     * ini (lewat App\Support\PeriodeAkademik::pastikanTidakTerkunci(),
+     * dipanggil di controller modul terkait) — tidak menghapus/menyembunyikan
+     * data apa pun, dan TIDAK mengaktifkan semester lain (Bagian 7 & 19).
      */
     public function kunci(TahunAjaran $tahunAjaran)
     {
@@ -104,29 +114,30 @@ class TahunAjaranController extends Controller
             return back()->with('error', 'Periode ini sudah terkunci.');
         }
 
-        $tahunAjaran->update([
-            'terkunci' => true,
-            'terkunci_at' => now(),
-            'terkunci_oleh_id' => auth()->id(),
-        ]);
+        DB::transaction(fn () => $tahunAjaran->tutup(auth()->user()));
 
-        return back()->with('success', "Periode {$tahunAjaran->nama} {$tahunAjaran->semester} berhasil dikunci.");
+        return back()->with('success', "Semester {$tahunAjaran->nama} {$tahunAjaran->semester} berhasil ditutup. Data transaksi pada periode ini sekarang hanya bisa dilihat, tidak bisa diubah.");
     }
 
-    /** Buka kunci periode — khusus Admin (Tahap 2). */
+    /**
+     * STEP 2 — Buka Kembali (Bagian 10 & 11): KHUSUS Admin, bukan Kurikulum,
+     * supaya membuka data historis tidak semudah tombol biasa. Mencatat
+     * dibuka_at & dibuka_oleh_id (siapa & kapan) tanpa membuat tabel audit
+     * log terpisah.
+     */
     public function bukaKunci(TahunAjaran $tahunAjaran)
     {
         if (! auth()->user()->isAdmin()) {
             abort(403, 'Hanya Admin yang dapat membuka kunci periode.');
         }
 
-        $tahunAjaran->update([
-            'terkunci' => false,
-            'terkunci_at' => null,
-            'terkunci_oleh_id' => null,
-        ]);
+        if (! $tahunAjaran->isTerkunci()) {
+            return back()->with('error', 'Periode ini tidak sedang terkunci.');
+        }
 
-        return back()->with('success', "Kunci periode {$tahunAjaran->nama} {$tahunAjaran->semester} berhasil dibuka.");
+        DB::transaction(fn () => $tahunAjaran->bukaKembali(auth()->user()));
+
+        return back()->with('success', "Periode {$tahunAjaran->nama} {$tahunAjaran->semester} dibuka kembali. Data pada periode ini sekarang dapat diubah lagi oleh pengguna yang berhak.");
     }
 
     /**

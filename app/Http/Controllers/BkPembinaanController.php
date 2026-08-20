@@ -10,6 +10,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
+use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
 
 class BkPembinaanController extends Controller
@@ -104,6 +105,8 @@ class BkPembinaanController extends Controller
 
     public function update(Request $request, PembinaanSiswa $pembinaan)
     {
+        PeriodeAkademik::pastikanTidakTerkunci($pembinaan->tahunAjaran);
+
         $validated = $request->validate([
             'status' => ['required', 'in:Pembinaan,Selesai'],
             // Hasil pembinaan sengaja dibuat opsional (bukan wajib) supaya
@@ -129,6 +132,8 @@ class BkPembinaanController extends Controller
     /** Catat evaluasi harian untuk pembinaan jenis "Ruang refleksi" (maks 7 hari). */
     public function storeEvaluasiHarian(Request $request, PembinaanSiswa $pembinaan)
     {
+        PeriodeAkademik::pastikanTidakTerkunci($pembinaan->tahunAjaran);
+
         $validated = $request->validate([
             'hari_ke' => ['required', 'integer', 'min:1', 'max:7'],
             'tanggal' => ['required', 'date'],

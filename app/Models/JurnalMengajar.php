@@ -32,6 +32,19 @@ class JurnalMengajar extends Model
     public function slots(): HasMany { return $this->hasMany(JurnalMengajarSlot::class, 'jurnal_mengajar_id'); }
 
     /**
+     * STEP 2 Bagian 8 — jurnal_mengajars TIDAK punya tahun_ajaran_id
+     * sendiri (sengaja, sesuai instruksi "jangan tambah kolom periode
+     * membabi buta kalau sudah bisa diketahui lewat relasi"). Periodenya
+     * diketahui lewat jadwal_pelajaran_id -> jadwal_pelajarans.tahun_ajaran_id.
+     * Dipakai App\Support\PeriodeAkademik::pastikanTidakTerkunci().
+     * (Bukan relasi Eloquent — cuma pass-through 1 hop lewat relasi jadwal().)
+     */
+    public function periode(): ?TahunAjaran
+    {
+        return $this->jadwal?->tahunAjaran;
+    }
+
+    /**
      * Label rentang jam untuk 1 sesi mengajar, mis. "Jam ke-1 - Jam ke-3
      * (07:00 - 09:15)" kalau beberapa jam, atau label jam tunggal kalau cuma 1 jam.
      */

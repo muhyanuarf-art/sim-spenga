@@ -8,13 +8,19 @@
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
             ⚠️ Aktifkan Tahun Ajaran terlebih dahulu sebelum menambah mapping.
         </div>
+    @elseif($tahunAjaran->isTerkunci())
+        <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
+            🔒 Periode {{ $tahunAjaran->labelPeriode() }} sudah ditutup dan terkunci. Data pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
+        </div>
     @endif
 
     <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex gap-2">
             <a href="{{ route('kurikulum.guru-mengajar.import.form') }}" class="btn-outline">📥 Import Excel</a>
         </div>
+        @unless($tahunAjaran && $tahunAjaran->isTerkunci())
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Mapping</button>
+        @endunless
     </div>
 
     <div class="card p-5" x-show="showForm" x-cloak x-transition>
@@ -69,11 +75,15 @@
                         <td>{{ $d->guru->name }}</td>
                         <td class="td-aksi">
                             <div class="action-buttons">
+                                @if($tahunAjaran && $tahunAjaran->isTerkunci())
+                                    <span class="text-xs text-slate-400">🔒 Terkunci</span>
+                                @else
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
                                 <form method="POST" action="{{ route('kurikulum.guru-mengajar.destroy', $d) }}" onsubmit="return confirm('Hapus mapping ini?')">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

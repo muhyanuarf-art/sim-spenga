@@ -10,6 +10,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
+use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -128,6 +129,9 @@ class BkKasusController extends Controller
     /** Batalkan kasus yang salah input — TIDAK dihapus, hanya ditandai batal (Bagian 21 & 29 spec). */
     public function batalkan(Request $request, KasusSiswa $kasus)
     {
+        // STEP 2 Bagian 8/15: periode milik kasus ini sendiri.
+        PeriodeAkademik::pastikanTidakTerkunci($kasus->tahunAjaran);
+
         $validated = $request->validate(['alasan_pembatalan' => ['required', 'string']]);
 
         abort_if($kasus->dibatalkan_at, 422, 'Kasus ini sudah dibatalkan sebelumnya.');
@@ -145,6 +149,8 @@ class BkKasusController extends Controller
 
     public function updateStatus(Request $request, KasusSiswa $kasus)
     {
+        PeriodeAkademik::pastikanTidakTerkunci($kasus->tahunAjaran);
+
         $validated = $request->validate(['status' => ['required', 'in:Baru,Diproses,Dalam Pembinaan,Selesai']]);
 
         DB::transaction(function () use ($kasus, $validated) {

@@ -15,13 +15,19 @@
                 </select>
             </div>
             <a href="{{ route('jadwal.import.form') }}" class="btn-outline">📥 Import Excel</a>
+            @unless($tahunAjaran && $tahunAjaran->isTerkunci())
             <button type="button" @click="showForm = !showForm" class="btn-primary">+ Tambah Jadwal</button>
+            @endunless
         </form>
     </div>
 
     @if(!$tahunAjaran)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
             ⚠️ Aktifkan Tahun Ajaran terlebih dahulu.
+        </div>
+    @elseif($tahunAjaran->isTerkunci())
+        <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
+            🔒 Periode {{ $tahunAjaran->labelPeriode() }} sudah ditutup dan terkunci. Jadwal pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
         </div>
     @endif
 
@@ -114,11 +120,15 @@
                             <p class="text-xs text-slate-400">{{ $j->guru->name }}</p>
                         </div>
                         <div class="action-buttons">
+                            @if($tahunAjaran && $tahunAjaran->isTerkunci())
+                                <span class="text-xs text-slate-400" title="Periode terkunci">🔒</span>
+                            @else
                             <button type="button" @click="editing = true" class="btn-chip btn-chip-edit btn-chip-icon" title="Edit">✏️</button>
                             <form method="POST" action="{{ route('jadwal.destroy', $j) }}" onsubmit="return confirm('Hapus jadwal ini?')">
                                 @csrf @method('DELETE')
                                 <button class="btn-chip btn-chip-delete btn-chip-icon" title="Hapus">🗑️</button>
                             </form>
+                            @endif
                         </div>
                     </div>
 

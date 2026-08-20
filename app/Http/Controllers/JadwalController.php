@@ -9,6 +9,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\JamPelajaran;
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
+use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -123,6 +124,10 @@ class JadwalController extends Controller
 
     public function update(Request $request, JadwalPelajaran $jadwal)
     {
+        // STEP 2 Bagian 8: periode milik jadwal ini sendiri, bukan periode
+        // aktif global.
+        PeriodeAkademik::pastikanTidakTerkunci($jadwal->tahunAjaran);
+
         $validated = $request->validate([
             'hari' => ['required', Rule::in(JadwalPelajaran::HARI_LIST())],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
@@ -162,6 +167,8 @@ class JadwalController extends Controller
 
     public function destroy(JadwalPelajaran $jadwal)
     {
+        PeriodeAkademik::pastikanTidakTerkunci($jadwal->tahunAjaran);
+
         $jadwal->delete();
         return back()->with('success', 'Jadwal berhasil dihapus.');
     }

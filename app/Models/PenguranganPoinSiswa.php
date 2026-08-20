@@ -23,6 +23,7 @@ class PenguranganPoinSiswa extends Model
     public function siswa(): BelongsTo { return $this->belongsTo(Siswa::class, 'siswa_id'); }
     public function petugas(): BelongsTo { return $this->belongsTo(User::class, 'petugas_id'); }
     public function dibatalkanOleh(): BelongsTo { return $this->belongsTo(User::class, 'dibatalkan_oleh_id'); }
+    public function tahunAjaran(): BelongsTo { return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id'); }
 
     public function scopeAktif($query)
     {

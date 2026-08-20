@@ -8,6 +8,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
+use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -99,6 +100,8 @@ class BkPenguranganPoinController extends Controller
 
     public function batalkan(Request $request, PenguranganPoinSiswa $pengurangan)
     {
+        PeriodeAkademik::pastikanTidakTerkunci($pengurangan->tahunAjaran);
+
         $validated = $request->validate(['alasan_pembatalan' => ['required', 'string']]);
         abort_if($pengurangan->dibatalkan_at, 422, 'Transaksi ini sudah dibatalkan sebelumnya.');
 

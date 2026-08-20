@@ -30,6 +30,7 @@ class KasusSiswa extends Model
     public function jenisPelanggaran(): BelongsTo { return $this->belongsTo(JenisPelanggaran::class, 'jenis_pelanggaran_id'); }
     public function guruPelapor(): BelongsTo { return $this->belongsTo(User::class, 'guru_pelapor_id'); }
     public function dibatalkanOleh(): BelongsTo { return $this->belongsTo(User::class, 'dibatalkan_oleh_id'); }
+    public function tahunAjaran(): BelongsTo { return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id'); }
     public function pembinaan(): HasMany { return $this->hasMany(PembinaanSiswa::class, 'kasus_siswa_id'); }
     public function pemanggilan(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'kasus_siswa_id'); }
 

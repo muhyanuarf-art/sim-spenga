@@ -75,7 +75,9 @@
                         </td>
                         <td>
                             @if($t->isTerkunci())
-                                <span class="badge bg-red-50 text-red-700" title="Dikunci {{ optional($t->terkunci_at)->translatedFormat('d M Y H:i') }} oleh {{ $t->terkunciOleh->name ?? '-' }}">🔒 Terkunci</span>
+                                <span class="badge bg-red-50 text-red-700" title="Ditutup {{ optional($t->terkunci_at)->translatedFormat('d M Y H:i') }} oleh {{ $t->terkunciOleh->name ?? '-' }}">🔒 Terkunci</span>
+                            @elseif($t->dibuka_at)
+                                <span class="badge bg-slate-100 text-slate-500" title="Dibuka kembali {{ $t->dibuka_at->translatedFormat('d M Y H:i') }} oleh {{ $t->dibukaOleh->name ?? '-' }}">🔓 Terbuka</span>
                             @else
                                 <span class="badge bg-slate-100 text-slate-500">🔓 Terbuka</span>
                             @endif
@@ -91,21 +93,23 @@
                                 @endunless
                                 @if($t->isTerkunci())
                                     @if(auth()->user()->isAdmin())
-                                    <form method="POST" action="{{ route('tahun-ajaran.buka-kunci', $t) }}" onsubmit="return confirm('Buka kunci periode ini?')">
+                                    <form method="POST" action="{{ route('tahun-ajaran.buka-kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} ini sudah terkunci.\nMembuka kembali akan memungkinkan perubahan data historis.\nLanjutkan?')">
                                         @csrf
-                                        <button class="btn-chip btn-chip-success">🔓 Buka Kunci</button>
+                                        <button class="btn-chip btn-chip-success">🔓 Buka Kembali</button>
                                     </form>
                                     @endif
                                 @else
-                                <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" onsubmit="return confirm('Kunci periode ini? Data pada modul yang dilindungi tidak akan bisa diubah selama periode ini masih aktif dan terkunci.')">
+                                <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} akan ditutup.\nSetelah ditutup, data transaksi pada semester ini tidak dapat diubah oleh pengguna biasa.\nAnda yakin ingin melanjutkan?')">
                                     @csrf
-                                    <button class="btn-chip btn-chip-cancel">🔒 Kunci</button>
+                                    <button class="btn-chip btn-chip-cancel">🔒 Tutup Semester</button>
                                 </form>
                                 @endif
+                                @unless($t->isTerkunci())
                                 <form method="POST" action="{{ route('tahun-ajaran.destroy', $t) }}" onsubmit="return confirm('Hapus tahun ajaran ini?')">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
                                 </form>
+                                @endunless
                             </div>
                         </td>
                     </tr>

@@ -141,12 +141,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kurikulum,admin')->group(function () {
         Route::prefix('kurikulum/guru-mengajar')->name('kurikulum.guru-mengajar.')->group(function () {
             Route::get('/', [GuruMengajarController::class, 'index'])->name('index');
-            Route::post('/', [GuruMengajarController::class, 'store'])->name('store');
+            Route::post('/', [GuruMengajarController::class, 'store'])->name('store')->middleware('periode-aktif');
             Route::put('/{guruMengajar}', [GuruMengajarController::class, 'update'])->name('update');
             Route::delete('/{guruMengajar}', [GuruMengajarController::class, 'destroy'])->name('destroy');
             Route::get('/import', [GuruMengajarController::class, 'importForm'])->name('import.form');
             Route::get('/template', [GuruMengajarController::class, 'template'])->name('template');
-            Route::post('/import', [GuruMengajarController::class, 'import'])->name('import');
+            Route::post('/import', [GuruMengajarController::class, 'import'])->name('import')->middleware('periode-aktif');
         });
 
         Route::prefix('kurikulum/guru-bk')->name('kurikulum.guru-bk.')->group(function () {
@@ -157,12 +157,12 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('jadwal')->name('jadwal.')->group(function () {
             Route::get('/', [JadwalController::class, 'index'])->name('index');
-            Route::post('/', [JadwalController::class, 'store'])->name('store');
+            Route::post('/', [JadwalController::class, 'store'])->name('store')->middleware('periode-aktif');
             Route::put('/{jadwal}', [JadwalController::class, 'update'])->name('update');
             Route::delete('/{jadwal}', [JadwalController::class, 'destroy'])->name('destroy');
             Route::get('/import', [JadwalController::class, 'importForm'])->name('import.form');
             Route::get('/template', [JadwalController::class, 'template'])->name('template');
-            Route::post('/import', [JadwalController::class, 'import'])->name('import');
+            Route::post('/import', [JadwalController::class, 'import'])->name('import')->middleware('periode-aktif');
         });
 
         Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);

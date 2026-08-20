@@ -8,6 +8,7 @@ use App\Models\JurnalMengajar;
 use App\Models\JurnalMengajarSlot;
 use App\Models\NotifikasiAlfaTerkirim;
 use App\Models\TahunAjaran;
+use App\Support\PeriodeAkademik;
 use App\Support\SesiMengajarGrouper;
 use App\Jobs\KirimNotifikasiAlfaWhatsapp;
 use Illuminate\Http\Request;
@@ -91,6 +92,12 @@ class MengajarController extends Controller
     public function store(Request $request, string $ids)
     {
         $slotJadwal = $this->resolveSesi($request, $ids);
+
+        // STEP 2 Bagian 8: cek periode MILIK JADWAL yang sedang diisi (bukan
+        // cuma periode aktif global — middleware 'periode-aktif' di route
+        // sudah menutup jalur biasa, tapi ini jaga-jaga kalau id jadwal yang
+        // dikirim ternyata milik tahun ajaran lain yang sudah terkunci).
+        PeriodeAkademik::pastikanTidakTerkunci($slotJadwal->first()->tahunAjaran);
 
         $validated = $request->validate([
             'tanggal' => ['required', 'date'],

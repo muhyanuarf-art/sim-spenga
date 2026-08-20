@@ -24,6 +24,7 @@ class TahunAjaran extends Model
     protected $fillable = [
         'nama', 'semester', 'tanggal_mulai', 'tanggal_selesai', 'status',
         'is_active', 'terkunci', 'terkunci_at', 'terkunci_oleh_id',
+        'dibuka_at', 'dibuka_oleh_id',
     ];
 
     protected function casts(): array
@@ -34,12 +35,19 @@ class TahunAjaran extends Model
             'is_active' => 'boolean',
             'terkunci' => 'boolean',
             'terkunci_at' => 'datetime',
+            'dibuka_at' => 'datetime',
         ];
     }
 
     public function terkunciOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'terkunci_oleh_id');
+    }
+
+    /** STEP 2 Bagian 10: siapa yang terakhir membuka kembali periode ini. */
+    public function dibukaOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dibuka_oleh_id');
     }
 
     public static function aktif(): ?self
@@ -55,6 +63,41 @@ class TahunAjaran extends Model
     public function isTerkunci(): bool
     {
         return (bool) $this->terkunci;
+    }
+
+    /**
+     * STEP 2 Bagian 5 & 6 — Tutup Semester: menandai periode SELESAI +
+     * TERKUNCI dalam 1 aksi atomik (dipanggil di dalam DB::transaction
+     * oleh controller). Tidak mengubah is_active — periode berikutnya
+     * TIDAK otomatis aktif (itu STEP 3), dan pergantian is_active tetap
+     * murni tanggung jawab TahunAjaranController::aktifkan().
+     */
+    public function tutup(\App\Models\User $olehUser): void
+    {
+        $this->update([
+            'status' => self::STATUS_SELESAI,
+            'terkunci' => true,
+            'terkunci_at' => now(),
+            'terkunci_oleh_id' => $olehUser->id,
+        ]);
+    }
+
+    /**
+     * STEP 2 Bagian 10 — Buka Kembali: hanya melepas kunci tulis. Kolom
+     * `status` SENGAJA tidak dikembalikan ke 'akan_datang'/'aktif' —
+     * secara kronologis periode ini tetap "sudah terjadi/selesai" walau
+     * datanya sekarang bisa diedit lagi. Badge "🔓 Terbuka" di kolom Kunci
+     * pada halaman admin sudah cukup menunjukkan bahwa datanya kini bisa
+     * diubah, tanpa perlu status kedua yang artinya tumpang tindih dengan
+     * `terkunci` (lihat catatan desain di migrasi STEP 1).
+     */
+    public function bukaKembali(\App\Models\User $olehUser): void
+    {
+        $this->update([
+            'terkunci' => false,
+            'dibuka_at' => now(),
+            'dibuka_oleh_id' => $olehUser->id,
+        ]);
     }
 
     /**
@@ -82,13 +125,22 @@ class TahunAjaran extends Model
     }
 
     /**
-     * Label status siklus hidup untuk ditampilkan di admin (Bagian 3, 4, 7).
-     * is_active tetap dihormati sebagai sumber kebenaran: kalau baris ini
-     * sedang aktif, badge SELALU menunjukkan "Aktif" walau kolom `status`
-     * tersimpan belum sempat disinkronkan.
+     * Label status siklus hidup untuk ditampilkan di admin (Bagian 3, 4, 7,
+     * dan STEP 2 Bagian 6/19).
+     *
+     * Prioritas SENGAJA: terkunci > is_active > status tersimpan. Setelah
+     * "Tutup Semester" (STEP 2), is_active TIDAK diubah (semester
+     * berikutnya belum otomatis aktif — itu STEP 3), jadi kalau is_active
+     * dicek duluan badge akan salah tetap bilang "Aktif" padahal periode
+     * sudah ditutup. `terkunci` adalah sinyal paling definitif bahwa
+     * periode ini sudah selesai & read-only, jadi itu dicek lebih dulu.
      */
     public function statusLabel(): string
     {
+        if ($this->terkunci) {
+            return 'Selesai';
+        }
+
         if ($this->is_active) {
             return 'Aktif';
         }
@@ -103,6 +155,10 @@ class TahunAjaran extends Model
     /** Kelas badge Tailwind untuk statusLabel(), dipakai di view. */
     public function statusBadgeClass(): string
     {
+        if ($this->terkunci) {
+            return 'bg-slate-100 text-slate-500';
+        }
+
         if ($this->is_active) {
             return 'bg-emerald-50 text-emerald-700';
         }
