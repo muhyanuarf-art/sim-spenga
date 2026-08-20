@@ -3,6 +3,44 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false, showDuplikasi: false }">
+
+    {{-- STEP 3 Bagian 14 — Kartu Periode Aktif + tombol pergantian semester --}}
+    <div class="card p-5">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Periode Aktif</p>
+        @if(!$periodeAktif)
+            <p class="text-sm text-amber-600">Belum ada periode aktif. Aktifkan salah satu Tahun Ajaran di tabel bawah.</p>
+        @else
+            <div class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <p class="text-lg font-bold text-slate-800">Tahun Ajaran {{ $periodeAktif->nama }}</p>
+                    <p class="text-sm text-slate-500">Semester {{ $periodeAktif->semester }}</p>
+                    <span class="badge {{ $periodeAktif->statusBadgeClass() }} mt-1 inline-block">{{ $periodeAktif->statusLabel() }}</span>
+                </div>
+
+                @if($periodeAktif->bisaGantiSemester())
+                    @php $semesterBerikutnya = $periodeAktif->semesterBerikutnya(); @endphp
+                    <div class="text-right">
+                        <form method="POST" action="{{ route('tahun-ajaran.ganti-semester', $periodeAktif) }}"
+                              onsubmit="return confirm('Semester {{ $periodeAktif->semester }} akan ditutup dan dikunci. Semester {{ $semesterBerikutnya->semester }} akan menjadi periode aktif. Data Semester {{ $periodeAktif->semester }} tetap dapat dilihat tetapi tidak dapat diubah oleh pengguna biasa. Lanjutkan?')">
+                            @csrf
+                            <button class="btn-primary">🔁 Tutup Semester {{ $periodeAktif->semester }} & Aktifkan Semester {{ $semesterBerikutnya->semester }}</button>
+                        </form>
+                        @if($jadwalSemesterBerikutnyaTersedia === false)
+                            <p class="text-xs text-amber-600 mt-2 max-w-xs">
+                                ⚠️ Jadwal Semester {{ $semesterBerikutnya->semester }} belum tersedia. Gunakan tombol
+                                "📋 Salin Mapping Guru/Jadwal" di atas untuk menyalin dari Semester {{ $periodeAktif->semester }}, atau buat jadwal baru sebelum/sesudah pergantian.
+                            </p>
+                        @endif
+                    </div>
+                @elseif($periodeAktif->semester === 'Ganjil' && !$periodeAktif->semesterBerikutnya())
+                    <p class="text-sm text-slate-400 max-w-xs text-right">
+                        Semester Genap untuk tahun ajaran {{ $periodeAktif->nama }} belum dibuat. Tambahkan dulu di tabel bawah untuk mengaktifkan pergantian semester.
+                    </p>
+                @endif
+            </div>
+        @endif
+    </div>
+
     <div class="flex justify-end gap-2">
         <button @click="showDuplikasi = !showDuplikasi" class="btn-outline">📋 Salin Mapping Guru/Jadwal</button>
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Tahun Ajaran</button>

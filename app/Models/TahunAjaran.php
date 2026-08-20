@@ -23,7 +23,8 @@ class TahunAjaran extends Model
 
     protected $fillable = [
         'nama', 'semester', 'tanggal_mulai', 'tanggal_selesai', 'status',
-        'is_active', 'terkunci', 'terkunci_at', 'terkunci_oleh_id',
+        'is_active', 'diaktifkan_at', 'diaktifkan_oleh_id',
+        'terkunci', 'terkunci_at', 'terkunci_oleh_id',
         'dibuka_at', 'dibuka_oleh_id',
     ];
 
@@ -33,6 +34,7 @@ class TahunAjaran extends Model
             'tanggal_mulai' => 'date',
             'tanggal_selesai' => 'date',
             'is_active' => 'boolean',
+            'diaktifkan_at' => 'datetime',
             'terkunci' => 'boolean',
             'terkunci_at' => 'datetime',
             'dibuka_at' => 'datetime',
@@ -48,6 +50,12 @@ class TahunAjaran extends Model
     public function dibukaOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dibuka_oleh_id');
+    }
+
+    /** STEP 3 Bagian 16: siapa yang terakhir mengaktifkan periode ini. */
+    public function diaktifkanOleh(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diaktifkan_oleh_id');
     }
 
     public static function aktif(): ?self
@@ -98,6 +106,42 @@ class TahunAjaran extends Model
             'dibuka_at' => now(),
             'dibuka_oleh_id' => $olehUser->id,
         ]);
+    }
+
+    /**
+     * STEP 3 Bagian 13.A/13.C — Semester Genap dalam tahun ajaran yang SAMA
+     * (bukan tahun ajaran berikutnya — itu STEP 4). Null kalau baris ini
+     * bukan Semester Ganjil, atau kalau Semester Genap-nya belum dibuat.
+     */
+    public function semesterBerikutnya(): ?self
+    {
+        if ($this->semester !== 'Ganjil') {
+            return null;
+        }
+
+        return static::where('nama', $this->nama)
+            ->where('semester', 'Genap')
+            ->first();
+    }
+
+    /**
+     * STEP 3 Bagian 13 — Apakah tombol "Tutup Semester & Aktifkan Semester
+     * Berikutnya" boleh ditampilkan/dijalankan untuk baris ini. SEMUA
+     * syarat berikut harus terpenuhi:
+     * - baris ini sedang AKTIF (bukan sekadar Ganjil yang belum aktif)
+     * - baris ini Semester Ganjil (Genap→tahun ajaran baru = STEP 4)
+     * - Semester Genap pasangannya sudah ada
+     * - Semester Genap pasangannya BELUM aktif (cegah proses ganda)
+     */
+    public function bisaGantiSemester(): bool
+    {
+        if (! $this->is_active || $this->semester !== 'Ganjil') {
+            return false;
+        }
+
+        $berikutnya = $this->semesterBerikutnya();
+
+        return $berikutnya !== null && ! $berikutnya->is_active;
     }
 
     /**
