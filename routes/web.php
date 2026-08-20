@@ -193,11 +193,6 @@ Route::middleware('auth')->group(function () {
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
         Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
-        // TODO: rute ini berasal dari origin (commit 50bb00c) dan BELUM ada
-        // method `duplikasiMapping()` di TahunAjaranController versi Anda —
-        // akan error "Method duplikasiMapping does not exist" kalau diklik
-        // sampai method-nya diimplementasikan. Beri tahu saya kalau mau saya
-        // buatkan isinya.
         Route::post('tahun-ajaran/{tahunAjaran}/duplikasi', [TahunAjaranController::class, 'duplikasiMapping'])->name('tahun-ajaran.duplikasi');
 
         // ===== KENAIKAN KELAS & RIWAYAT KELAS SISWA (Tahap 1) =====
