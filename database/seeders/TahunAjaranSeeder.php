@@ -11,11 +11,11 @@ class TahunAjaranSeeder extends Seeder
     {
         TahunAjaran::updateOrCreate(
             ['nama' => '2025/2026', 'semester' => 'Ganjil'],
-            ['is_active' => true]
+            ['is_active' => true, 'status' => TahunAjaran::STATUS_AKTIF]
         );
         TahunAjaran::updateOrCreate(
             ['nama' => '2025/2026', 'semester' => 'Genap'],
-            ['is_active' => false]
+            ['is_active' => false, 'status' => TahunAjaran::STATUS_AKAN_DATANG]
         );
     }
 }

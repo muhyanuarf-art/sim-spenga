@@ -16,30 +16,70 @@ class TahunAjaranController extends Controller
         return view('tahun-ajaran.index', compact('tahunAjaran'));
     }
 
-    public function store(Request $request)
+    /**
+     * Aturan validasi tanggal & status (Bagian 3, 4, 6) yang dipakai
+     * store() maupun update(). `status` sengaja TIDAK boleh diisi
+     * 'aktif' lewat form ini — mengaktifkan periode hanya lewat
+     * aktifkan() supaya constraint "hanya satu periode aktif" (Bagian 8)
+     * tidak bisa dilanggar lewat jalan pintas edit form.
+     */
+    private function aturanValidasi(): array
     {
-        $validated = $request->validate([
+        return [
             'nama' => ['required', 'string', 'max:20'],
             'semester' => ['required', 'in:Ganjil,Genap'],
-        ]);
+            'tanggal_mulai' => ['nullable', 'date'],
+            'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
+            'status' => ['nullable', 'in:akan_datang,selesai'],
+        ];
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate($this->aturanValidasi());
+        $validated['status'] = $validated['status'] ?? TahunAjaran::STATUS_AKAN_DATANG;
         TahunAjaran::create($validated);
         return back()->with('success', 'Tahun ajaran berhasil ditambahkan.');
     }
 
     public function update(Request $request, TahunAjaran $tahunAjaran)
     {
-        $validated = $request->validate([
-            'nama' => ['required', 'string', 'max:20'],
-            'semester' => ['required', 'in:Ganjil,Genap'],
-        ]);
+        $validated = $request->validate($this->aturanValidasi());
+
+        // Periode yang sedang AKTIF tidak boleh "dijatuhkan" statusnya lewat
+        // form edit biasa — status aktif hanya boleh berubah lewat aktifkan().
+        if ($tahunAjaran->is_active) {
+            unset($validated['status']);
+        } elseif (empty($validated['status'])) {
+            $validated['status'] = $tahunAjaran->status;
+        }
+
         $tahunAjaran->update($validated);
         return back()->with('success', 'Tahun ajaran berhasil diperbarui.');
     }
 
+    /**
+     * Bagian 8: pastikan HANYA SATU periode aktif dalam satu waktu.
+     * Dibungkus transaksi supaya "matikan semua yang aktif" + "aktifkan
+     * satu baris tujuan" tidak pernah berhenti di tengah jalan (mis. dua
+     * baris sama-sama aktif kalau request terputus).
+     */
     public function aktifkan(TahunAjaran $tahunAjaran)
     {
-        TahunAjaran::query()->update(['is_active' => false]);
-        $tahunAjaran->update(['is_active' => true]);
+        DB::transaction(function () use ($tahunAjaran) {
+            // Periode lain yang sebelumnya berstatus 'aktif' otomatis jadi
+            // 'selesai' karena is_active-nya dimatikan di baris yang sama —
+            // ini konsekuensi langsung dari aksi manual admin menekan tombol
+            // "Aktifkan", BUKAN penutupan/pergantian otomatis terjadwal
+            // (yang memang belum dikerjakan, lingkup STEP berikutnya).
+            TahunAjaran::where('is_active', true)
+                ->where('status', TahunAjaran::STATUS_AKTIF)
+                ->update(['is_active' => false, 'status' => TahunAjaran::STATUS_SELESAI]);
+            TahunAjaran::where('is_active', true)->update(['is_active' => false]);
+
+            $tahunAjaran->update(['is_active' => true, 'status' => TahunAjaran::STATUS_AKTIF]);
+        });
+
         return back()->with('success', "Tahun ajaran {$tahunAjaran->nama} {$tahunAjaran->semester} sekarang aktif.");
     }
 
