@@ -171,5 +171,106 @@
             </table>
         </div>
     </div>
+
+    {{-- Panduan penggunaan halaman ini — diletakkan di bagian paling bawah,
+         tertutup secara default supaya tidak mengganggu admin yang sudah
+         terbiasa, tapi selalu ada untuk dibuka kapan saja butuh. --}}
+    <div class="card p-5" x-data="{ showBantuan: false }">
+        <button type="button" @click="showBantuan = !showBantuan" class="w-full flex items-center justify-between text-left">
+            <span class="font-bold text-slate-800">ℹ️ Panduan Penggunaan Halaman Tahun Ajaran</span>
+            <span class="text-slate-400" x-text="showBantuan ? '▲ Tutup' : '▼ Buka'"></span>
+        </button>
+
+        <div x-show="showBantuan" x-cloak x-transition class="mt-5 space-y-6">
+
+            <div>
+                <p class="font-semibold text-slate-700 mb-2">Fungsi Setiap Tombol</p>
+                <div class="overflow-x-auto -mx-5">
+                    <table class="table-clean w-full text-sm">
+                        <thead><tr><th>Tombol</th><th>Fungsi</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">+ Tambah Tahun Ajaran</td>
+                                <td>Membuat SATU baris tahun ajaran + semester (misalnya cuma Semester Ganjil saja). Dipakai untuk menambah data secara manual, termasuk melengkapi semester yang kurang.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">+ Buat Tahun Ajaran [nama]</td>
+                                <td>Tombol cepat yang HANYA muncul kalau tahun ajaran berikutnya (dihitung otomatis dari periode aktif) belum ada. Sekali klik langsung membuat Semester Ganjil DAN Genap sekaligus, berstatus Akan Datang.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">+ Tambah Semester [Ganjil/Genap]</td>
+                                <td>Muncul di baris tahun ajaran yang baru punya 1 semester. Klik untuk langsung membuat semester yang masih kurang.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">✏️ Edit</td>
+                                <td>Mengubah nama tahun ajaran, semester, atau status (Akan Datang/Selesai) satu baris. Tidak bisa dipakai untuk mengaktifkan — pakai tombol Aktifkan.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">📋 Salin Data</td>
+                                <td>Menyalin Kelas, Wali Kelas, Guru Mengajar, dan Jadwal dari periode ini ke periode lain yang dipilih. Menampilkan halaman Preview (daftar lengkap apa yang akan disalin) sebelum benar-benar tersimpan.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">✅ Aktifkan</td>
+                                <td>Menjadikan semester ini sebagai Periode Aktif sistem. Semester yang tadinya aktif otomatis berhenti aktif (statusnya jadi Selesai). Kalau target beda Tahun Ajaran, sistem akan MENOLAK jika Tahun Ajaran lama belum ditutup penuh.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">🔒 Tutup Semester</td>
+                                <td>Mengunci SEMUA data pada semester ini (jurnal, absensi, jadwal, guru mengajar, BK, dst) — tidak bisa diubah pengguna biasa lagi. Data tetap bisa dilihat & tetap bisa dijadikan sumber Salin Data.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">🔓 Buka Kembali</td>
+                                <td>KHUSUS ADMIN. Membuka kembali semester yang sudah terkunci supaya bisa diedit lagi. Dicatat siapa & kapan yang membuka.</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold whitespace-nowrap">🗑️ Hapus</td>
+                                <td>Menghapus baris tahun ajaran/semester. HANYA bisa dilakukan kalau semester itu Terbuka (belum dikunci) DAN belum punya data apa pun — kalau masih ada data terkait, sistem akan menolak dengan pesan jelas.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <p class="font-semibold text-slate-700 mb-2">Langkah-Langkah: Pergantian Semester (Ganjil → Genap, Tahun Ajaran Sama)</p>
+                <ol class="text-sm text-slate-600 list-decimal list-inside space-y-1">
+                    <li>Pastikan Semester Genap sudah ada (kalau belum, klik "+ Tambah Semester Genap" di baris Semester Ganjil).</li>
+                    <li>(Opsional, kalau Guru Mengajar/Jadwal Semester Genap belum ada dan memang sama dengan Semester Ganjil) Klik "📋 Salin Data" pada baris Semester Ganjil → pilih tujuan Semester Genap → cek Preview → "Salin Sekarang".</li>
+                    <li>Klik "🔒 Tutup Semester" pada baris Semester Ganjil → konfirmasi.</li>
+                    <li>Klik "✅ Aktifkan" pada baris Semester Genap.</li>
+                </ol>
+                <p class="text-xs text-slate-400 mt-2">
+                    Selesai — Semester Genap jadi Periode Aktif. Data baru otomatis masuk ke Semester Genap, data Semester Ganjil tetap tersimpan & bisa dilihat kapan saja.
+                </p>
+            </div>
+
+            <div>
+                <p class="font-semibold text-slate-700 mb-2">Langkah-Langkah: Pergantian Tahun Ajaran (Akhir Tahun)</p>
+                <ol class="text-sm text-slate-600 list-decimal list-inside space-y-1">
+                    <li>Pastikan Semester Genap tahun ajaran LAMA sudah ditutup: klik "🔒 Tutup Semester" pada baris itu (kalau belum).</li>
+                    <li>Buat Tahun Ajaran BARU: klik "+ Buat Tahun Ajaran [nama]" (otomatis membuat Semester Ganjil & Genap).</li>
+                    <li>Klik "📋 Salin Data" pada baris Semester GENAP tahun LAMA → pilih tujuan Semester GANJIL tahun BARU → cek halaman Preview (Kelas & Wali Kelas, Guru Mengajar, Jadwal) → "Salin Sekarang".</li>
+                    <li>Buka menu Data Kelas (tahun baru) → sesuaikan Wali Kelas kalau ada pergantian.</li>
+                    <li>Buka menu Kenaikan Kelas → Tahun Ajaran Asal pilih tahun LAMA → proses kenaikan kelas per kelas.</li>
+                    <li>Periksa menu Guru Mengajar & Jadwal untuk tahun baru — lengkapi kalau ada yang masih kurang.</li>
+                    <li>Kembali ke halaman ini → klik "✅ Aktifkan" pada Semester Ganjil tahun BARU.</li>
+                </ol>
+                <p class="text-xs text-amber-600 mt-2">
+                    ⚠️ Kalau tombol Aktifkan ditolak: masih ada semester (Ganjil atau Genap) tahun lama yang belum di-"Tutup Semester". Tutup dulu semuanya, baru coba Aktifkan lagi.
+                </p>
+            </div>
+
+            <div>
+                <p class="font-semibold text-slate-700 mb-2">Aturan Penting</p>
+                <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
+                    <li>Hanya ada SATU periode aktif dalam satu waktu — dijaga otomatis oleh sistem.</li>
+                    <li>Data yang sudah Terkunci hanya bisa dilihat, tidak bisa diubah oleh guru/wali kelas/BK.</li>
+                    <li>Hanya Admin yang bisa "🔓 Buka Kembali" semester yang sudah terkunci.</li>
+                    <li>Tahun Ajaran baru tidak bisa diaktifkan sebelum Tahun Ajaran lama ditutup penuh (Ganjil & Genap-nya sama-sama terkunci).</li>
+                    <li>"📋 Salin Data" aman dijalankan berulang kali — data yang sudah pernah tersalin tidak akan dobel.</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
 </div>
 @endsection
