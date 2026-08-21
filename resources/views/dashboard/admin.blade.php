@@ -70,5 +70,7 @@
             </table>
         </div>
     </div>
+
+    @include('dashboard.partials.onboarding-checklist', ['checklistOnboarding' => $checklistOnboarding])
 </div>
 @endsection

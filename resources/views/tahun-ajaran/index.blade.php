@@ -2,120 +2,40 @@
 @section('title', 'Tahun Ajaran')
 
 @section('content')
-<div class="space-y-6" x-data="{ showForm: false, showDuplikasi: false }">
+<div class="space-y-6" x-data="{ showForm: false }">
 
-    {{-- STEP 3 Bagian 14 — Kartu Periode Aktif + tombol pergantian semester --}}
+    {{-- Status ringkas periode aktif — tanpa tombol, tanpa tanggal (poin 1 & 2) --}}
     <div class="card p-5">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Periode Aktif</p>
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Periode Aktif</p>
         @if(!$periodeAktif)
             <p class="text-sm text-amber-600">Belum ada periode aktif. Aktifkan salah satu Tahun Ajaran di tabel bawah.</p>
         @else
-            <div class="flex flex-wrap items-end justify-between gap-4">
-                <div>
-                    <p class="text-lg font-bold text-slate-800">Tahun Ajaran {{ $periodeAktif->nama }}</p>
-                    <p class="text-sm text-slate-500">Semester {{ $periodeAktif->semester }}</p>
-                    <span class="badge {{ $periodeAktif->statusBadgeClass() }} mt-1 inline-block">{{ $periodeAktif->statusLabel() }}</span>
-                </div>
-
-                @if($periodeAktif->bisaGantiSemester())
-                    @php $semesterBerikutnya = $periodeAktif->semesterBerikutnya(); @endphp
-                    <div class="text-right">
-                        <form method="POST" action="{{ route('tahun-ajaran.ganti-semester', $periodeAktif) }}"
-                              onsubmit="return confirm('Semester {{ $periodeAktif->semester }} akan ditutup dan dikunci. Semester {{ $semesterBerikutnya->semester }} akan menjadi periode aktif. Data Semester {{ $periodeAktif->semester }} tetap dapat dilihat tetapi tidak dapat diubah oleh pengguna biasa. Lanjutkan?')">
-                            @csrf
-                            <button class="btn-primary">🔁 Tutup Semester {{ $periodeAktif->semester }} & Aktifkan Semester {{ $semesterBerikutnya->semester }}</button>
-                        </form>
-                        @if($jadwalSemesterBerikutnyaTersedia === false)
-                            <p class="text-xs text-amber-600 mt-2 max-w-xs">
-                                ⚠️ Jadwal Semester {{ $semesterBerikutnya->semester }} belum tersedia. Gunakan tombol
-                                "📋 Salin Mapping Guru/Jadwal" di atas untuk menyalin dari Semester {{ $periodeAktif->semester }}, atau buat jadwal baru sebelum/sesudah pergantian.
-                            </p>
-                        @endif
-                    </div>
-                @elseif($periodeAktif->semester === 'Ganjil' && !$periodeAktif->semesterBerikutnya())
-                    <p class="text-sm text-slate-400 max-w-xs text-right">
-                        Semester Genap untuk tahun ajaran {{ $periodeAktif->nama }} belum dibuat. Tambahkan dulu di tabel bawah untuk mengaktifkan pergantian semester.
-                    </p>
-                @endif
-            </div>
+            <p class="text-lg font-bold text-slate-800">
+                {{ $periodeAktif->nama }} — Semester {{ $periodeAktif->semester }}
+                <span class="badge {{ $periodeAktif->statusBadgeClass() }} ml-1 align-middle">{{ $periodeAktif->statusLabel() }}</span>
+            </p>
         @endif
     </div>
 
-    {{-- STEP 4 Bagian 2/4/19-21 — Kartu Tahun Ajaran Berikutnya --}}
-    @if($namaTahunAjaranBerikutnya)
+    {{-- Buat Tahun Ajaran berikutnya (2 semester sekaligus) kalau belum ada --}}
+    @if($namaTahunAjaranBerikutnya && !$tahunAjaranBerikutnyaSudahAda)
     <div class="card p-5">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Tahun Ajaran Berikutnya</p>
-        @if($tahunAjaranBerikutnyaSudahAda)
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <p class="text-sm text-slate-600">
-                    Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> sudah dibuat.
-                    Sistem akan menolak aktivasi otomatis kalau Tahun Ajaran {{ $periodeAktif->nama }} belum
-                    selesai &amp; terkunci sepenuhnya (kedua semester).
-                </p>
-                <a href="{{ route('tahun-ajaran.persiapan', $tahunAjaranBerikutnya) }}" class="btn-primary whitespace-nowrap">
-                    📋 Lihat Persiapan {{ $namaTahunAjaranBerikutnya }}
-                </a>
-            </div>
-        @else
-            <div class="flex flex-wrap items-end justify-between gap-4">
-                <p class="text-sm text-slate-600 max-w-md">
-                    Siapkan Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> sekarang
-                    (Semester 1 &amp; Semester 2 langsung dibuat, status Akan Datang — TIDAK langsung aktif),
-                    supaya Kenaikan Kelas, Wali Kelas, Guru Mengajar, dan Jadwal bisa disiapkan lebih dulu
-                    sebelum Tahun Ajaran {{ $periodeAktif->nama }} benar-benar ditutup.
-                </p>
-                <form method="POST" action="{{ route('tahun-ajaran.buat-baru') }}" class="flex flex-wrap items-end gap-3"
-                      onsubmit="return confirm('Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }} (Semester 1 & Semester 2)? Tahun ajaran ini TIDAK akan langsung aktif.')">
-                    @csrf
-                    <input type="hidden" name="nama" value="{{ $namaTahunAjaranBerikutnya }}">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Mulai</label>
-                        <input type="date" name="tanggal_mulai" class="input">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
-                        <input type="date" name="tanggal_selesai" class="input">
-                    </div>
-                    <button class="btn-primary h-[38px]">+ Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }}</button>
-                </form>
-            </div>
-        @endif
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <p class="text-sm text-slate-600">
+                Siapkan Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> (Semester Ganjil & Genap langsung dibuat, status Akan Datang — tidak langsung aktif).
+            </p>
+            <form method="POST" action="{{ route('tahun-ajaran.buat-baru') }}"
+                  onsubmit="return confirm('Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }} (Semester Ganjil & Genap)?')">
+                @csrf
+                <input type="hidden" name="nama" value="{{ $namaTahunAjaranBerikutnya }}">
+                <button class="btn-primary whitespace-nowrap">+ Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }}</button>
+            </form>
+        </div>
     </div>
     @endif
 
-    <div class="flex justify-end gap-2">
-        <button @click="showDuplikasi = !showDuplikasi" class="btn-outline">📋 Salin Mapping Guru/Jadwal</button>
+    <div class="flex justify-end">
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Tahun Ajaran</button>
-    </div>
-
-    <div class="card p-5" x-show="showDuplikasi" x-cloak x-transition>
-        <p class="font-bold text-slate-800 mb-1">Salin Mapping Guru Mengajar & Jadwal</p>
-        <p class="text-sm text-slate-400 mb-4">
-            Menyalin mapping Guru Mengajar dan Jadwal Pelajaran dari tahun ajaran sumber ke tahun ajaran tujuan,
-            supaya tidak perlu input ulang dari nol. Kelas tujuan dicari otomatis berdasarkan nama & tingkat
-            yang sama PADA TAHUN AJARAN TUJUAN (bukan kelas dari tahun sumber) — kalau belum ada, baris itu
-            dilewati dan disebutkan di halaman preview berikutnya. Data yang sudah ada di tujuan juga otomatis
-            dilewati (aman diulang, tidak akan dobel).
-        </p>
-        <form method="GET" action="{{ route('tahun-ajaran.duplikasi.preview') }}" class="grid sm:grid-cols-3 gap-3 items-end">
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Dari (sumber)</label>
-                <select name="dari_tahun_ajaran_id" required class="input">
-                    @foreach($tahunAjaran as $t)
-                        <option value="{{ $t->id }}">{{ $t->labelPeriode() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Ke (tujuan)</label>
-                <select name="tahun_ajaran_tujuan" required class="input">
-                    @foreach($tahunAjaran as $t)
-                        <option value="{{ $t->id }}">{{ $t->labelPeriode() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="btn-primary h-[38px]">Lihat Preview</button>
-        </form>
     </div>
 
     <div class="card p-5" x-show="showForm" x-cloak x-transition>
@@ -127,15 +47,6 @@
                 <option value="Ganjil">Ganjil</option>
                 <option value="Genap">Genap</option>
             </select>
-            <div></div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Mulai</label>
-                <input type="date" name="tanggal_mulai" class="input">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
-                <input type="date" name="tanggal_selesai" class="input">
-            </div>
             <button type="submit" class="btn-primary h-[38px]">Simpan</button>
         </form>
     </div>
@@ -143,13 +54,12 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Tahun Ajaran</th><th>Semester</th><th>Tanggal</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th>Tahun Ajaran</th><th>Semester</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($tahunAjaran as $t)
-                <tbody x-data="{ editing: false }">
-                    <tr x-show="!editing">
+                <tbody x-data="{ editing: false, salin: false }">
+                    <tr x-show="!editing && !salin">
                         <td class="font-semibold">{{ $t->nama }}</td>
                         <td>{{ $t->semester }}</td>
-                        <td class="text-sm text-slate-500">{{ $t->rentangTanggal() ?? '—' }}</td>
                         <td>
                             <span class="badge {{ $t->statusBadgeClass() }}">{{ $t->statusLabel() }}</span>
                         </td>
@@ -164,6 +74,15 @@
                         </td>
                         <td class="td-aksi">
                             <div class="action-buttons">
+                                @if($semesterHilangPerNama->get($t->nama))
+                                <form method="POST" action="{{ route('tahun-ajaran.store') }}">
+                                    @csrf
+                                    <input type="hidden" name="nama" value="{{ $t->nama }}">
+                                    <input type="hidden" name="semester" value="{{ $semesterHilangPerNama[$t->nama] }}">
+                                    <button class="btn-chip btn-chip-success">+ Tambah Semester {{ $semesterHilangPerNama[$t->nama] }}</button>
+                                </form>
+                                @endif
+                                <button type="button" @click="salin = true" class="btn-chip btn-chip-edit">📋 Salin Data</button>
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
                                 @unless($t->is_active)
                                 <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $t) }}">
@@ -179,7 +98,7 @@
                                     </form>
                                     @endif
                                 @else
-                                <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} akan ditutup.\nSetelah ditutup, data transaksi pada semester ini tidak dapat diubah oleh pengguna biasa.\nAnda yakin ingin melanjutkan?')">
+                                <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} akan ditutup.\nSetelah ditutup, SELURUH data pada semester ini (jurnal, absensi, jadwal, guru mengajar, BK, dst) tidak dapat diubah oleh pengguna biasa — tapi tetap bisa dilihat & dijadikan sumber Salin Data.\nAnda yakin ingin melanjutkan?')">
                                     @csrf
                                     <button class="btn-chip btn-chip-cancel">🔒 Tutup Semester</button>
                                 </form>
@@ -193,8 +112,36 @@
                             </div>
                         </td>
                     </tr>
+
+                    {{-- poin 6: Salin Data — pilih tujuan, lalu ke halaman Preview (checklist) sebelum benar-benar menyalin --}}
+                    <tr x-show="salin" x-cloak>
+                        <td colspan="5" class="bg-brand-50/40">
+                            <form method="GET" action="{{ route('tahun-ajaran.duplikasi.preview') }}" class="grid sm:grid-cols-3 gap-3 items-end py-2"
+                                  onsubmit="return confirm('Anda akan menyalin data dari {{ $t->nama }} - Semester {{ $t->semester }} ke periode tujuan yang dipilih. Lanjutkan?')">
+                                <input type="hidden" name="dari_tahun_ajaran_id" value="{{ $t->id }}">
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">
+                                        Salin Kelas, Wali Kelas, Guru Mengajar & Jadwal dari {{ $t->nama }} - Semester {{ $t->semester }} ke:
+                                    </label>
+                                    <select name="tahun_ajaran_tujuan" required class="input">
+                                        <option value="">Pilih tujuan...</option>
+                                        @foreach($tahunAjaran as $tt)
+                                            @if($tt->id !== $t->id)
+                                            <option value="{{ $tt->id }}">{{ $tt->labelPeriode() }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="btn-primary h-[38px]">Lihat Preview</button>
+                                    <button type="button" @click="salin = false" class="btn-outline h-[38px]">Batal</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+
                     <tr x-show="editing" x-cloak>
-                        <td colspan="6" class="bg-brand-50/40">
+                        <td colspan="5" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('tahun-ajaran.update', $t) }}" class="grid sm:grid-cols-3 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <input type="text" name="nama" value="{{ $t->nama }}" required class="input">
@@ -202,23 +149,11 @@
                                     <option value="Ganjil" {{ $t->semester === 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
                                     <option value="Genap" {{ $t->semester === 'Genap' ? 'selected' : '' }}>Genap</option>
                                 </select>
-                                <div></div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Mulai</label>
-                                    <input type="date" name="tanggal_mulai" value="{{ optional($t->tanggal_mulai)->format('Y-m-d') }}" class="input">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
-                                    <input type="date" name="tanggal_selesai" value="{{ optional($t->tanggal_selesai)->format('Y-m-d') }}" class="input">
-                                </div>
                                 @unless($t->is_active)
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
-                                    <select name="status" class="input">
-                                        <option value="akan_datang" {{ $t->status === 'akan_datang' ? 'selected' : '' }}>Akan Datang</option>
-                                        <option value="selesai" {{ $t->status === 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                    </select>
-                                </div>
+                                <select name="status" class="input">
+                                    <option value="akan_datang" {{ $t->status === 'akan_datang' ? 'selected' : '' }}>Akan Datang</option>
+                                    <option value="selesai" {{ $t->status === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                                </select>
                                 @endunless
                                 <div class="flex gap-2">
                                     <button type="submit" class="btn-primary h-[38px]">Simpan</button>
@@ -230,7 +165,7 @@
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
+                    <tr><td colspan="5" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
                 </tbody>
                 @endforelse
             </table>

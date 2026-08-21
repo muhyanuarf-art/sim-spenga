@@ -192,11 +192,9 @@ Route::middleware('auth')->group(function () {
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
         Route::post('tahun-ajaran-baru', [TahunAjaranController::class, 'buatTahunAjaranBaru'])->name('tahun-ajaran.buat-baru');
-        Route::get('tahun-ajaran/{tahunAjaran}/persiapan', [TahunAjaranController::class, 'persiapan'])->name('tahun-ajaran.persiapan');
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
         Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
-        Route::post('tahun-ajaran/{tahunAjaran}/ganti-semester', [TahunAjaranController::class, 'gantiSemester'])->name('tahun-ajaran.ganti-semester');
         Route::get('tahun-ajaran-duplikasi/preview', [TahunAjaranController::class, 'previewDuplikasiMapping'])->name('tahun-ajaran.duplikasi.preview');
         Route::post('tahun-ajaran/{tahunAjaran}/duplikasi', [TahunAjaranController::class, 'duplikasiMapping'])->name('tahun-ajaran.duplikasi');
 
@@ -226,13 +224,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // Jam pelajaran: input fleksibel oleh Admin, tapi Kurikulum boleh lihat
-    Route::middleware('role:admin,kurikulum')->group(function () {
-        Route::get('jam-pelajaran', [JamPelajaranController::class, 'index'])->name('jam-pelajaran.index');
-    });
     Route::middleware('role:admin')->group(function () {
-        Route::post('jam-pelajaran', [JamPelajaranController::class, 'store'])->name('jam-pelajaran.store');
-        Route::put('jam-pelajaran/{jamPelajaran}', [JamPelajaranController::class, 'update'])->name('jam-pelajaran.update');
-        Route::delete('jam-pelajaran/{jamPelajaran}', [JamPelajaranController::class, 'destroy'])->name('jam-pelajaran.destroy');
+        Route::resource('jam-pelajaran', JamPelajaranController::class)
+            ->except(['create', 'edit', 'show'])
+            ->parameters(['jam-pelajaran' => 'jamPelajaran']);
         Route::post('jam-pelajaran-salin', [JamPelajaranController::class, 'salin'])->name('jam-pelajaran.salin');
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
     });

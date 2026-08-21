@@ -13,14 +13,19 @@
             <button class="btn-outline">Cari</button>
         </form>
         <div class="flex gap-2">
-            <a href="{{ route('orangtua-akun.import.form') }}" class="btn-primary">📥 Import Excel (Buat Akun Massal)</a>
+            @if($jumlahSiswaBelumPunyaAkun > 0)
+                <form method="POST" action="{{ route('orangtua-akun.generate') }}" onsubmit="return confirm('Buat akun orang tua untuk {{ $jumlahSiswaBelumPunyaAkun }} siswa yang belum punya akun? Password default: password.');">
+                    @csrf
+                    <button type="submit" class="btn-primary">✨ Buat Akun Otomatis ({{ $jumlahSiswaBelumPunyaAkun }} Siswa)</button>
+                </form>
+            @endif
         </div>
     </div>
 
     @if($jumlahSiswaBelumPunyaAkun > 0)
         <div class="card p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm">
             ⚠️ Ada <strong>{{ $jumlahSiswaBelumPunyaAkun }}</strong> siswa aktif yang belum punya akun orang tua.
-            Silakan import Excel berisi kolom <code class="bg-white px-1 rounded">nis</code> untuk membuatkan akunnya.
+            Klik <strong>"Buat Akun Otomatis"</strong> di atas — akunnya dibuat langsung dari data siswa yang sudah diinput di menu Data Siswa (tidak perlu upload file).
         </div>
     @endif
 
@@ -54,7 +59,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-slate-400 py-6">Belum ada akun orang tua. Klik "Import Excel" untuk membuat secara massal.</td></tr>
+                    <tr><td colspan="6" class="text-center text-slate-400 py-6">Belum ada akun orang tua. Klik "Buat Akun Otomatis" untuk membuatnya dari data siswa.</td></tr>
                 @endforelse
                 </tbody>
             </table>

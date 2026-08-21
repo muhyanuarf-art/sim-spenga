@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\TemplateExport;
-use App\Imports\OrangTuaImport;
 use App\Models\Kelas;
 use App\Models\OrangTua;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
 
 class OrangTuaController extends Controller
 {
@@ -32,56 +29,40 @@ class OrangTuaController extends Controller
         return view('orangtua.index', compact('akunOrtu', 'kelasList', 'jumlahSiswaBelumPunyaAkun'));
     }
 
-    public function importForm()
+    /**
+     * Buat akun orang tua otomatis untuk SEMUA siswa aktif yang belum
+     * punya akun — 1 siswa = 1 akun, NIS siswa dipakai sebagai NIS login,
+     * password default OrangTua::PASSWORD_DEFAULT. Menggantikan alur
+     * import Excel lama: sumber datanya langsung dari tabel Siswa yang
+     * sudah diinput di menu Data Siswa, tidak perlu file terpisah.
+     */
+    public function generate(Request $request)
     {
-        return view('orangtua.import');
-    }
+        $siswaBelumPunyaAkun = Siswa::where('is_active', true)
+            ->whereDoesntHave('orangTua')
+            ->get();
 
-    public function import(Request $request)
-    {
-        $request->validate(['file' => ['required', 'mimes:xlsx,xls,csv']]);
-
-        $import = new OrangTuaImport();
-        Excel::import($import, $request->file('file'));
-
-        $pesan = "Berhasil membuat {$import->dibuat} akun orang tua baru (password default: password).";
-        if (! empty($import->dilewatiSudahAda)) {
-            $pesan .= ' ' . count($import->dilewatiSudahAda) . ' NIS dilewati karena sudah punya akun.';
+        $dibuat = 0;
+        foreach ($siswaBelumPunyaAkun as $siswa) {
+            OrangTua::create([
+                'siswa_id' => $siswa->id,
+                'nis' => $siswa->nis,
+                'password' => OrangTua::PASSWORD_DEFAULT,
+            ]);
+            $dibuat++;
         }
-        if (! empty($import->dilewatiTidakDitemukan)) {
-            $pesan .= ' ' . count($import->dilewatiTidakDitemukan) . ' NIS dilewati karena data siswa tidak ditemukan: '
-                . implode(', ', array_slice($import->dilewatiTidakDitemukan, 0, 10))
-                . (count($import->dilewatiTidakDitemukan) > 10 ? ', ...' : '');
+
+        if ($dibuat === 0) {
+            return back()->with('success', 'Semua siswa aktif sudah punya akun orang tua — tidak ada akun baru yang dibuat.');
         }
 
-        return redirect()->route('orangtua-akun.index')->with('success', $pesan);
-    }
-
-    public function template()
-    {
-        return Excel::download(new TemplateExport(
-            ['nis'],
-            [
-                ['2526001'],
-                ['2526002'],
-            ],
-            'Import Akun Orang Tua',
-            [
-                'Petunjuk:',
-                '- Kolom nis wajib diisi sesuai NIS siswa yang sudah terdaftar di menu Data Siswa.',
-                '- NIS yang tidak ditemukan di Data Siswa akan otomatis dilewati.',
-                '- NIS yang sudah punya akun orang tua akan dilewati (tidak menimpa password lama).',
-                '- Password default akun baru adalah "password". Orang tua wajib menggantinya',
-                '  setelah login pertama. Admin bisa mereset password dari menu Data Orang Tua.',
-                '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
-            ]
-        ), 'template-import-akun-orangtua.xlsx');
+        return back()->with('success', "Berhasil membuat {$dibuat} akun orang tua baru dari data siswa (password default: \"" . OrangTua::PASSWORD_DEFAULT . '").');
     }
 
     public function resetPassword(OrangTua $orangTua)
     {
         $orangTua->update([
-            'password' => OrangTuaImport::PASSWORD_DEFAULT,
+            'password' => OrangTua::PASSWORD_DEFAULT,
             'password_diubah_at' => null,
         ]);
 

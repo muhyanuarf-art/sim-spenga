@@ -15,6 +15,9 @@ class OrangTua extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    /** Password default akun baru (di-hash otomatis lewat cast 'hashed'). Wajib diganti orang tua setelah login pertama. */
+    public const PASSWORD_DEFAULT = 'password';
+
     protected $table = 'orang_tuas';
 
     protected $fillable = [

@@ -16,8 +16,8 @@ class GuruBkController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
 
         $query = GuruBkKelas::with(['guru', 'kelas'])
-            ->when($tahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
-            ->when($request->guru_id, fn ($q) => $q->where('guru_id', $request->guru_id));
+            ->when($tahunAjaran, fn ($q) => $q->where('guru_bk_kelas.tahun_ajaran_id', $tahunAjaran->id))
+            ->when($request->guru_id, fn ($q) => $q->where('guru_bk_kelas.guru_id', $request->guru_id));
 
         $data = $query->join('kelas', 'guru_bk_kelas.kelas_id', '=', 'kelas.id')
             ->orderBy('kelas.nama_kelas')

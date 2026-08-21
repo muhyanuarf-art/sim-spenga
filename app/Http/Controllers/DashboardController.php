@@ -10,6 +10,7 @@ use App\Models\JurnalMengajar;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Services\OnboardingChecklistService;
 use App\Support\SesiMengajarGrouper;
 use Illuminate\Http\Request;
 
@@ -62,8 +63,10 @@ class DashboardController extends Controller
                     ];
                 });
 
+            $checklistOnboarding = (new OnboardingChecklistService)->status($user->role);
+
             return view('dashboard.admin', compact(
-                'totalSiswa', 'totalGuru', 'totalKelas', 'rekapHariIni', 'siswaAlfaHariIni', 'jurnalHariIni', 'jadwalHariIni', 'rekapPerKelas', 'tahunAjaran'
+                'totalSiswa', 'totalGuru', 'totalKelas', 'rekapHariIni', 'siswaAlfaHariIni', 'jurnalHariIni', 'jadwalHariIni', 'rekapPerKelas', 'tahunAjaran', 'checklistOnboarding'
             ));
         }
 
@@ -83,8 +86,10 @@ class DashboardController extends Controller
             $totalMappingKelas = $tahunAjaran ? GuruMengajarKelas::where('tahun_ajaran_id', $tahunAjaran->id)->count() : 0;
             $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
 
+            $checklistOnboarding = (new OnboardingChecklistService)->status($user->role);
+
             return view('dashboard.kurikulum', compact(
-                'jurnalHariIni', 'totalJadwalHariIni', 'totalJurnalHariIni', 'totalGuru', 'totalMappingKelas', 'siswaAlfaHariIni', 'tahunAjaran'
+                'jurnalHariIni', 'totalJadwalHariIni', 'totalJurnalHariIni', 'totalGuru', 'totalMappingKelas', 'siswaAlfaHariIni', 'tahunAjaran', 'checklistOnboarding'
             ));
         }
 
