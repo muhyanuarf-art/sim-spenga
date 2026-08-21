@@ -60,11 +60,19 @@
                     supaya Kenaikan Kelas, Wali Kelas, Guru Mengajar, dan Jadwal bisa disiapkan lebih dulu
                     sebelum Tahun Ajaran {{ $periodeAktif->nama }} benar-benar ditutup.
                 </p>
-                <form method="POST" action="{{ route('tahun-ajaran.buat-baru') }}"
+                <form method="POST" action="{{ route('tahun-ajaran.buat-baru') }}" class="flex flex-wrap items-end gap-3"
                       onsubmit="return confirm('Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }} (Semester 1 & Semester 2)? Tahun ajaran ini TIDAK akan langsung aktif.')">
                     @csrf
                     <input type="hidden" name="nama" value="{{ $namaTahunAjaranBerikutnya }}">
-                    <button class="btn-primary">+ Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }}</button>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Mulai</label>
+                        <input type="date" name="tanggal_mulai" class="input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Selesai</label>
+                        <input type="date" name="tanggal_selesai" class="input">
+                    </div>
+                    <button class="btn-primary h-[38px]">+ Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }}</button>
                 </form>
             </div>
         @endif
@@ -80,12 +88,12 @@
         <p class="font-bold text-slate-800 mb-1">Salin Mapping Guru Mengajar & Jadwal</p>
         <p class="text-sm text-slate-400 mb-4">
             Menyalin mapping Guru Mengajar dan Jadwal Pelajaran dari tahun ajaran sumber ke tahun ajaran tujuan,
-            supaya tidak perlu input ulang dari nol. Data yang sudah ada di tujuan otomatis dilewati (aman diulang).
+            supaya tidak perlu input ulang dari nol. Kelas tujuan dicari otomatis berdasarkan nama & tingkat
+            yang sama PADA TAHUN AJARAN TUJUAN (bukan kelas dari tahun sumber) — kalau belum ada, baris itu
+            dilewati dan disebutkan di halaman preview berikutnya. Data yang sudah ada di tujuan juga otomatis
+            dilewati (aman diulang, tidak akan dobel).
         </p>
-        <form method="POST" id="form-duplikasi-mapping" class="grid sm:grid-cols-3 gap-3 items-end"
-              x-data="{ tujuan: '{{ $tahunAjaran->first()->id ?? '' }}' }"
-              :action="tujuan ? `{{ url('tahun-ajaran') }}/${tujuan}/duplikasi` : '#'">
-            @csrf
+        <form method="GET" action="{{ route('tahun-ajaran.duplikasi.preview') }}" class="grid sm:grid-cols-3 gap-3 items-end">
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Dari (sumber)</label>
                 <select name="dari_tahun_ajaran_id" required class="input">
@@ -96,13 +104,13 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Ke (tujuan)</label>
-                <select name="tahun_ajaran_tujuan" x-model="tujuan" required class="input">
+                <select name="tahun_ajaran_tujuan" required class="input">
                     @foreach($tahunAjaran as $t)
                         <option value="{{ $t->id }}">{{ $t->labelPeriode() }}</option>
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="btn-primary h-[38px]" onclick="return confirm('Salin mapping guru-mengajar & jadwal ke tahun ajaran tujuan?')">Salin Sekarang</button>
+            <button type="submit" class="btn-primary h-[38px]">Lihat Preview</button>
         </form>
     </div>
 

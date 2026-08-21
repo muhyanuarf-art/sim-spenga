@@ -3,35 +3,61 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">
+    @php
+        // STEP 6 Bagian 19/20 — sama seperti Mapping Guru Mengajar: tombol
+        // tambah/edit/hapus HANYA muncul kalau yang sedang DILIHAT adalah
+        // periode AKTIF dan belum terkunci.
+        $bisaEdit = $periodeDilihat && $periodeAktif && $periodeDilihat->id === $periodeAktif->id && ! $periodeDilihat->isTerkunci();
+    @endphp
 
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap items-end gap-3">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Pilih Kelas</label>
-                <select name="kelas_id" class="input" onchange="this.form.submit()">
-                    @foreach($kelasList as $k)
-                        <option value="{{ $k->id }}" {{ $kelas && $kelas->id === $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Periode</label>
+                <select name="tahun_ajaran_id" class="input" onchange="this.form.submit()">
+                    @foreach($tahunAjaranList as $t)
+                        <option value="{{ $t->id }}" {{ $periodeDilihat && $periodeDilihat->id === $t->id ? 'selected' : '' }}>
+                            {{ $t->labelPeriode() }}{{ $periodeAktif && $periodeAktif->id === $t->id ? ' (Aktif)' : '' }}
+                        </option>
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Pilih Kelas</label>
+                <select name="kelas_id" class="input" onchange="this.form.submit()">
+                    @forelse($kelasListPeriode as $k)
+                        <option value="{{ $k->id }}" {{ $kelas && $kelas->id === $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                    @empty
+                        <option value="">Belum ada kelas</option>
+                    @endforelse
+                </select>
+            </div>
             <a href="{{ route('jadwal.import.form') }}" class="btn-outline">📥 Import Excel</a>
-            @unless($tahunAjaran && $tahunAjaran->isTerkunci())
+            @if($bisaEdit)
             <button type="button" @click="showForm = !showForm" class="btn-primary">+ Tambah Jadwal</button>
-            @endunless
+            @endif
         </form>
     </div>
 
-    @if(!$tahunAjaran)
+    @if(!$periodeAktif)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
             ⚠️ Aktifkan Tahun Ajaran terlebih dahulu.
         </div>
-    @elseif($tahunAjaran->isTerkunci())
+    @elseif(!$periodeDilihat)
+        <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
+            ⚠️ Periode tidak ditemukan.
+        </div>
+    @elseif($periodeDilihat->id !== $periodeAktif->id)
         <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
-            🔒 Periode {{ $tahunAjaran->labelPeriode() }} sudah ditutup dan terkunci. Jadwal pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
+            📖 Anda sedang melihat histori periode {{ $periodeDilihat->labelPeriode() }} (bukan periode aktif). Jadwal ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus dari sini.
+        </div>
+    @elseif($periodeDilihat->isTerkunci())
+        <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
+            🔒 Periode {{ $periodeDilihat->labelPeriode() }} sudah ditutup dan terkunci. Jadwal pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
         </div>
     @endif
 
-    @if($kelas && $mapelList->isEmpty())
+    @if($bisaEdit && $kelas && $mapelList->isEmpty())
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
             ⚠️ Belum ada data Mapping Guru Mengajar untuk kelas {{ $kelas->nama_kelas }}. Silakan lengkapi dulu di menu <strong>Mapping Guru Mengajar</strong> sebelum menyusun jadwal.
         </div>
@@ -120,8 +146,8 @@
                             <p class="text-xs text-slate-400">{{ $j->guru->name }}</p>
                         </div>
                         <div class="action-buttons">
-                            @if($tahunAjaran && $tahunAjaran->isTerkunci())
-                                <span class="text-xs text-slate-400" title="Periode terkunci">🔒</span>
+                            @if(!$bisaEdit)
+                                <span class="text-xs text-slate-400" title="Tidak dapat diubah">🔒</span>
                             @else
                             <button type="button" @click="editing = true" class="btn-chip btn-chip-edit btn-chip-icon" title="Edit">✏️</button>
                             <form method="POST" action="{{ route('jadwal.destroy', $j) }}" onsubmit="return confirm('Hapus jadwal ini?')">

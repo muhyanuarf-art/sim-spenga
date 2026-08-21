@@ -196,6 +196,7 @@ Route::middleware('auth')->group(function () {
         Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
         Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
         Route::post('tahun-ajaran/{tahunAjaran}/ganti-semester', [TahunAjaranController::class, 'gantiSemester'])->name('tahun-ajaran.ganti-semester');
+        Route::get('tahun-ajaran-duplikasi/preview', [TahunAjaranController::class, 'previewDuplikasiMapping'])->name('tahun-ajaran.duplikasi.preview');
         Route::post('tahun-ajaran/{tahunAjaran}/duplikasi', [TahunAjaranController::class, 'duplikasiMapping'])->name('tahun-ajaran.duplikasi');
 
         // ===== KENAIKAN KELAS & RIWAYAT KELAS SISWA (Tahap 1) =====

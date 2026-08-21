@@ -16,11 +16,23 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class GuruMengajarController extends Controller
 {
+    /**
+     * STEP 6 Bagian 19/20 — default menampilkan Mapping periode AKTIF,
+     * tapi admin bisa memilih periode lain (histori) lewat dropdown tanpa
+     * data tercampur. "+ Tambah" & Import tetap SELALU ke periode aktif
+     * (tidak terpengaruh periode yang sedang DILIHAT) — konsisten dengan
+     * store()/import() di bawah.
+     */
     public function index(Request $request)
     {
-        $tahunAjaran = TahunAjaran::aktif();
+        $periodeAktif = TahunAjaran::aktif();
+        $tahunAjaranList = TahunAjaran::orderByDesc('id')->get();
+        $periodeDilihat = $request->filled('tahun_ajaran_id')
+            ? TahunAjaran::find($request->integer('tahun_ajaran_id'))
+            : $periodeAktif;
+
         $query = GuruMengajarKelas::with(['guru', 'kelas', 'mapel'])
-            ->when($tahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
+            ->when($periodeDilihat, fn ($q) => $q->where('tahun_ajaran_id', $periodeDilihat->id))
             ->when($request->kelas_id, fn ($q) => $q->where('kelas_id', $request->kelas_id))
             ->when($request->guru_id, fn ($q) => $q->where('guru_id', $request->guru_id));
 
@@ -36,7 +48,7 @@ class GuruMengajarController extends Controller
         $guruList = User::where('role', 'guru')->orderBy('name')->get();
         $mapelList = MataPelajaran::orderBy('nama_mapel')->get();
 
-        return view('kurikulum.guru-mengajar.index', compact('data', 'kelasList', 'guruList', 'mapelList', 'tahunAjaran'));
+        return view('kurikulum.guru-mengajar.index', compact('data', 'kelasList', 'guruList', 'mapelList', 'periodeAktif', 'periodeDilihat', 'tahunAjaranList'));
     }
 
     public function store(Request $request)

@@ -3,14 +3,46 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">
+    @php
+        // STEP 6 Bagian 19/20 — tombol tambah/edit/hapus HANYA muncul kalau
+        // yang sedang DILIHAT adalah periode AKTIF (karena store()/update()
+        // selalu menulis ke periode aktif) DAN periode itu belum terkunci.
+        // Melihat periode lain (histori) SELALU read-only di halaman ini,
+        // apa pun status kuncinya.
+        $bisaEdit = $periodeDilihat && $periodeAktif && $periodeDilihat->id === $periodeAktif->id && ! $periodeDilihat->isTerkunci();
+    @endphp
 
-    @if(!$tahunAjaran)
+    {{-- STEP 6 Bagian 19/20 — pemilih periode (default aktif, bisa lihat histori) --}}
+    <div class="card p-5">
+        <form method="GET" class="flex flex-wrap gap-3 items-end">
+            <div class="min-w-[220px]">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Periode</label>
+                <select name="tahun_ajaran_id" class="input" onchange="this.form.submit()">
+                    @foreach($tahunAjaranList as $t)
+                        <option value="{{ $t->id }}" {{ $periodeDilihat && $periodeDilihat->id === $t->id ? 'selected' : '' }}>
+                            {{ $t->labelPeriode() }}{{ $periodeAktif && $periodeAktif->id === $t->id ? ' (Aktif)' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </form>
+    </div>
+
+    @if(!$periodeAktif)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
             ⚠️ Aktifkan Tahun Ajaran terlebih dahulu sebelum menambah mapping.
         </div>
-    @elseif($tahunAjaran->isTerkunci())
+    @elseif(!$periodeDilihat)
+        <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
+            ⚠️ Periode tidak ditemukan.
+        </div>
+    @elseif($periodeDilihat->id !== $periodeAktif->id)
         <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
-            🔒 Periode {{ $tahunAjaran->labelPeriode() }} sudah ditutup dan terkunci. Data pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
+            📖 Anda sedang melihat histori periode {{ $periodeDilihat->labelPeriode() }} (bukan periode aktif). Data ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus dari sini.
+        </div>
+    @elseif($periodeDilihat->isTerkunci())
+        <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
+            🔒 Periode {{ $periodeDilihat->labelPeriode() }} sudah ditutup dan terkunci. Data pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
         </div>
     @endif
 
@@ -18,9 +50,9 @@
         <div class="flex gap-2">
             <a href="{{ route('kurikulum.guru-mengajar.import.form') }}" class="btn-outline">📥 Import Excel</a>
         </div>
-        @unless($tahunAjaran && $tahunAjaran->isTerkunci())
+        @if($bisaEdit)
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Mapping</button>
-        @endunless
+        @endif
     </div>
 
     <div class="card p-5" x-show="showForm" x-cloak x-transition>
@@ -54,6 +86,7 @@
 
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap gap-3 mb-4">
+            <input type="hidden" name="tahun_ajaran_id" value="{{ $periodeDilihat->id ?? '' }}">
             <select name="kelas_id" class="input max-w-[180px]" onchange="this.form.submit()">
                 <option value="">Semua Kelas</option>
                 @foreach($kelasList as $k)<option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>@endforeach
@@ -75,8 +108,8 @@
                         <td>{{ $d->guru->name }}</td>
                         <td class="td-aksi">
                             <div class="action-buttons">
-                                @if($tahunAjaran && $tahunAjaran->isTerkunci())
-                                    <span class="text-xs text-slate-400">🔒 Terkunci</span>
+                                @if(!$bisaEdit)
+                                    <span class="text-xs text-slate-400">🔒 Tidak dapat diubah</span>
                                 @else
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
                                 <form method="POST" action="{{ route('kurikulum.guru-mengajar.destroy', $d) }}" onsubmit="return confirm('Hapus mapping ini?')">
