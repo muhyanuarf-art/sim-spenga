@@ -15,7 +15,7 @@ use App\Http\Controllers\GuruMengajarController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
 use App\Http\Controllers\KelasController;
-use App\Http\Controllers\KenaikanKelasController;
+use App\Http\Controllers\RiwayatKelasController;
 use App\Http\Controllers\LaporanGuruController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
@@ -198,17 +198,15 @@ Route::middleware('auth')->group(function () {
         Route::get('tahun-ajaran-duplikasi/preview', [TahunAjaranController::class, 'previewDuplikasiMapping'])->name('tahun-ajaran.duplikasi.preview');
         Route::post('tahun-ajaran/{tahunAjaran}/duplikasi', [TahunAjaranController::class, 'duplikasiMapping'])->name('tahun-ajaran.duplikasi');
 
-        // ===== KENAIKAN KELAS & RIWAYAT KELAS SISWA (Tahap 1) =====
-        Route::get('kenaikan-kelas', [KenaikanKelasController::class, 'index'])->name('kenaikan-kelas.index');
-        // STEP 4: TIDAK memakai middleware 'periode-aktif' di sini — proses
-        // ini menulis ke TAHUN AJARAN BERIKUTNYA (belum terkunci, karena
-        // baru dibuat), bukan ke periode aktif yang mungkin sudah ditutup/
-        // terkunci saat kenaikan kelas dijalankan (lihat Bagian 2 alur:
-        // "Tahun Ajaran selesai → ... → Proses Kenaikan Kelas"). Proteksi
-        // lock yang benar (berdasarkan periode TUJUAN, bukan periode aktif
-        // lama) sudah dicek langsung di KenaikanKelasController::store().
-        Route::post('kenaikan-kelas', [KenaikanKelasController::class, 'store'])->name('kenaikan-kelas.store');
-        Route::get('siswa/{siswa}/riwayat-kelas', [KenaikanKelasController::class, 'riwayat'])->name('siswa.riwayat-kelas');
+        // ===== RIWAYAT KELAS SISWA =====
+        // (Revisi permintaan admin) Fitur "Kenaikan Kelas" (proses pindah
+        // kelas massal lewat menu tersendiri) DIHAPUS — sekolah ini
+        // memindahkan siswa antar kelas/tahun ajaran lewat Import Excel
+        // Data Siswa (menu siswa.import), yang sekarang otomatis mencatat
+        // riwayat_kelas_siswas juga (lihat app/Imports/SiswaImport.php).
+        // Halaman melihat histori TETAP ADA di bawah ini — datanya tidak
+        // pernah dihapus.
+        Route::get('siswa/{siswa}/riwayat-kelas', [RiwayatKelasController::class, 'show'])->name('siswa.riwayat-kelas');
     });
 
     // ===== PENGATURAN SEKOLAH: data relatif tetap (lokasi, kepala sekolah, dst)

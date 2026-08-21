@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GuruBkKelas;
 use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
@@ -274,6 +275,7 @@ class TahunAjaranController extends Controller
         $rencana = [
             'kelas' => ['disalin' => [], 'sudah_ada' => []],
             'mengajar' => ['disalin' => [], 'sudah_ada' => []],
+            'guru_bk' => ['disalin' => [], 'sudah_ada' => []],
             'jadwal' => ['disalin' => [], 'sudah_ada' => []],
         ];
 
@@ -311,6 +313,21 @@ class TahunAjaranController extends Controller
 
             $rencana['mengajar'][$sudahAda ? 'sudah_ada' : 'disalin'][] = [
                 'sumber' => $m, 'kelas_tujuan' => $kelasLabel, 'kelas_baru' => is_null($kelasTujuanReal),
+            ];
+        }
+
+        foreach (GuruBkKelas::with(['guru', 'kelas'])->where('tahun_ajaran_id', $sumber->id)->get() as $gb) {
+            if (! $gb->kelas) {
+                continue;
+            }
+            $key = $gb->kelas->tingkat.'|'.$gb->kelas->nama_kelas;
+            $kelasTujuanReal = $kelasTujuanMap[$key] ?? null;
+            $kelasLabel = $kelasTujuanReal ?? $gb->kelas;
+            $sudahAda = $kelasTujuanReal && GuruBkKelas::where('tahun_ajaran_id', $tujuan->id)
+                ->where('guru_id', $gb->guru_id)->where('kelas_id', $kelasTujuanReal->id)->exists();
+
+            $rencana['guru_bk'][$sudahAda ? 'sudah_ada' : 'disalin'][] = [
+                'sumber' => $gb, 'kelas_tujuan' => $kelasLabel, 'kelas_baru' => is_null($kelasTujuanReal),
             ];
         }
 
@@ -380,9 +397,10 @@ class TahunAjaranController extends Controller
 
         $kelasDisalin = 0;
         $mengajarDisalin = 0;
+        $guruBkDisalin = 0;
         $jadwalDisalin = 0;
 
-        DB::transaction(function () use ($sumber, $tahunAjaran, &$kelasDisalin, &$mengajarDisalin, &$jadwalDisalin) {
+        DB::transaction(function () use ($sumber, $tahunAjaran, &$kelasDisalin, &$mengajarDisalin, &$guruBkDisalin, &$jadwalDisalin) {
             $rencanaAwal = $this->resolveRencanaSalin($sumber, $tahunAjaran);
 
             foreach ($rencanaAwal['kelas']['disalin'] as $baris) {
@@ -411,6 +429,17 @@ class TahunAjaranController extends Controller
                 }
             }
 
+            foreach ($rencana['guru_bk']['disalin'] as $baris) {
+                $baru = GuruBkKelas::firstOrCreate([
+                    'tahun_ajaran_id' => $tahunAjaran->id,
+                    'guru_id' => $baris['sumber']->guru_id,
+                    'kelas_id' => $baris['kelas_tujuan']->id,
+                ]);
+                if ($baru->wasRecentlyCreated) {
+                    $guruBkDisalin++;
+                }
+            }
+
             foreach ($rencana['jadwal']['disalin'] as $baris) {
                 $baru = JadwalPelajaran::firstOrCreate([
                     'tahun_ajaran_id' => $tahunAjaran->id,
@@ -427,12 +456,13 @@ class TahunAjaranController extends Controller
             }
         });
 
+        $totalDisalin = $kelasDisalin + $mengajarDisalin + $guruBkDisalin + $jadwalDisalin;
         $pesan = "Berhasil disalin dari {$sumber->labelPeriode()} ke {$tahunAjaran->labelPeriode()}: "
-            ."{$kelasDisalin} kelas (+wali kelas), {$mengajarDisalin} mapping guru-mengajar, {$jadwalDisalin} jadwal.";
+            ."{$kelasDisalin} kelas (+wali kelas), {$mengajarDisalin} mapping guru-mengajar, {$guruBkDisalin} mapping guru BK, {$jadwalDisalin} jadwal.";
 
         return redirect()->route('tahun-ajaran.index')
-            ->with($kelasDisalin + $mengajarDisalin + $jadwalDisalin > 0 ? 'success' : 'error',
-                $kelasDisalin + $mengajarDisalin + $jadwalDisalin > 0 ? $pesan : "Tidak ada data baru yang disalin — semua data dari {$sumber->labelPeriode()} sudah ada di {$tahunAjaran->labelPeriode()}.");
+            ->with($totalDisalin > 0 ? 'success' : 'error',
+                $totalDisalin > 0 ? $pesan : "Tidak ada data baru yang disalin — semua data dari {$sumber->labelPeriode()} sudah ada di {$tahunAjaran->labelPeriode()}.");
     }
 
     // NOTE (revisi permintaan admin): halaman "Persiapan Tahun Ajaran"

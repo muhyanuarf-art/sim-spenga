@@ -130,6 +130,7 @@ class SiswaController extends Controller
                 '  belum ada nomornya — siswa tsb tidak akan dikirimi notifikasi WA.',
                 '- jenis_kelamin diisi L (Laki-laki) atau P (Perempuan).',
                 '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas UNTUK TAHUN AJARAN AKTIF (contoh: 7A). Siswa selalu diimpor ke kelas tahun ajaran yang sedang aktif.',
+                '- Untuk NIS yang SUDAH ADA di sistem (siswa lama), import ini akan MEMINDAHKAN siswa tsb ke kode_kelas yang diisi (dipakai untuk naik kelas/pindah kelas di tahun ajaran baru). Riwayat kelasnya otomatis tercatat dan tetap bisa dilihat admin maupun orang tua siswa.',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
             ]
         ), 'template-data-siswa.xlsx');

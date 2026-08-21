@@ -1,114 +1,96 @@
-# Penyederhanaan Halaman Tahun Ajaran
+# Menghapus Fitur Kenaikan Kelas
 
-Tidak ada migrasi baru. 4 file, semua TIMPA.
+Tidak ada migrasi baru — data lama (`riwayat_kelas_siswas`, dll) TIDAK
+disentuh sama sekali, hanya cara memprosesnya yang berubah.
 
-## PENTING — 1 FILE HARUS DIHAPUS
-
-```
-resources/views/tahun-ajaran/persiapan.blade.php   → HAPUS file ini dari project Anda
-```
-
-Halaman "Persiapan Tahun Ajaran" (dibuat sebelumnya) sudah dihapus
-sesuai permintaan — file view-nya sudah tidak dipakai sama sekali,
-harus dihapus manual dari server Anda.
-
-## Isi paket (4 file, semua TIMPA)
+## PENTING — 2 FILE HARUS DIHAPUS, 1 FOLDER
 
 ```
-app/Http/Controllers/TahunAjaranController.php
-routes/web.php   ⚠️ lihat catatan di bawah
-resources/views/tahun-ajaran/index.blade.php
-resources/views/tahun-ajaran/preview-duplikasi.blade.php
+app/Http/Controllers/KenaikanKelasController.php   → HAPUS
+resources/views/kenaikan-kelas/   (seluruh folder)  → HAPUS
+```
+
+Kedua sudah digantikan sepenuhnya oleh file baru di paket ini.
+
+## Isi paket (8 file)
+
+```
+BARU:
+  app/Http/Controllers/RiwayatKelasController.php
+  resources/views/riwayat-kelas/show.blade.php
+
+TIMPA:
+  app/Http/Controllers/OrangTuaDashboardController.php
+  app/Http/Controllers/SiswaController.php
+  app/Imports/SiswaImport.php
+  routes/web.php   ⚠️ lihat catatan di bawah
+  resources/views/layouts/app.blade.php
+  resources/views/orangtua/dashboard.blade.php
 ```
 
 ## PENTING — routes/web.php
 
-2 baris route DIHAPUS (fitur terkait sudah tidak ada):
-```php
-Route::get('tahun-ajaran/{tahunAjaran}/persiapan', ...)->name('tahun-ajaran.persiapan');
-Route::post('tahun-ajaran/{tahunAjaran}/ganti-semester', ...)->name('tahun-ajaran.ganti-semester');
-```
-Tidak ada baris baru ditambahkan — "Salin Data" dan "Tambah Semester"
-memakai ulang route yang sudah ada (`tahun-ajaran.duplikasi.preview`
-dan `tahun-ajaran.store`).
+Perubahan di file ini:
+- **Dihapus**: `kenaikan-kelas.index` (GET) dan `kenaikan-kelas.store` (POST).
+- **Diubah**: route `siswa.riwayat-kelas` sekarang mengarah ke
+  `RiwayatKelasController::show` (bukan lagi `KenaikanKelasController::riwayat`).
+- **Diubah**: `use App\Http\Controllers\KenaikanKelasController;` menjadi
+  `use App\Http\Controllers\RiwayatKelasController;`.
 
-## Perubahan sesuai 6 permintaan
+## Apa yang berubah
 
-### 1. Tombol "Tutup Semester X & Aktifkan Semester Y" DIHAPUS
-Sekarang pergantian semester murni 2 langkah terpisah yang sudah ada
-sebagai tombol sendiri-sendiri di tabel: **"🔒 Tutup Semester"**
-(pada semester yang aktif) lalu **"✅ Aktifkan"** (pada semester
-berikutnya). Tidak ada lagi tombol gabungan yang membingungkan.
+### 1. Menu "Kenaikan Kelas" dihapus total
+Tidak ada lagi di sidebar, halaman, maupun route. Proses pindah kelas
+massal lewat menu tersendiri sudah tidak ada.
 
-### 2. Kolom & input Tanggal DIHAPUS
-Kolom "Tanggal" di tabel dan input "Tanggal Mulai/Selesai" di semua
-form (Tambah, Edit, Buat Tahun Ajaran) dihapus — memang tidak dipakai
-validasi apa pun. Kolom di database TETAP ADA (tidak diubah), hanya
-tidak lagi ditanyakan/ditampilkan di UI.
+### 2. Import Excel Data Siswa sekarang mencatat Riwayat Kelas otomatis
+Ini bagian PALING PENTING — supaya histori tidak hilang. Setiap kali
+Anda import Excel Data Siswa dan:
+- **NIS-nya baru** → dicatat sebagai "Awal masuk" ke kelas yang diisi.
+- **NIS-nya sudah ada** (siswa lama) dan `kode_kelas` di file BERBEDA
+  dari kelas siswa itu sekarang → otomatis tercatat sebagai perpindahan
+  kelas (kelas lama → kelas baru) untuk Tahun Ajaran yang sedang aktif.
+- Import yang sama diulang tidak akan mencatat riwayat dobel.
 
-### 3. Tombol "Persiapan" DIHAPUS
-Halaman & tombolnya dihapus total.
+Jadi alur kerja sekolah Anda sekarang: **setiap Tahun Ajaran baru,
+cukup import ulang Excel Data Siswa dengan `kode_kelas` yang sudah
+diperbarui** (siswa kelas 7 tahun lalu diisi kelas 8, dst) — riwayat
+kenaikan kelasnya otomatis tercatat, tanpa perlu proses Kenaikan Kelas
+manual.
 
-### 4. Tombol "+ Tambah Semester" BARU
-Muncul otomatis di baris manapun yang tahun ajarannya baru punya 1
-semester (Ganjil ATAU Genap saja) — tinggal klik untuk melengkapi
-semester yang kurang. Hanya Ganjil/Genap yang mungkin (tidak bisa
-lebih dari 2 semester per tahun ajaran).
+### 3. Halaman "🕘 Riwayat Kelas" (admin) — TETAP ADA
+Tombol di Data Siswa tetap berfungsi sama seperti sebelumnya,
+menampilkan histori lengkap kelas siswa dari tahun ke tahun. Hanya
+"mesin" di baliknya yang berganti (dari proses manual Kenaikan Kelas
+menjadi otomatis dari Import Excel).
 
-### 5. "Tutup Semester" mengunci SEMUA data (tidak berubah — dikonfirmasi)
-Perilaku ini sudah benar sejak STEP 2-7 (memakai
-`PeriodeAkademik::pastikanTidakTerkunci()` yang dicek di SEMUA modul
-transaksi — jurnal, absensi, jadwal, guru mengajar, BK). Teks
-konfirmasi tombol diperjelas untuk menegaskan ini. Data yang sudah
-ditutup TETAP bisa dipakai sebagai sumber "Salin Data".
-
-### 6. "📋 Salin Mapping Guru/Jadwal" DIGANTI "📋 Salin Data" per baris
-Sekarang setiap baris Tahun Ajaran/Semester di tabel punya tombol
-**"📋 Salin Data"** sendiri. Alurnya:
-1. Klik "Salin Data" → pilih tujuan → konfirmasi "Anda akan menyalin
-   data..." → Ya.
-2. Muncul halaman **Preview** — checklist lengkap apa yang akan
-   disalin: **Kelas & Wali Kelas** (BARU — sebelumnya cuma Guru
-   Mengajar & Jadwal, sekarang digabung jadi satu alur), Guru
-   Mengajar, dan Jadwal. Ada catatan: *"Kelas & Wali Kelas disalin
-   sebagai titik awal — sesuaikan lagi kalau ada perubahan wali kelas
-   untuk periode ini."*
-3. Klik "Salin Sekarang" → tersimpan → muncul pesan jelas berapa
-   kelas/mapping/jadwal yang berhasil disalin.
-4. Setelahnya tekan **"✅ Aktifkan"** pada semester tujuan seperti
-   biasa.
-
-Kelas yang belum ada di tujuan sekarang **otomatis dibuat** sebagai
-bagian dari "Salin Data" ini (sebelumnya harus dibuat manual dulu di
-menu Data Kelas, baru bisa menyalin Guru Mengajar/Jadwal — sekarang
-satu langkah saja).
+### 4. Portal Orang Tua sekarang menampilkan Riwayat Kelas (BARU)
+Sebelumnya orang tua hanya bisa lihat rekap absensi & BK. Sekarang ada
+kartu **"Riwayat Kelas"** di dashboard orang tua yang menampilkan
+histori kelas anaknya dari tahun ke tahun (kelas asal → kelas
+sekarang, per tahun ajaran) — persis permintaan Anda: *"orang tua
+yang ingin melihat data anaknya yang sudah naik kelas."*
 
 ## Cara pasang
 
-1. Timpa 4 file di atas.
-2. **Hapus** `resources/views/tahun-ajaran/persiapan.blade.php`.
-3. Tidak perlu `php artisan migrate`.
+1. Timpa/tambahkan 8 file di atas.
+2. **Hapus** `app/Http/Controllers/KenaikanKelasController.php`.
+3. **Hapus** folder `resources/views/kenaikan-kelas/` beserta isinya.
+4. Tidak perlu `php artisan migrate`.
 
 ## Testing yang disarankan
 
-1. Buka menu Tahun Ajaran → pastikan tidak ada lagi tombol gabungan
-   Tutup+Aktifkan, tidak ada kolom Tanggal, tidak ada tombol Persiapan.
-2. Buat Tahun Ajaran baru lewat "+ Tambah Tahun Ajaran" dengan HANYA
-   1 semester (mis. Ganjil saja) → pastikan tombol "+ Tambah Semester
-   Genap" muncul di baris itu → klik → pastikan Semester Genap
-   langsung muncul sebagai baris baru.
-3. Klik "📋 Salin Data" pada semester yang berisi data → pilih tujuan
-   → pastikan muncul konfirmasi, lalu halaman Preview menampilkan 3
-   bagian (Kelas & Wali Kelas, Guru Mengajar, Jadwal) dengan angka
-   yang masuk akal.
-4. Klik "Salin Sekarang" → pastikan kelas baru muncul di Data Kelas
-   tujuan lengkap dengan wali kelasnya, mapping guru mengajar &
-   jadwal juga tersalin ke kelas yang BENAR (bukan kelas tahun
-   sumber).
-5. Ulangi "Salin Data" yang sama sekali lagi → pastikan tidak ada
-   duplikasi (semua masuk hitungan "sudah ada").
-6. Klik "🔒 Tutup Semester" pada semester aktif → coba edit
-   jurnal/jadwal/guru-mengajar di semester itu → harus ditolak.
-7. Klik "✅ Aktifkan" pada semester berikutnya → pastikan berhasil
-   (atau ditolak dengan pesan jelas kalau tahun ajaran lama belum
-   ditutup penuh, sesuai mekanisme yang sudah ada sejak STEP 4).
+1. Cek sidebar — pastikan menu "Kenaikan Kelas" sudah tidak ada.
+2. Buka `/kenaikan-kelas` langsung lewat URL → harus muncul halaman
+   404 (route sudah tidak ada), bukan error 500.
+3. Import Excel Data Siswa dengan NIS siswa yang SUDAH ADA di sistem,
+   tapi `kode_kelas` diisi kelas yang BERBEDA dari kelas siswa itu
+   sekarang → cek tombol "🕘 Riwayat Kelas" siswa tsb di Data Siswa →
+   harus muncul baris riwayat baru (kelas lama → kelas baru).
+2. Ulangi import Excel yang SAMA PERSIS lagi → pastikan riwayat TIDAK
+   bertambah dobel.
+3. Login sebagai orang tua siswa tsb → pastikan kartu "Riwayat Kelas"
+   di dashboard menampilkan histori yang sama.
+4. Cek data siswa & riwayat kelas yang SUDAH ADA sebelumnya (hasil
+   proses Kenaikan Kelas lama) → pastikan semuanya masih utuh, baik
+   di halaman admin maupun portal orang tua.

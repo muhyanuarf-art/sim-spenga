@@ -145,9 +145,6 @@
                 <a href="{{ route('siswa.index') }}" class="nav-link {{ request()->routeIs('siswa.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">🧑‍🎓</span> Data Siswa
                 </a>
-                <a href="{{ route('kenaikan-kelas.index') }}" class="nav-link {{ request()->routeIs('kenaikan-kelas.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🎓</span> Kenaikan Kelas
-                </a>
                 <a href="{{ route('orangtua-akun.index') }}" class="nav-link {{ request()->routeIs('orangtua-akun.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">👪</span> Data Orang Tua
                 </a>
@@ -165,14 +162,11 @@
                 </a>
             @endif
 
-            @if(in_array($user->role, ['admin', 'kurikulum']))
+            @if($user->role === 'admin')
                 <p class="nav-section">Administrator</p>
                 <a href="{{ route('jam-pelajaran.index') }}" class="nav-link {{ request()->routeIs('jam-pelajaran.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">⏰</span> Jam Pelajaran
                 </a>
-            @endif
-
-            @if($user->role === 'admin')
                 <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">👤</span> Kelola Pengguna
                 </a>
@@ -211,35 +205,12 @@
                 @else
                     <span class="badge bg-amber-50 text-amber-700 inline-flex">⚠️ <span class="hidden sm:inline">Belum ada periode aktif</span></span>
                 @endif
-                <div class="relative" x-data="{ userMenuOpen: false }">
-                    <button @click="userMenuOpen = !userMenuOpen" @click.outside="userMenuOpen = false"
-                            class="flex items-center gap-2 sm:gap-3 rounded-xl px-1.5 py-1 hover:bg-slate-100 transition">
-                        <div class="text-right hidden sm:block">
-                            <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
-                            <p class="text-xs text-slate-400 leading-tight">{{ auth()->user()->roleLabel() }}</p>
-                        </div>
-                        <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
-                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-                        </div>
-                        <span class="text-slate-400 text-xs hidden sm:inline">▾</span>
-                    </button>
-
-                    <div x-show="userMenuOpen" x-cloak
-                         x-transition:enter="transition ease-out duration-100"
-                         x-transition:enter-start="opacity-0 scale-95"
-                         x-transition:enter-end="opacity-100 scale-100"
-                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-lg z-30 overflow-hidden">
-                        <div class="px-4 py-3 border-b border-slate-100 sm:hidden">
-                            <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
-                            <p class="text-xs text-slate-400 leading-tight">{{ auth()->user()->roleLabel() }}</p>
-                        </div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button class="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition">
-                                <span class="text-lg">🚪</span> Keluar
-                            </button>
-                        </form>
-                    </div>
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
+                    <p class="text-xs text-slate-400 leading-tight">{{ auth()->user()->roleLabel() }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
             </div>
         </header>

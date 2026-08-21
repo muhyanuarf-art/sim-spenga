@@ -45,8 +45,14 @@ class OrangTuaDashboardController extends Controller
         $penguranganPoin = $siswa->penguranganPoinBk()->aktif()->sum('jumlah');
         $poinBersih = max(0, $poinTerpakai - $penguranganPoin);
 
+        // (Revisi permintaan admin) — fitur Kenaikan Kelas dihapus, sekolah
+        // memindahkan siswa antar kelas lewat Import Excel. Supaya orang tua
+        // tetap bisa melihat riwayat kelas anaknya (naik kelas/pindah kelas
+        // dari tahun ke tahun), tampilkan Riwayat Kelas di dashboard ini.
+        $riwayatKelas = $siswa->riwayatKelas()->with(['tahunAjaran', 'kelasAsal', 'kelas'])->get();
+
         return view('orangtua.dashboard', compact(
-            'siswa', 'rekapHarian', 'ringkasan', 'kasusBk', 'poinBersih', 'bulan', 'tahun'
+            'siswa', 'rekapHarian', 'ringkasan', 'kasusBk', 'poinBersih', 'bulan', 'tahun', 'riwayatKelas'
         ));
     }
 

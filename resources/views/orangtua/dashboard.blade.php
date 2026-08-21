@@ -110,6 +110,27 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm p-6">
+            <p class="font-bold text-slate-800 mb-4">Riwayat Kelas</p>
+            @forelse($riwayatKelas as $i => $r)
+                <div class="flex gap-3 pb-3 {{ !$loop->last ? 'border-l-2 border-brand-100 ml-3' : 'ml-3' }} relative">
+                    <div class="absolute -left-[0.95rem] top-0 w-6 h-6 rounded-full bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center">
+                        {{ $i + 1 }}
+                    </div>
+                    <div class="pl-6 pt-0">
+                        <p class="font-semibold text-slate-700 text-sm">
+                            {{ $r->kelasAsal->nama_kelas ?? 'Awal masuk' }}
+                            <span class="text-slate-400">&rarr;</span>
+                            {{ $r->kelas->nama_kelas ?? '-' }}
+                        </p>
+                        <p class="text-xs text-slate-400">{{ $r->tahunAjaran?->labelPeriode() ?? '-' }}</p>
+                    </div>
+                </div>
+            @empty
+                <p class="text-sm text-slate-400 py-4 text-center">Belum ada riwayat kelas.</p>
+            @endforelse
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm p-6">
             <div class="flex items-center justify-between mb-4">
                 <p class="font-bold text-slate-800">Kedisiplinan (BK)</p>
                 <span class="text-sm text-slate-500">Poin pelanggaran aktif: <strong class="text-slate-800">{{ $poinBersih }}</strong></span>
