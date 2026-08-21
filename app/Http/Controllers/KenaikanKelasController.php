@@ -14,31 +14,54 @@ use Illuminate\Validation\Rule;
 class KenaikanKelasController extends Controller
 {
     /**
-     * Form Kenaikan Kelas. Kalau kelas_asal_id sudah dipilih (query string),
-     * langsung tampilkan daftar siswa aktif di kelas tsb supaya Kurikulum/
-     * Admin bisa pilih siapa saja yang naik & kelas tujuannya sebelum
-     * membuka modal preview (Alpine.js) dan submit.
+     * Form Kenaikan Kelas.
      *
-     * STEP 4 Bagian 19 — Tahun Ajaran TUJUAN TIDAK LAGI dipilih bebas oleh
-     * admin lewat dropdown (celah lama). Sistem menghitungnya SENDIRI dari
-     * Tahun Ajaran yang sedang AKTIF (mis. aktif 2026/2027 → tujuan otomatis
-     * 2027/2028). Kalau tahun ajaran tujuan itu belum dibuat, form kenaikan
-     * kelas disembunyikan dan admin diarahkan ke menu Tahun Ajaran dulu.
+     * PERBAIKAN (setelah laporan admin): versi sebelumnya MEMAKSA "Tahun
+     * Ajaran Asal" selalu = periode yang sedang aktif. Itu keliru kalau
+     * admin sudah mengaktifkan tahun ajaran baru LEBIH DULU sebelum
+     * memindahkan siswa — akibatnya "Kelas Asal" menunjuk ke kelas tahun
+     * baru yang masih kosong (siswa belum ada di situ), dan siswa
+     * kelihatan "hilang" padahal sebenarnya masih di tahun sebelumnya.
+     *
+     * Sekarang admin MEMILIH SENDIRI Tahun Ajaran Asal lewat dropdown
+     * (default ditebak otomatis: tahun SEBELUM periode aktif kalau ada,
+     * atau periode aktif itu sendiri kalau tidak — tapi admin bebas
+     * mengganti). Tahun Ajaran TUJUAN tetap dihitung OTOMATIS dari Tahun
+     * Ajaran Asal yang dipilih (Bagian 19 STEP 4 tetap dipegang — admin
+     * tidak bisa asal pilih tujuan sembarangan), jadi berapa pun urutan
+     * aktivasi yang sudah dilakukan admin, fitur ini tetap bekerja benar.
      */
     public function index(Request $request)
     {
         $periodeAktif = TahunAjaran::aktif();
-        $namaTahunTujuan = $periodeAktif ? TahunAjaran::namaTahunAjaranBerikutnya($periodeAktif->nama) : null;
+        $tahunAjaranList = TahunAjaran::where('semester', 'Ganjil')->orderByDesc('id')->get();
+
+        $tahunAjaranAsal = null;
+        if ($request->filled('tahun_ajaran_asal_id')) {
+            $tahunAjaranAsal = TahunAjaran::where('id', $request->integer('tahun_ajaran_asal_id'))
+                ->where('semester', 'Ganjil')->first();
+        }
+        if (! $tahunAjaranAsal && $periodeAktif) {
+            // Default cerdas: tebak tahun SEBELUM periode aktif dulu (kasus
+            // paling umum kalau tahun baru sudah keburu diaktifkan) — kalau
+            // tidak ada, baru jatuh ke periode aktif itu sendiri (kasus
+            // kenaikan kelas dijalankan SEBELUM aktivasi, sesuai alur asli).
+            $anchor = $periodeAktif->semester === 'Ganjil' ? $periodeAktif : TahunAjaran::where('nama', $periodeAktif->nama)->where('semester', 'Ganjil')->first();
+            $tahunAjaranAsal = $anchor?->tahunAjaranSebelumnya() ?? $anchor;
+        }
+
+        $namaTahunTujuan = $tahunAjaranAsal ? TahunAjaran::namaTahunAjaranBerikutnya($tahunAjaranAsal->nama) : null;
         $tahunAjaranTujuan = $namaTahunTujuan
             ? TahunAjaran::where('nama', $namaTahunTujuan)->where('semester', 'Ganjil')->first()
             : null;
 
-        // STEP 5 Bagian 20 — Kelas Asal HARUS dari tahun ajaran yang SEDANG
-        // AKTIF, Kelas Tujuan HARUS dari tahun ajaran TUJUAN. Dua daftar
-        // yang terpisah (bukan 1 daftar kelas global seperti sebelum
-        // STEP 5), supaya admin tidak mungkin memilih kelas tujuan dari
-        // tahun ajaran yang salah.
-        $kelasList = Kelas::aktif()->orderBy('tingkat')->orderBy('nama_kelas')->get();
+        // STEP 5 Bagian 20 — Kelas Asal HARUS dari Tahun Ajaran Asal yang
+        // dipilih, Kelas Tujuan HARUS dari Tahun Ajaran Tujuan (dihitung
+        // otomatis dari Tahun Ajaran Asal). Dua daftar terpisah supaya
+        // admin tidak mungkin memilih kelas dari tahun ajaran yang salah.
+        $kelasList = $tahunAjaranAsal
+            ? Kelas::untukTahunAjaran($tahunAjaranAsal)->orderBy('tingkat')->orderBy('nama_kelas')->get()
+            : collect();
         $kelasListTujuan = $tahunAjaranTujuan
             ? Kelas::untukTahunAjaran($tahunAjaranTujuan)->orderBy('tingkat')->orderBy('nama_kelas')->get()
             : collect();
@@ -52,7 +75,8 @@ class KenaikanKelasController extends Controller
         }
 
         return view('kenaikan-kelas.index', compact(
-            'kelasList', 'kelasListTujuan', 'kelasAsal', 'siswas', 'periodeAktif', 'namaTahunTujuan', 'tahunAjaranTujuan'
+            'kelasList', 'kelasListTujuan', 'kelasAsal', 'siswas',
+            'periodeAktif', 'tahunAjaranList', 'tahunAjaranAsal', 'namaTahunTujuan', 'tahunAjaranTujuan'
         ));
     }
 
@@ -61,13 +85,13 @@ class KenaikanKelasController extends Controller
      * dianggap tinggal di kelas asal (tidak dicatat/tidak dipindah) — kalau
      * memang mau mencatat siswa yang TINGGAL KELAS secara eksplisit
      * (Bagian 12), jalankan proses ini SEKALI LAGI untuk kelas asal yang
-     * sama dengan Kelas Tujuan = kelas yang sama persis (sekarang diizinkan
-     * — lihat catatan di bawah).
+     * sama dengan Kelas Tujuan = kelas yang sama persis (diizinkan, lihat
+     * catatan di bawah).
      *
-     * Tahun Ajaran tujuan DIHITUNG ULANG DI SERVER dari periode aktif SAAT
-     * INI (bukan dipercaya dari input tersembunyi begitu saja) — pertahanan
-     * terhadap kondisi periode aktif berubah di antara form dibuka & submit
-     * (Bagian 19 & 26).
+     * Tahun Ajaran Asal & Tujuan DIVALIDASI ULANG DI SERVER dari input
+     * tahun_ajaran_asal_id (bukan dipercaya begitu saja dari kelas yang
+     * dipilih) — pertahanan terhadap manipulasi/kondisi data berubah di
+     * antara form dibuka & submit (Bagian 19 & 26).
      *
      * unique(siswa_id, tahun_ajaran_id) di level database mencegah siswa
      * yang sama tercatat naik kelas dua kali pada tahun ajaran yang sama —
@@ -76,50 +100,38 @@ class KenaikanKelasController extends Controller
      */
     public function store(Request $request)
     {
-        // STEP 5 Bagian 20 & 26 — tahun ajaran tujuan dihitung ULANG di sini
-        // (bukan dari input tersembunyi) SEBELUM validasi kelas_tujuan_id,
-        // supaya aturan "kelas tujuan harus dari tahun ajaran tujuan" bisa
-        // divalidasi terhadap nilai yang benar-benar terpercaya.
-        $periodeAktif = TahunAjaran::aktif();
-        $namaTahunTujuan = $periodeAktif ? TahunAjaran::namaTahunAjaranBerikutnya($periodeAktif->nama) : null;
+        $validated = $request->validate([
+            'tahun_ajaran_asal_id' => ['required', 'exists:tahun_ajarans,id'],
+            'kelas_asal_id' => ['required', 'exists:kelas,id'],
+            'kelas_tujuan_id' => ['required', 'exists:kelas,id'],
+            'siswa_ids' => ['required', 'array', 'min:1'],
+            'siswa_ids.*' => ['integer', 'exists:siswas,id'],
+            'keterangan' => ['nullable', 'string'],
+        ]);
+
+        $tahunAjaranAsal = TahunAjaran::findOrFail($validated['tahun_ajaran_asal_id']);
+        $namaTahunTujuan = TahunAjaran::namaTahunAjaranBerikutnya($tahunAjaranAsal->nama);
         $tahunAjaran = $namaTahunTujuan
             ? TahunAjaran::where('nama', $namaTahunTujuan)->where('semester', 'Ganjil')->first()
             : null;
 
         if (! $tahunAjaran) {
-            return back()->with('error', 'Tahun ajaran tujuan tidak dapat ditentukan (mungkin periode aktif sudah berubah sejak halaman ini dibuka). Muat ulang halaman dan coba lagi.');
+            return back()->with('error', 'Tahun ajaran tujuan tidak dapat ditentukan. Muat ulang halaman dan coba lagi.');
         }
 
-        $validated = $request->validate([
-            // STEP 5 Bagian 20 — Kelas Asal WAJIB dari tahun ajaran aktif
-            // SAAT INI (bukan kelas tahun ajaran manapun).
-            'kelas_asal_id' => [
-                'required',
-                Rule::exists('kelas', 'id')->where(
-                    fn ($q) => $q->whereIn('id', $periodeAktif ? Kelas::untukTahunAjaran($periodeAktif)->pluck('id') : [])
-                ),
-            ],
-            // STEP 5 Bagian 20 — Kelas Tujuan WAJIB dari Tahun Ajaran TUJUAN
-            // (bukan tahun ajaran sembarang, dan BUKAN "2026/2027 - 8A" saat
-            // tujuannya 2027/2028 — persis contoh SALAH di Bagian 20).
-            // 'different:kelas_asal_id' SENGAJA DIHAPUS dari versi lama:
-            // kelas tujuan boleh nama_kelas SAMA dengan kelas asal (mis.
-            // "7A" ke "7A") karena keduanya sekarang baris/ID BERBEDA milik
-            // tahun ajaran berbeda — itulah cara mencatat TINGGAL KELAS
-            // (Bagian 12) di struktur baru ini.
-            'kelas_tujuan_id' => [
-                'required',
-                Rule::exists('kelas', 'id')->where(
-                    fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($tahunAjaran)->pluck('id'))
-                ),
-            ],
-            'siswa_ids' => ['required', 'array', 'min:1'],
-            'siswa_ids.*' => ['integer', 'exists:siswas,id'],
-            'keterangan' => ['nullable', 'string'],
-        ], [
-            'kelas_asal_id.exists' => 'Kelas asal tidak valid atau bukan dari tahun ajaran yang sedang aktif.',
-            'kelas_tujuan_id.exists' => "Kelas tujuan tidak valid atau bukan dari Tahun Ajaran {$tahunAjaran->nama}.",
-        ]);
+        // Validasi ulang kelas_asal_id & kelas_tujuan_id benar-benar dari
+        // tahun ajaran yang sesuai (Bagian 20) — dicek manual di sini
+        // (bukan lewat Rule::exists di atas) supaya pesan error bisa
+        // menyebutkan nama tahun ajarannya dengan jelas.
+        $kelasAsalValid = Kelas::untukTahunAjaran($tahunAjaranAsal)->pluck('id')->contains((int) $validated['kelas_asal_id']);
+        if (! $kelasAsalValid) {
+            return back()->with('error', "Kelas asal tidak valid atau bukan dari Tahun Ajaran {$tahunAjaranAsal->nama}.")->withInput();
+        }
+
+        $kelasTujuanValid = Kelas::untukTahunAjaran($tahunAjaran)->pluck('id')->contains((int) $validated['kelas_tujuan_id']);
+        if (! $kelasTujuanValid) {
+            return back()->with('error', "Kelas tujuan tidak valid atau bukan dari Tahun Ajaran {$tahunAjaran->nama}.")->withInput();
+        }
 
         // STEP 5 Bagian 8/26 — cek lock berdasarkan periode TUJUAN (bukan
         // periode aktif lama, lihat catatan di routes/web.php). Secara
@@ -166,7 +178,8 @@ class KenaikanKelasController extends Controller
             $pesan .= " " . count($dilewati) . " siswa DILEWATI karena sudah tercatat naik kelas pada tahun ajaran {$tahunAjaran->nama} sebelumnya: {$daftar}.";
         }
 
-        return redirect()->route('kenaikan-kelas.index')->with($berhasil > 0 ? 'success' : 'error', $pesan);
+        return redirect()->route('kenaikan-kelas.index', ['tahun_ajaran_asal_id' => $tahunAjaranAsal->id])
+            ->with($berhasil > 0 ? 'success' : 'error', $pesan);
     }
 
     /** Riwayat kelas seorang siswa, bernomor, urut dari periode paling awal. */

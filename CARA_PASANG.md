@@ -1,70 +1,51 @@
-# Perbaikan: Status Pembinaan Disederhanakan, Tahap Otomatis, Kasus Ikut Selesai
+# Perbaikan — Kenaikan Kelas: "Siswa Tidak Muncul"
 
-## 1. Status Pembinaan — sekarang cuma 2 pilihan
+## Penyebab
 
-Dulu: Direncanakan, Berlangsung, Selesai, Tidak Berhasil (4 pilihan).
-Sekarang: **"Pembinaan"** dan **"Selesai"** saja.
+Halaman Kenaikan Kelas sebelumnya MEMAKSA "Kelas Asal" selalu diambil
+dari Tahun Ajaran yang SEDANG AKTIF. Ini hanya benar kalau admin
+menjalankan Kenaikan Kelas SEBELUM mengaktifkan tahun ajaran baru.
 
-Data lama otomatis dipetakan saat migration jalan:
-`Direncanakan/Berlangsung/Tidak Berhasil` → `Pembinaan`, `Selesai` tetap `Selesai`.
+Begitu tahun ajaran baru (mis. 2026/2027) sudah lebih dulu diaktifkan,
+"Kelas Asal" otomatis menunjuk ke kelas-kelas 2026/2027 yang BARU
+dibuat dan masih KOSONG — padahal siswa Anda kemungkinan masih
+tercatat di kelas tahun ajaran SEBELUMNYA. Makanya begitu kelas asal
+dipilih, daftar siswanya kosong.
 
-## 2. Tahap — sekarang 100% otomatis dari sistem
+## Perbaikan
 
-Field Tahap di form Catat Pembinaan **bukan dropdown pilihan lagi** —
-tampil sebagai kotak read-only "Tahap X (otomatis)", dihitung dari poin
-aktif siswa saat itu (`PoinSiswaService::rekomendasiTahap()`). Sama
-seperti Kategori/Poin di form Kasus, **server tidak menerima nilai
-Tahap dari form** — selalu dihitung ulang di server.
+Sekarang admin **memilih sendiri** "Tahun Ajaran Asal" lewat dropdown
+di halaman Kenaikan Kelas (defaultnya ditebak otomatis — tahun SEBELUM
+periode aktif kalau ada, atau periode aktif itu sendiri kalau tidak).
+Tahun Ajaran Tujuan tetap dihitung OTOMATIS dari Tahun Ajaran Asal
+yang dipilih (tidak berubah dari desain STEP 4 — admin tidak bisa
+asal pilih tujuan sembarangan), jadi fitur ini sekarang benar
+berapa pun urutan aktivasi yang sudah Anda lakukan.
 
-⚠️ **Catatan penting**: karena rumus otomatis ini hanya menghitung
-Tahap 1-5 (dari rentang poin aktif 5 s.d >75), **Tahap 6 dan 7 tidak
-akan pernah muncul otomatis** — keduanya di desain awal memang butuh
-pertimbangan manusia (mis. "tahap 5 sudah dilakukan tapi belum
-berubah"), bukan sesuatu yang bisa dihitung murni dari angka poin.
-Kalau nanti sekolah tetap butuh jalur untuk mencatat Tahap 6/7 secara
-manual untuk kasus-kasus ekstrem, kabari saya — bisa saya tambahkan
-sebagai opsi terpisah tanpa mengubah perilaku otomatis yang sudah ada.
+## Isi paket (3 file, semua TIMPA)
 
-## 3. Kasus otomatis "Selesai" mengikuti Pembinaan
+```
+app/Models/TahunAjaran.php
+app/Http/Controllers/KenaikanKelasController.php
+resources/views/kenaikan-kelas/index.blade.php
+```
 
-Sekarang kalau Pembinaan seorang siswa dicatat/diubah statusnya jadi
-**"Selesai"**, dan pembinaan itu terkait ke 1 Kasus tertentu, maka
-**Kasus itu ikut otomatis ditandai "Selesai"** — sehingga otomatis
-hilang dari daftar **"📋 Kasus Belum Selesai"** di Dashboard BK, dan
-statusnya di halaman Kasus/Pelanggaran juga ikut berubah jadi "Selesai".
-
-Berlaku di 2 tempat:
-- Saat **mencatat pembinaan baru** langsung dengan status "Selesai".
-- Saat **mengubah pembinaan yang sudah ada** jadi "Selesai".
-
-## File yang diubah
-
-| File | Keterangan |
-|---|---|
-| `database/migrations/..._simplify_pembinaan_status.php` | Ubah enum status + migrasi data lama |
-| `app/Http/Controllers/BkPembinaanController.php` | Tahap otomatis, status 2 pilihan, kasus ikut selesai |
-| `app/Http/Controllers/BkDashboardController.php` | Sesuaikan query "Sedang Dalam Pembinaan" dengan status baru |
-| `resources/views/bk/siswa/show.blade.php` | Modal Catat Pembinaan: Tahap jadi read-only, status 2 opsi |
-| `resources/views/bk/pembinaan/index.blade.php` | Filter & badge status disederhanakan |
+Tidak ada migrasi baru, tidak ada route baru — cukup timpa 3 file
+ini, tidak perlu `php artisan migrate`.
 
 ## Cara pasang
 
-```bash
-php artisan migrate
-php artisan view:clear
-```
+1. Timpa 3 file di atas.
+2. Buka halaman Kenaikan Kelas.
+3. Di dropdown **"Tahun Ajaran Asal"**, coba pilih tahun-tahun yang
+   ada satu per satu sampai Anda menemukan yang menampilkan siswa
+   di "Kelas Asal" — itulah tahun ajaran tempat siswa Anda sekarang
+   berada.
+4. Lanjutkan proses kenaikan kelas seperti biasa dari situ.
 
-## Testing
+## Catatan
 
-1. Buka profil siswa yang punya poin aktif, mis. 25 (Tahap rekomendasi
-   harusnya "Tahap 2") → klik **Catat Pembinaan** → field Tahap harus
-   tampil "Tahap 2" (abu-abu, tidak bisa diklik/diubah).
-2. Dropdown Status harus cuma ada 2 pilihan: Pembinaan, Selesai.
-3. Catat pembinaan terkait 1 kasus tertentu dengan status **Selesai**
-   langsung → cek di Dashboard BK, kasus itu harus **hilang** dari
-   "Kasus Belum Selesai".
-4. Catat pembinaan lain dengan status "Pembinaan" (belum selesai) →
-   kasus terkait harus tetap muncul di "Kasus Belum Selesai" dengan
-   status "Dalam Pembinaan".
-5. Edit pembinaan yang tadinya "Pembinaan" jadi "Selesai" → kasus
-   terkait harus ikut berubah jadi "Selesai" juga.
+Setelah menemukan tahun ajaran yang benar dan sekali berhasil
+memproses kenaikan kelas, sistem akan otomatis mengarahkan kembali
+ke Tahun Ajaran Asal yang sama (lewat query string), jadi Anda tidak
+perlu memilih ulang setiap kali berpindah kelas asal berikutnya.

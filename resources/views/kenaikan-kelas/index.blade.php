@@ -4,37 +4,59 @@
 @section('content')
 <div class="space-y-6" x-data="{ showPreview: false }">
 
-    {{-- STEP 4 Bagian 2/19 — Info Tahun Ajaran Tujuan (otomatis, bukan dropdown bebas) --}}
+    {{-- Tahun Ajaran Asal dipilih admin (default ditebak otomatis), Tahun Ajaran Tujuan dihitung otomatis dari situ --}}
     <div class="card p-5">
         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Kenaikan Kelas</p>
-        @if(!$periodeAktif)
-            <p class="text-sm text-amber-600">Belum ada Tahun Ajaran aktif. Aktifkan salah satu di menu Tahun Ajaran terlebih dahulu.</p>
-        @elseif(!$tahunAjaranTujuan)
-            <p class="text-sm text-amber-600">
-                Tahun Ajaran {{ $namaTahunTujuan ?? 'berikutnya' }} belum tersedia.
-                Silakan buat Tahun Ajaran Baru terlebih dahulu di menu
-                <a href="{{ route('tahun-ajaran.index') }}" class="underline font-semibold">Tahun Ajaran</a>.
-            </p>
+        @if(!$tahunAjaranAsal)
+            <p class="text-sm text-amber-600">Belum ada Tahun Ajaran sama sekali. Buat dulu di menu Tahun Ajaran.</p>
         @else
-            <p class="text-sm text-slate-600">
-                Kenaikan Kelas: <span class="font-bold">{{ $periodeAktif->nama }}</span>
-                <span class="text-slate-400">&rarr;</span>
-                <span class="font-bold">{{ $tahunAjaranTujuan->nama }}</span>
-            </p>
-            @if($kelasListTujuan->isEmpty())
-                <p class="text-sm text-amber-600 mt-2">
-                    Tahun Ajaran {{ $tahunAjaranTujuan->nama }} belum punya kelas sama sekali.
-                    Buat dulu di menu <a href="{{ route('kelas.index', ['tahun_ajaran_id' => $tahunAjaranTujuan->id]) }}" class="underline font-semibold">Data Kelas</a>
-                    (atau gunakan "📋 Salin Struktur Kelas" di sana) sebelum memproses kenaikan kelas.
+            <form method="GET" action="{{ route('kenaikan-kelas.index') }}" class="flex flex-wrap gap-3 items-end mb-3">
+                <div class="min-w-[220px]">
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tahun Ajaran Asal (tempat siswa SEKARANG berada)</label>
+                    <select name="tahun_ajaran_asal_id" class="input" onchange="this.form.submit()">
+                        @foreach($tahunAjaranList as $t)
+                            <option value="{{ $t->id }}" {{ $tahunAjaranAsal->id === $t->id ? 'selected' : '' }}>
+                                {{ $t->nama }}{{ $periodeAktif && $periodeAktif->nama === $t->nama ? ' (Aktif)' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+
+            @if(!$tahunAjaranTujuan)
+                <p class="text-sm text-amber-600">
+                    Tahun Ajaran {{ $namaTahunTujuan ?? 'berikutnya' }} belum tersedia.
+                    Silakan buat Tahun Ajaran Baru terlebih dahulu di menu
+                    <a href="{{ route('tahun-ajaran.index') }}" class="underline font-semibold">Tahun Ajaran</a>.
                 </p>
+            @else
+                <p class="text-sm text-slate-600">
+                    Kenaikan Kelas: <span class="font-bold">{{ $tahunAjaranAsal->nama }}</span>
+                    <span class="text-slate-400">&rarr;</span>
+                    <span class="font-bold">{{ $tahunAjaranTujuan->nama }}</span>
+                </p>
+                @if($kelasList->isEmpty())
+                    <p class="text-sm text-amber-600 mt-2">
+                        Tahun Ajaran {{ $tahunAjaranAsal->nama }} tidak punya kelas sama sekali — tidak ada yang bisa dinaikkan dari sini.
+                        Kalau siswa Anda ada di tahun ajaran lain, pilih di dropdown "Tahun Ajaran Asal" di atas.
+                    </p>
+                @elseif($kelasListTujuan->isEmpty())
+                    <p class="text-sm text-amber-600 mt-2">
+                        Tahun Ajaran {{ $tahunAjaranTujuan->nama }} belum punya kelas sama sekali.
+                        Buat dulu di menu <a href="{{ route('kelas.index', ['tahun_ajaran_id' => $tahunAjaranTujuan->id]) }}" class="underline font-semibold">Data Kelas</a>
+                        (atau gunakan "📋 Salin Struktur Kelas" di sana) sebelum memproses kenaikan kelas.
+                    </p>
+                @endif
             @endif
         @endif
     </div>
 
     {{-- Langkah 1: pilih kelas asal --}}
+    @if($tahunAjaranAsal && $kelasList->isNotEmpty())
     <div class="card p-5">
-        <p class="font-bold text-slate-800 mb-4">1. Pilih Kelas Asal</p>
+        <p class="font-bold text-slate-800 mb-4">1. Pilih Kelas Asal (Tahun Ajaran {{ $tahunAjaranAsal->nama }})</p>
         <form method="GET" action="{{ route('kenaikan-kelas.index') }}" class="flex flex-wrap gap-3 items-end">
+            <input type="hidden" name="tahun_ajaran_asal_id" value="{{ $tahunAjaranAsal->id }}">
             <div class="min-w-[220px]">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas Asal</label>
                 <select name="kelas_asal_id" required class="input" onchange="this.form.submit()">
@@ -49,6 +71,7 @@
             <noscript><button class="btn-outline">Tampilkan</button></noscript>
         </form>
     </div>
+    @endif
 
     @if($kelasAsal && $tahunAjaranTujuan && $kelasListTujuan->isNotEmpty())
     @php
@@ -80,6 +103,7 @@
               }"
               @submit="if (! confirmed) { $event.preventDefault(); kelasTujuanLabel = kelasMap[kelasTujuanId] || ''; showPreview = true }">
             @csrf
+            <input type="hidden" name="tahun_ajaran_asal_id" value="{{ $tahunAjaranAsal->id }}">
             <input type="hidden" name="kelas_asal_id" value="{{ $kelasAsal->id }}">
 
             <div class="grid sm:grid-cols-2 gap-3 mb-4">
@@ -148,7 +172,7 @@
                     <p class="font-bold text-slate-800 text-lg mb-4">Preview Kenaikan Kelas</p>
 
                     <dl class="text-sm space-y-2 mb-4">
-                        <div class="flex justify-between"><dt class="text-slate-500">Tahun Asal</dt><dd class="font-semibold">{{ $periodeAktif->nama }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-slate-500">Tahun Asal</dt><dd class="font-semibold">{{ $tahunAjaranAsal->nama }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Kelas Asal</dt><dd class="font-semibold">{{ $kelasAsal->nama_kelas }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Tahun Tujuan</dt><dd class="font-semibold">{{ $tahunAjaranTujuan->nama }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Kelas Tujuan</dt><dd class="font-semibold" x-text="kelasTujuanLabel"></dd></div>

@@ -159,6 +159,21 @@ class TahunAjaran extends Model
     }
 
     /**
+     * Kebalikan dari namaTahunAjaranBerikutnya() — "2027/2028" → "2026/2027".
+     * Dipakai untuk menebak dari tahun ajaran mana siswa KEMUNGKINAN masih
+     * berada (Kenaikan Kelas), tanpa memaksa admin harus tahu persis nama
+     * tahun sebelumnya.
+     */
+    public static function namaTahunAjaranSebelumnya(string $nama): ?string
+    {
+        if (! preg_match('/^(\d{4})\/(\d{4})$/', $nama, $m)) {
+            return null;
+        }
+
+        return (((int) $m[1]) - 1).'/'.(((int) $m[2]) - 1);
+    }
+
+    /**
      * STEP 4 Bagian 19 — baris Semester Ganjil untuk TAHUN AJARAN
      * BERIKUTNYA dari baris ini (dihitung dari `nama`, bukan dipilih
      * bebas oleh admin). Null kalau formatnya tidak dikenali atau tahun
@@ -172,6 +187,19 @@ class TahunAjaran extends Model
         }
 
         return static::where('nama', $namaBerikutnya)
+            ->where('semester', 'Ganjil')
+            ->first();
+    }
+
+    /** Kebalikan dari tahunAjaranBerikutnya() — baris Semester Ganjil tahun SEBELUM ini. */
+    public function tahunAjaranSebelumnya(): ?self
+    {
+        $namaSebelumnya = static::namaTahunAjaranSebelumnya($this->nama);
+        if (! $namaSebelumnya) {
+            return null;
+        }
+
+        return static::where('nama', $namaSebelumnya)
             ->where('semester', 'Ganjil')
             ->first();
     }
