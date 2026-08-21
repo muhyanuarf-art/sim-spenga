@@ -7,6 +7,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class TahunAjaranController extends Controller
 {
@@ -27,7 +28,20 @@ class TahunAjaranController extends Controller
                 : null;
         }
 
-        return view('tahun-ajaran.index', compact('tahunAjaran', 'periodeAktif', 'jadwalSemesterBerikutnyaTersedia'));
+        // STEP 4 Bagian 2/19 — info tahun ajaran berikutnya (dihitung dari
+        // nama periode aktif, BUKAN dipilih bebas oleh admin) untuk kartu
+        // "Buat Tahun Ajaran Baru" di halaman ini.
+        $namaTahunAjaranBerikutnya = $periodeAktif
+            ? TahunAjaran::namaTahunAjaranBerikutnya($periodeAktif->nama)
+            : null;
+        $tahunAjaranBerikutnyaSudahAda = $namaTahunAjaranBerikutnya
+            ? TahunAjaran::where('nama', $namaTahunAjaranBerikutnya)->exists()
+            : false;
+
+        return view('tahun-ajaran.index', compact(
+            'tahunAjaran', 'periodeAktif', 'jadwalSemesterBerikutnyaTersedia',
+            'namaTahunAjaranBerikutnya', 'tahunAjaranBerikutnyaSudahAda'
+        ));
     }
 
     /**
@@ -36,12 +50,23 @@ class TahunAjaranController extends Controller
      * 'aktif' lewat form ini — mengaktifkan periode hanya lewat
      * aktifkan() supaya constraint "hanya satu periode aktif" (Bagian 8)
      * tidak bisa dilanggar lewat jalan pintas edit form.
+     *
+     * STEP 4 — ditambah validasi unique(nama, semester): tanpa ini,
+     * admin bisa tidak sengaja membuat dua baris "2027/2028 Ganjil" yang
+     * membingungkan (semesterBerikutnya()/tahunAjaranBerikutnya() di
+     * model mengasumsikan kombinasi nama+semester itu unik).
      */
-    private function aturanValidasi(): array
+    private function aturanValidasi(?int $ignoreId = null): array
     {
         return [
             'nama' => ['required', 'string', 'max:20'],
-            'semester' => ['required', 'in:Ganjil,Genap'],
+            'semester' => [
+                'required',
+                'in:Ganjil,Genap',
+                Rule::unique('tahun_ajarans', 'semester')
+                    ->where(fn ($q) => $q->where('nama', request('nama')))
+                    ->ignore($ignoreId),
+            ],
             'tanggal_mulai' => ['nullable', 'date'],
             'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
             'status' => ['nullable', 'in:akan_datang,selesai'],
@@ -56,9 +81,38 @@ class TahunAjaranController extends Controller
         return back()->with('success', 'Tahun ajaran berhasil ditambahkan.');
     }
 
+    /**
+     * STEP 4 Bagian 4 — "Buat Tahun Ajaran Baru" dalam SATU aksi: admin
+     * cukup isi nama (+ tanggal opsional), sistem langsung membuat KEDUA
+     * baris Semester 1 & Semester 2 sekaligus (bukan 2x submit form
+     * tambah biasa). Status keduanya AKAN DATANG, is_active TETAP false
+     * (Bagian 5 — tahun ajaran baru TIDAK langsung aktif).
+     */
+    public function buatTahunAjaranBaru(Request $request)
+    {
+        $validated = $request->validate([
+            'nama' => [
+                'required', 'string', 'max:20',
+                Rule::unique('tahun_ajarans', 'nama'),
+            ],
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            foreach (['Ganjil', 'Genap'] as $semester) {
+                TahunAjaran::create([
+                    'nama' => $validated['nama'],
+                    'semester' => $semester,
+                    'status' => TahunAjaran::STATUS_AKAN_DATANG,
+                ]);
+            }
+        });
+
+        return back()->with('success', "Tahun ajaran {$validated['nama']} berhasil dibuat (Semester 1 & Semester 2). Lengkapi tanggal, kenaikan kelas, wali kelas, dan jadwal sebelum mengaktifkannya.");
+    }
+
     public function update(Request $request, TahunAjaran $tahunAjaran)
     {
-        $validated = $request->validate($this->aturanValidasi());
+        $validated = $request->validate($this->aturanValidasi($tahunAjaran->id));
 
         // Periode yang sedang AKTIF tidak boleh "dijatuhkan" statusnya lewat
         // form edit biasa — status aktif hanya boleh berubah lewat aktifkan().
@@ -77,9 +131,28 @@ class TahunAjaranController extends Controller
      * Dibungkus transaksi supaya "matikan semua yang aktif" + "aktifkan
      * satu baris tujuan" tidak pernah berhenti di tengah jalan (mis. dua
      * baris sama-sama aktif kalau request terputus).
+     *
+     * STEP 4 Bagian 20/21 & Test 7 — ditambah 1 validasi PENTING: kalau
+     * baris yang mau diaktifkan berasal dari TAHUN AJARAN (nama) yang
+     * BERBEDA dari periode yang sedang aktif sekarang, berarti ini
+     * PERGANTIAN TAHUN AJARAN (bukan cuma pindah semester dalam tahun
+     * yang sama seperti STEP 3) — dan itu HANYA boleh kalau tahun ajaran
+     * LAMA sudah selesai total (Ganjil & Genap-nya sama-sama terkunci).
+     * Kalau baris tujuan masih dalam TAHUN AJARAN YANG SAMA (mis. dari
+     * Semester 2 balik ke Semester 1 tahun yang sama, kasus langka tapi
+     * tidak dilarang), validasi ini tidak berlaku — perilaku lama tetap
+     * jalan seperti sebelum STEP 4.
      */
     public function aktifkan(TahunAjaran $tahunAjaran)
     {
+        $periodeAktifSaatIni = TahunAjaran::aktif();
+
+        if ($periodeAktifSaatIni && $periodeAktifSaatIni->nama !== $tahunAjaran->nama) {
+            if (! TahunAjaran::semuaSemesterTerkunci($periodeAktifSaatIni->nama)) {
+                return back()->with('error', "Tidak dapat memulai Tahun Ajaran {$tahunAjaran->nama}. Semester {$periodeAktifSaatIni->semester} Tahun Ajaran {$periodeAktifSaatIni->nama} masih berjalan — tutup & kunci dulu SELURUH semester tahun ajaran {$periodeAktifSaatIni->nama} sebelum mengaktifkan tahun ajaran berikutnya.");
+            }
+        }
+
         DB::transaction(function () use ($tahunAjaran) {
             // Periode lain yang sebelumnya berstatus 'aktif' otomatis jadi
             // 'selesai' karena is_active-nya dimatikan di baris yang sama —

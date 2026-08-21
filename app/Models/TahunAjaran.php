@@ -145,6 +145,58 @@ class TahunAjaran extends Model
     }
 
     /**
+     * STEP 4 Bagian 19 — hitung NAMA tahun ajaran berikutnya dari format
+     * "YYYY/YYYY" (mis. "2026/2027" → "2027/2028"). Null kalau formatnya
+     * tidak sesuai pola (tidak menebak-nebak, supaya tidak salah).
+     */
+    public static function namaTahunAjaranBerikutnya(string $nama): ?string
+    {
+        if (! preg_match('/^(\d{4})\/(\d{4})$/', $nama, $m)) {
+            return null;
+        }
+
+        return (((int) $m[1]) + 1).'/'.(((int) $m[2]) + 1);
+    }
+
+    /**
+     * STEP 4 Bagian 19 — baris Semester Ganjil untuk TAHUN AJARAN
+     * BERIKUTNYA dari baris ini (dihitung dari `nama`, bukan dipilih
+     * bebas oleh admin). Null kalau formatnya tidak dikenali atau tahun
+     * ajaran berikutnya belum dibuat sama sekali.
+     */
+    public function tahunAjaranBerikutnya(): ?self
+    {
+        $namaBerikutnya = static::namaTahunAjaranBerikutnya($this->nama);
+        if (! $namaBerikutnya) {
+            return null;
+        }
+
+        return static::where('nama', $namaBerikutnya)
+            ->where('semester', 'Ganjil')
+            ->first();
+    }
+
+    /**
+     * STEP 4 Bagian 20/21 — apakah SEMUA baris tahun ajaran dengan `nama`
+     * ini (Ganjil & Genap) sudah terkunci. Dipakai sebagai syarat sebelum
+     * mengizinkan tahun ajaran BERIKUTNYA diaktifkan. Sengaja mensyaratkan
+     * KEDUA semester (Ganjil & Genap) memang sudah dibuat DAN terkunci —
+     * kalau salah satu belum pernah dibuat, dianggap BELUM selesai supaya
+     * tidak ada celah "semester belum pernah ada = otomatis dianggap
+     * terkunci".
+     */
+    public static function semuaSemesterTerkunci(string $nama): bool
+    {
+        $baris = static::where('nama', $nama)->get();
+
+        if ($baris->count() < 2) {
+            return false;
+        }
+
+        return $baris->every(fn (self $t) => $t->isTerkunci());
+    }
+
+    /**
      * Tahap 3. Label gabungan untuk ditampilkan di UI, contoh:
      * "Tahun Ajaran 2026/2027 — Semester Ganjil".
      *

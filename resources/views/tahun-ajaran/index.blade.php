@@ -41,6 +41,36 @@
         @endif
     </div>
 
+    {{-- STEP 4 Bagian 2/4/19-21 — Kartu Tahun Ajaran Berikutnya --}}
+    @if($namaTahunAjaranBerikutnya)
+    <div class="card p-5">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Tahun Ajaran Berikutnya</p>
+        @if($tahunAjaranBerikutnyaSudahAda)
+            <p class="text-sm text-slate-600">
+                Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> sudah dibuat.
+                Lengkapi Kenaikan Kelas, Wali Kelas, Guru Mengajar &amp; Jadwal-nya, lalu aktifkan Semester 1-nya
+                lewat tombol "✅ Aktifkan" di tabel bawah — sistem akan menolak otomatis kalau
+                Tahun Ajaran {{ $periodeAktif->nama }} belum selesai &amp; terkunci sepenuhnya (kedua semester).
+            </p>
+        @else
+            <div class="flex flex-wrap items-end justify-between gap-4">
+                <p class="text-sm text-slate-600 max-w-md">
+                    Siapkan Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> sekarang
+                    (Semester 1 &amp; Semester 2 langsung dibuat, status Akan Datang — TIDAK langsung aktif),
+                    supaya Kenaikan Kelas, Wali Kelas, Guru Mengajar, dan Jadwal bisa disiapkan lebih dulu
+                    sebelum Tahun Ajaran {{ $periodeAktif->nama }} benar-benar ditutup.
+                </p>
+                <form method="POST" action="{{ route('tahun-ajaran.buat-baru') }}"
+                      onsubmit="return confirm('Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }} (Semester 1 & Semester 2)? Tahun ajaran ini TIDAK akan langsung aktif.')">
+                    @csrf
+                    <input type="hidden" name="nama" value="{{ $namaTahunAjaranBerikutnya }}">
+                    <button class="btn-primary">+ Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }}</button>
+                </form>
+            </div>
+        @endif
+    </div>
+    @endif
+
     <div class="flex justify-end gap-2">
         <button @click="showDuplikasi = !showDuplikasi" class="btn-outline">📋 Salin Mapping Guru/Jadwal</button>
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Tahun Ajaran</button>

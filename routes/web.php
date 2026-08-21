@@ -190,6 +190,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('tahun-ajaran', TahunAjaranController::class)
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
+        Route::post('tahun-ajaran-baru', [TahunAjaranController::class, 'buatTahunAjaranBaru'])->name('tahun-ajaran.buat-baru');
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
         Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
@@ -198,7 +199,14 @@ Route::middleware('auth')->group(function () {
 
         // ===== KENAIKAN KELAS & RIWAYAT KELAS SISWA (Tahap 1) =====
         Route::get('kenaikan-kelas', [KenaikanKelasController::class, 'index'])->name('kenaikan-kelas.index');
-        Route::post('kenaikan-kelas', [KenaikanKelasController::class, 'store'])->name('kenaikan-kelas.store')->middleware('periode-aktif');
+        // STEP 4: TIDAK memakai middleware 'periode-aktif' di sini — proses
+        // ini menulis ke TAHUN AJARAN BERIKUTNYA (belum terkunci, karena
+        // baru dibuat), bukan ke periode aktif yang mungkin sudah ditutup/
+        // terkunci saat kenaikan kelas dijalankan (lihat Bagian 2 alur:
+        // "Tahun Ajaran selesai → ... → Proses Kenaikan Kelas"). Proteksi
+        // lock yang benar (berdasarkan periode TUJUAN, bukan periode aktif
+        // lama) sudah dicek langsung di KenaikanKelasController::store().
+        Route::post('kenaikan-kelas', [KenaikanKelasController::class, 'store'])->name('kenaikan-kelas.store');
         Route::get('siswa/{siswa}/riwayat-kelas', [KenaikanKelasController::class, 'riwayat'])->name('siswa.riwayat-kelas');
     });
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\TemplateExport;
 use App\Imports\KelasImport;
 use App\Models\Kelas;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -25,10 +26,27 @@ class KelasController extends Controller
             'tingkat' => ['required', 'integer', 'in:7,8,9'],
             'wali_kelas_id' => ['nullable', 'exists:users,id'],
         ]);
-        Kelas::create($validated);
+        $kelas = Kelas::create($validated);
+
+        // STEP 4 Bagian 16 — kalau wali kelas langsung diisi saat kelas
+        // dibuat, catat juga histori untuk tahun ajaran yang aktif saat ini.
+        if ($validated['wali_kelas_id'] ?? null) {
+            $tahunAjaranAktif = TahunAjaran::aktif();
+            if ($tahunAjaranAktif) {
+                $kelas->catatWaliKelasHistori($tahunAjaranAktif->nama, $validated['wali_kelas_id'], auth()->user());
+            }
+        }
+
         return back()->with('success', 'Kelas berhasil ditambahkan.');
     }
 
+    /**
+     * STEP 4 Bagian 15/16 & Test 5 — setiap kali wali_kelas_id berubah,
+     * catat snapshot ke wali_kelas_histori untuk TAHUN AJARAN YANG SEDANG
+     * AKTIF. Baris histori tahun ajaran LAIN (mis. tahun sebelumnya) tidak
+     * pernah disentuh di sini, jadi mengganti wali kelas untuk tahun baru
+     * tidak pernah mengubah histori wali kelas tahun lama.
+     */
     public function update(Request $request, Kelas $kelas)
     {
         $validated = $request->validate([
@@ -36,7 +54,18 @@ class KelasController extends Controller
             'tingkat' => ['required', 'integer', 'in:7,8,9'],
             'wali_kelas_id' => ['nullable', 'exists:users,id'],
         ]);
+
+        $waliBerubah = (int) ($validated['wali_kelas_id'] ?? 0) !== (int) ($kelas->wali_kelas_id ?? 0);
+
         $kelas->update($validated);
+
+        if ($waliBerubah) {
+            $tahunAjaranAktif = TahunAjaran::aktif();
+            if ($tahunAjaranAktif) {
+                $kelas->catatWaliKelasHistori($tahunAjaranAktif->nama, $validated['wali_kelas_id'] ?? null, auth()->user());
+            }
+        }
+
         return back()->with('success', 'Kelas berhasil diperbarui.');
     }
 

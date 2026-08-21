@@ -27,6 +27,8 @@
     </div>
 
     <div class="card p-5">
+        {{-- STEP 4 Bagian 16 --}}
+        <p class="text-xs text-slate-400 mb-2">Kolom Wali Kelas menunjukkan wali kelas untuk tahun ajaran yang sedang aktif. Mengubahnya di sini TIDAK mengubah histori wali kelas tahun ajaran sebelumnya.</p>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
                 <thead><tr><th>Kelas</th><th>Tingkat</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th class="th-aksi">Aksi</th></tr></thead>
