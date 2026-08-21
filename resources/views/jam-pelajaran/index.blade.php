@@ -21,6 +21,7 @@
         @endforeach
     </div>
 
+    @if(auth()->user()->role === 'admin')
     <div class="flex justify-end gap-2">
         <button @click="showSalin = !showSalin" class="btn-outline">🔁 Salin ke Hari Lain</button>
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Jam Ke</button>
@@ -89,13 +90,14 @@
             <button type="submit" class="btn-primary h-[42px]">Simpan</button>
         </form>
     </div>
+    @endif
 
     @foreach($hariList as $h)
     <div class="card p-5" x-show="hariAktif === '{{ $h }}'" x-cloak>
         <p class="font-bold text-slate-800 mb-4 text-lg">Jam Pelajaran - {{ $h }}</p>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Jam Ke</th><th>Mulai</th><th>Selesai</th><th>Status</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th>Jam Ke</th><th>Mulai</th><th>Selesai</th><th>Status</th>@if(auth()->user()->role === 'admin')<th class="th-aksi">Aksi</th>@endif</tr></thead>
                 @forelse(($jamPelajaranPerHari[$h] ?? collect()) as $j)
                 <tbody x-data="{ editing: false }">
                     <tr x-show="!editing">
@@ -106,6 +108,7 @@
                             @if($j->is_active)<span class="badge bg-emerald-50 text-emerald-700">Aktif</span>
                             @else<span class="badge bg-slate-100 text-slate-500">Nonaktif</span>@endif
                         </td>
+                        @if(auth()->user()->role === 'admin')
                         <td class="td-aksi">
                             <div class="action-buttons">
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
@@ -115,7 +118,9 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
+                    @if(auth()->user()->role === 'admin')
                     <tr x-show="editing" x-cloak>
                         <td colspan="5" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('jam-pelajaran.update', $j) }}" class="grid sm:grid-cols-6 gap-3 items-end py-2">
@@ -144,10 +149,11 @@
                             </form>
                         </td>
                     </tr>
+                    @endif
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="5" class="text-center text-slate-400 py-8">Belum ada jam pelajaran untuk hari {{ $h }}.</td></tr>
+                    <tr><td colspan="{{ auth()->user()->role === 'admin' ? 5 : 4 }}" class="text-center text-slate-400 py-8">Belum ada jam pelajaran untuk hari {{ $h }}.</td></tr>
                 </tbody>
                 @endforelse
             </table>

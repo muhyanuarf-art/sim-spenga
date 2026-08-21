@@ -226,10 +226,13 @@ Route::middleware('auth')->group(function () {
     });
 
     // Jam pelajaran: input fleksibel oleh Admin, tapi Kurikulum boleh lihat
+    Route::middleware('role:admin,kurikulum')->group(function () {
+        Route::get('jam-pelajaran', [JamPelajaranController::class, 'index'])->name('jam-pelajaran.index');
+    });
     Route::middleware('role:admin')->group(function () {
-        Route::resource('jam-pelajaran', JamPelajaranController::class)
-            ->except(['create', 'edit', 'show'])
-            ->parameters(['jam-pelajaran' => 'jamPelajaran']);
+        Route::post('jam-pelajaran', [JamPelajaranController::class, 'store'])->name('jam-pelajaran.store');
+        Route::put('jam-pelajaran/{jamPelajaran}', [JamPelajaranController::class, 'update'])->name('jam-pelajaran.update');
+        Route::delete('jam-pelajaran/{jamPelajaran}', [JamPelajaranController::class, 'destroy'])->name('jam-pelajaran.destroy');
         Route::post('jam-pelajaran-salin', [JamPelajaranController::class, 'salin'])->name('jam-pelajaran.salin');
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
     });

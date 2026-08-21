@@ -165,11 +165,14 @@
                 </a>
             @endif
 
-            @if($user->role === 'admin')
+            @if(in_array($user->role, ['admin', 'kurikulum']))
                 <p class="nav-section">Administrator</p>
                 <a href="{{ route('jam-pelajaran.index') }}" class="nav-link {{ request()->routeIs('jam-pelajaran.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">⏰</span> Jam Pelajaran
                 </a>
+            @endif
+
+            @if($user->role === 'admin')
                 <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'nav-active' : '' }}">
                     <span class="text-lg">👤</span> Kelola Pengguna
                 </a>
