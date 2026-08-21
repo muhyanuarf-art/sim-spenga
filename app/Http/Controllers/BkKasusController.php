@@ -54,7 +54,7 @@ class BkKasusController extends Controller
         $data = $query->get();
 
         $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
-            ? Kelas::orderBy('nama_kelas')->get()
+            ? Kelas::aktif()->orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 
         $guruBk = $this->bkGuruBkUntukCetak($user, $request->filled('kelas_id') ? (int) $request->kelas_id : null);

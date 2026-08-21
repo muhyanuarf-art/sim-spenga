@@ -21,6 +21,13 @@
                 <span class="text-slate-400">&rarr;</span>
                 <span class="font-bold">{{ $tahunAjaranTujuan->nama }}</span>
             </p>
+            @if($kelasListTujuan->isEmpty())
+                <p class="text-sm text-amber-600 mt-2">
+                    Tahun Ajaran {{ $tahunAjaranTujuan->nama }} belum punya kelas sama sekali.
+                    Buat dulu di menu <a href="{{ route('kelas.index', ['tahun_ajaran_id' => $tahunAjaranTujuan->id]) }}" class="underline font-semibold">Data Kelas</a>
+                    (atau gunakan "📋 Salin Struktur Kelas" di sana) sebelum memproses kenaikan kelas.
+                </p>
+            @endif
         @endif
     </div>
 
@@ -43,10 +50,10 @@
         </form>
     </div>
 
-    @if($kelasAsal && $tahunAjaranTujuan)
+    @if($kelasAsal && $tahunAjaranTujuan && $kelasListTujuan->isNotEmpty())
     @php
         $siswaNamaJson = $siswas->pluck('nama')->values()->toJson();
-        $kelasMapJson = $kelasList->mapWithKeys(fn($k) => [(string) $k->id => $k->nama_kelas.' (Tingkat '.$k->tingkat.')'])->toJson();
+        $kelasMapJson = $kelasListTujuan->mapWithKeys(fn($k) => [(string) $k->id => $k->nama_kelas.' (Tingkat '.$k->tingkat.')'])->toJson();
     @endphp
     <div class="card p-5">
         <p class="font-bold text-slate-800 mb-1">2. Proses Kenaikan Kelas — {{ $kelasAsal->nama_kelas }}</p>
@@ -80,9 +87,9 @@
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas Tujuan</label>
                     <select name="kelas_tujuan_id" required class="input" x-model="kelasTujuanId">
                         <option value="">Pilih kelas tujuan...</option>
-                        @foreach($kelasList as $k)
+                        @foreach($kelasListTujuan as $k)
                             <option value="{{ $k->id }}">
-                                {{ $k->nama_kelas }} (Tingkat {{ $k->tingkat }}){{ $k->id === $kelasAsal->id ? ' — sama dengan asal (tinggal kelas)' : '' }}
+                                {{ $k->nama_kelas }} (Tingkat {{ $k->tingkat }}){{ $k->nama_kelas === $kelasAsal->nama_kelas ? ' — sama dengan asal (tinggal kelas)' : '' }}
                             </option>
                         @endforeach
                     </select>

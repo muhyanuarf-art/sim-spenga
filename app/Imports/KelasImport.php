@@ -14,9 +14,14 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
  * Contoh   : 7A | 7 | 198501012010011001
  *
  * nip_wali_kelas boleh dikosongkan (opsional).
+ *
+ * STEP 5 — kelas sekarang terikat Tahun Ajaran (tujuan dipilih di
+ * halaman import, dikirim lewat constructor), bukan lagi kolom di Excel.
  */
 class KelasImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
+    public function __construct(private int $tahunAjaranId) {}
+
     public function model(array $row)
     {
         $namaKelas = trim($row['nama_kelas'] ?? '');
@@ -33,7 +38,10 @@ class KelasImport implements ToModel, WithHeadingRow, SkipsEmptyRows
         }
 
         return Kelas::updateOrCreate(
-            ['nama_kelas' => $namaKelas],
+            [
+                'tahun_ajaran_id' => $this->tahunAjaranId,
+                'nama_kelas' => $namaKelas,
+            ],
             [
                 'tingkat' => $tingkat,
                 'wali_kelas_id' => $waliKelasId,

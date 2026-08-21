@@ -129,7 +129,9 @@ class WaliKelasController extends Controller
 
     private function resolveKelasWali($user): ?Kelas
     {
-        return Kelas::where('wali_kelas_id', $user->id)->first();
+        // STEP 5 — pakai relasi yang sudah ter-scope ke tahun ajaran aktif
+        // (lihat User::kelasWali()), bukan query manual di sini lagi.
+        return $user->kelasWali;
     }
 
     /** Kelas default yang ditampilkan pertama kali (sebelum user memilih lewat dropdown/URL). */
@@ -139,7 +141,7 @@ class WaliKelasController extends Controller
             return $user->kelasBk()->first();
         }
         if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
-            return Kelas::orderBy('nama_kelas')->first();
+            return Kelas::aktif()->orderBy('nama_kelas')->first();
         }
         return $this->resolveKelasWali($user);
     }
@@ -151,7 +153,9 @@ class WaliKelasController extends Controller
             return $user->kelasBk();
         }
         if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
-            return Kelas::orderBy('nama_kelas')->get();
+            // STEP 5 Bagian 23 — default TAHUN AJARAN AKTIF (halaman ini
+            // untuk operasional harian, bukan histori).
+            return Kelas::aktif()->orderBy('nama_kelas')->get();
         }
         return collect(); // wali kelas: terkunci ke 1 kelas, dropdown tidak dipakai
     }

@@ -24,7 +24,8 @@ class DashboardController extends Controller
         if ($user->role === 'admin' || $user->role === 'kepala_sekolah') {
             $totalSiswa = Siswa::where('is_active', true)->count();
             $totalGuru = User::where('role', 'guru')->count();
-            $totalKelas = Kelas::count();
+            // STEP 5 Bagian 23 — hitungan kelas default TAHUN AJARAN AKTIF.
+            $totalKelas = Kelas::aktif()->count();
 
             $absensiHariIniRaw = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
                 ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
@@ -46,7 +47,7 @@ class DashboardController extends Controller
                 ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
                 : 0;
 
-            $rekapPerKelas = Kelas::withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+            $rekapPerKelas = Kelas::aktif()->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
                 ->orderBy('nama_kelas')
                 ->get()
                 ->map(function ($kelas) {
@@ -95,7 +96,7 @@ class DashboardController extends Controller
             $totalSiswa = Siswa::where('is_active', true)->count();
             $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
 
-            $rekapPerKelas = Kelas::orderBy('nama_kelas')->get()->map(function ($kelas) {
+            $rekapPerKelas = Kelas::aktif()->orderBy('nama_kelas')->get()->map(function ($kelas) {
                 $totalSiswaKelas = $kelas->siswas()->where('is_active', true)->count();
                 $alfaHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
                     ->whereDate('tanggal', now()->toDateString())

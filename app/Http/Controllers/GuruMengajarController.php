@@ -11,6 +11,7 @@ use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class GuruMengajarController extends Controller
@@ -29,7 +30,9 @@ class GuruMengajarController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        // STEP 5 Bagian 16/23 — hanya kelas TAHUN AJARAN AKTIF (mapping
+        // selalu ditulis ke tahun_ajaran_id = aktif(), lihat store()).
+        $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
         $guruList = User::where('role', 'guru')->orderBy('name')->get();
         $mapelList = MataPelajaran::orderBy('nama_mapel')->get();
 
@@ -43,7 +46,14 @@ class GuruMengajarController extends Controller
 
         $validated = $request->validate([
             'guru_id' => ['required', 'exists:users,id'],
-            'kelas_id' => ['required', 'exists:kelas,id'],
+            'kelas_id' => [
+                'required',
+                // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama
+                // dengan mapping ini. Ditolak kalau tidak.
+                Rule::exists('kelas', 'id')->where(
+                    fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($tahunAjaran)->pluck('id'))
+                ),
+            ],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
         ]);
         $validated['tahun_ajaran_id'] = $tahunAjaran->id;
@@ -62,7 +72,12 @@ class GuruMengajarController extends Controller
 
         $validated = $request->validate([
             'guru_id' => ['required', 'exists:users,id'],
-            'kelas_id' => ['required', 'exists:kelas,id'],
+            'kelas_id' => [
+                'required',
+                Rule::exists('kelas', 'id')->where(
+                    fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($guruMengajar->tahunAjaran)->pluck('id'))
+                ),
+            ],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
         ]);
 
@@ -99,7 +114,7 @@ class GuruMengajarController extends Controller
             [
                 'Petunjuk:',
                 '- nip_guru diisi dengan NIP guru yang sudah terdaftar di menu Kelola Pengguna.',
-                '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas (contoh: 7A).',
+                '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas UNTUK TAHUN AJARAN AKTIF (contoh: 7A). Pastikan kelas tsb sudah dibuat untuk tahun ajaran yang sedang aktif sebelum import.',
                 '- kode_mapel diisi sesuai kode pada menu Mata Pelajaran (contoh: MTK).',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
             ]

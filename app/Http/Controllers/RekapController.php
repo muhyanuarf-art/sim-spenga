@@ -108,7 +108,7 @@ class RekapController extends Controller
             });
         }
 
-        $rekapKelas = Kelas::withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+        $rekapKelas = Kelas::aktif()->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
             ->orderBy('nama_kelas')
             ->get()
             ->map(function ($kelas) use ($bulan, $tahun) {

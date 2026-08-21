@@ -22,7 +22,10 @@ class JadwalImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 
     public function model(array $row)
     {
-        $kelas = Kelas::where('nama_kelas', trim($row['kode_kelas']))->first();
+        // STEP 5 — kelas harus berasal dari TAHUN AJARAN YANG SAMA dengan
+        // jadwal ini (Bagian 17), bukan kelas manapun yang kebetulan
+        // nama_kelas-nya cocok.
+        $kelas = Kelas::untukTahunAjaranId($this->tahunAjaranId)->where('nama_kelas', trim($row['kode_kelas']))->first();
         $mapel = MataPelajaran::where('kode', trim($row['kode_mapel']))->first();
         $guru = User::where('nip', trim($row['nip_guru']))->where('role', 'guru')->first();
         $hari = ucfirst(strtolower(trim($row['hari'])));

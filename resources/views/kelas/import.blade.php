@@ -17,6 +17,15 @@
 
         <form method="POST" action="{{ route('kelas.import') }}" enctype="multipart/form-data" class="space-y-4">
             @csrf
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tahun Ajaran Tujuan</label>
+                <select name="tahun_ajaran_id" required class="input">
+                    <option value="">Pilih tahun ajaran...</option>
+                    @foreach($tahunAjaranList as $t)
+                        <option value="{{ $t->id }}">{{ $t->nama }}{{ $t->is_active ? ' (Aktif)' : '' }}</option>
+                    @endforeach
+                </select>
+            </div>
             <input type="file" name="file" required accept=".xlsx,.xls,.csv" class="input">
             <div class="flex gap-3">
                 <a href="{{ route('kelas.index') }}" class="btn-outline">Batal</a>

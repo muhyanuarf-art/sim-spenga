@@ -7,6 +7,7 @@ use App\Imports\SiswaImport;
 use App\Models\Kelas;
 use App\Models\Siswa;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class SiswaController extends Controller
@@ -21,7 +22,8 @@ class SiswaController extends Controller
             });
         }
         $siswas = $query->orderBy('nama')->paginate(25)->withQueryString();
-        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        // STEP 5 Bagian 23 — dropdown filter default kelas TAHUN AJARAN AKTIF.
+        $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
         return view('siswa.index', compact('siswas', 'kelasList'));
     }
 
@@ -34,7 +36,12 @@ class SiswaController extends Controller
             'nama_ortu' => ['nullable', 'string', 'max:255'],
             'no_wa_ortu' => ['nullable', 'string', 'max:20'],
             'jenis_kelamin' => ['required', 'in:L,P'],
-            'kelas_id' => ['required', 'exists:kelas,id'],
+            // STEP 5 Bagian 23 — siswa baru selalu ditempatkan ke kelas
+            // TAHUN AJARAN AKTIF (bukan kelas tahun ajaran lain).
+            'kelas_id' => [
+                'required',
+                Rule::exists('kelas', 'id')->where(fn ($q) => $q->whereIn('id', Kelas::aktif()->pluck('id'))),
+            ],
         ]);
         Siswa::create($validated);
         return back()->with('success', 'Siswa berhasil ditambahkan.');
@@ -49,7 +56,10 @@ class SiswaController extends Controller
             'nama_ortu' => ['nullable', 'string', 'max:255'],
             'no_wa_ortu' => ['nullable', 'string', 'max:20'],
             'jenis_kelamin' => ['required', 'in:L,P'],
-            'kelas_id' => ['required', 'exists:kelas,id'],
+            'kelas_id' => [
+                'required',
+                Rule::exists('kelas', 'id')->where(fn ($q) => $q->whereIn('id', Kelas::aktif()->pluck('id'))),
+            ],
             'is_active' => ['nullable', 'boolean'],
         ]);
         $validated['is_active'] = $request->boolean('is_active', true);
@@ -102,7 +112,7 @@ class SiswaController extends Controller
                 '  (08xxx atau 62xxx), sistem akan merapikan otomatis. Kosongkan kalau',
                 '  belum ada nomornya — siswa tsb tidak akan dikirimi notifikasi WA.',
                 '- jenis_kelamin diisi L (Laki-laki) atau P (Perempuan).',
-                '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas (contoh: 7A).',
+                '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas UNTUK TAHUN AJARAN AKTIF (contoh: 7A). Siswa selalu diimpor ke kelas tahun ajaran yang sedang aktif.',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
             ]
         ), 'template-data-siswa.xlsx');

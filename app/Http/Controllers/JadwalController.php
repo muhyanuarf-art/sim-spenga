@@ -20,7 +20,7 @@ class JadwalController extends Controller
     {
         $tahunAjaran = TahunAjaran::aktif();
         $kelasId = $request->get('kelas_id');
-        $kelas = $kelasId ? Kelas::find($kelasId) : Kelas::orderBy('nama_kelas')->first();
+        $kelas = $kelasId ? Kelas::find($kelasId) : Kelas::aktif()->orderBy('nama_kelas')->first();
 
         $jadwal = collect();
         if ($tahunAjaran && $kelas) {
@@ -31,7 +31,11 @@ class JadwalController extends Controller
                 ->groupBy('hari');
         }
 
-        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        // STEP 5 Bagian 17/23 — hanya kelas TAHUN AJARAN AKTIF yang boleh
+        // dipilih di sini (Jadwal selalu ditulis ke tahun_ajaran_id =
+        // aktif() — lihat store()/update()), supaya admin tidak bisa
+        // memilih kelas dari tahun ajaran lain untuk jadwal tahun ini.
+        $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
         $jamPerHari = JamPelajaran::where('is_active', true)
             ->orderBy('jam_ke')
             ->get()
@@ -83,7 +87,15 @@ class JadwalController extends Controller
 
         $validated = $request->validate([
             'hari' => ['required', Rule::in(JadwalPelajaran::HARI_LIST())],
-            'kelas_id' => ['required', 'exists:kelas,id'],
+            'kelas_id' => [
+                'required',
+                // STEP 5 Bagian 17 — kelas WAJIB dari tahun ajaran yang sama
+                // dengan jadwal ini. Ditolak kalau tidak (bukan cuma
+                // disembunyikan di dropdown).
+                Rule::exists('kelas', 'id')->where(
+                    fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($tahunAjaran)->pluck('id'))
+                ),
+            ],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
             'guru_id' => [
                 'required',
@@ -190,7 +202,7 @@ class JadwalController extends Controller
             [
                 'Petunjuk:',
                 '- hari diisi nama hari (Senin, Selasa, Rabu, Kamis, Jumat, atau Sabtu).',
-                '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas (contoh: 7A).',
+                '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas UNTUK TAHUN AJARAN AKTIF (contoh: 7A). Pastikan kelas tsb sudah dibuat untuk tahun ajaran yang sedang aktif sebelum import.',
                 '- jam_ke diisi nomor jam pelajaran sesuai menu Jam Pelajaran untuk hari terkait.',
                 '- kode_mapel diisi sesuai kode pada menu Mata Pelajaran (contoh: MTK).',
                 '- nip_guru diisi dengan NIP guru yang sudah terdaftar di menu Kelola Pengguna.',

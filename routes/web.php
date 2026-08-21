@@ -181,6 +181,7 @@ Route::middleware('auth')->group(function () {
         Route::get('kelas-import', [KelasController::class, 'importForm'])->name('kelas.import.form');
         Route::get('kelas-import/template', [KelasController::class, 'template'])->name('kelas.template');
         Route::post('kelas-import', [KelasController::class, 'import'])->name('kelas.import');
+        Route::post('kelas-salin', [KelasController::class, 'salinDariTahunAjaran'])->name('kelas.salin');
 
         Route::resource('mapel', MataPelajaranController::class)->except(['create', 'edit', 'show']);
         Route::get('mapel-import', [MataPelajaranController::class, 'importForm'])->name('mapel.import.form');

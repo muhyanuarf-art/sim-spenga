@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class GuruBkController extends Controller
 {
@@ -24,7 +25,8 @@ class GuruBkController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        // STEP 5 Bagian 16/23 — hanya kelas TAHUN AJARAN AKTIF.
+        $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
         $guruBkList = User::where('role', 'guru_bk')->orderBy('name')->get();
 
         return view('kurikulum.guru-bk.index', compact('data', 'kelasList', 'guruBkList', 'tahunAjaran'));
@@ -37,7 +39,13 @@ class GuruBkController extends Controller
 
         $validated = $request->validate([
             'guru_id' => ['required', 'exists:users,id'],
-            'kelas_id' => ['required', 'exists:kelas,id'],
+            'kelas_id' => [
+                'required',
+                // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama.
+                Rule::exists('kelas', 'id')->where(
+                    fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($tahunAjaran)->pluck('id'))
+                ),
+            ],
         ]);
         $validated['tahun_ajaran_id'] = $tahunAjaran->id;
 

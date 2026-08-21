@@ -37,12 +37,29 @@ class User extends Authenticatable
     public function isGuru(): bool { return $this->role === 'guru'; }
     public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
     public function isKesiswaan(): bool { return $this->role === 'kesiswaan'; }
+    /** STEP 5 Bagian 10 & 23 — "wali kelas" berarti wali kelas untuk TAHUN AJARAN AKTIF (lihat kelasWali()). */
     public function isWaliKelas(): bool { return $this->kelasWali()->exists(); }
 
     // ==== Relations ====
+    /**
+     * STEP 5 Bagian 10 & 23 — kelas ini otomatis ter-scope ke TAHUN AJARAN
+     * YANG SEDANG AKTIF sekarang (bukan sembarang tahun terakhir user pernah
+     * jadi wali kelas). Sengaja di-scope DI SINI (di definisi relasi), bukan
+     * di tiap tempat yang memakainya — supaya semua pemanggil lama
+     * ($user->kelasWali, isWaliKelas(), BkAccessScope, Dashboard,
+     * NotifikasiWhatsappController, dst) otomatis benar tanpa perlu diubah
+     * satu per satu.
+     */
     public function kelasWali(): HasOne
     {
-        return $this->hasOne(Kelas::class, 'wali_kelas_id');
+        $periodeAktif = TahunAjaran::aktif();
+
+        return $this->hasOne(Kelas::class, 'wali_kelas_id')
+            ->when(
+                $periodeAktif,
+                fn ($q) => $q->whereHas('tahunAjaran', fn ($q2) => $q2->where('nama', $periodeAktif->nama)),
+                fn ($q) => $q->whereRaw('1 = 0')
+            );
     }
 
     public function mengajarKelas(): HasMany

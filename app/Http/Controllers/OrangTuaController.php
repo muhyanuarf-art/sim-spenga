@@ -24,7 +24,7 @@ class OrangTuaController extends Controller
             });
 
         $akunOrtu = $query->latest()->paginate(25)->withQueryString();
-        $kelasList = Kelas::orderBy('nama_kelas')->get();
+        $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
         $jumlahSiswaBelumPunyaAkun = Siswa::where('is_active', true)
             ->whereDoesntHave('orangTua')
             ->count();

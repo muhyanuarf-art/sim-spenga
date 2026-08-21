@@ -61,7 +61,7 @@ class NotifikasiWhatsappController extends Controller
             'gagal' => $data->where('status_kirim', 'gagal')->count(),
         ];
 
-        $kelasList = $bisaFilterKelas ? Kelas::orderBy('nama_kelas')->get() : collect();
+        $kelasList = $bisaFilterKelas ? Kelas::aktif()->orderBy('nama_kelas')->get() : collect();
 
         return view('notifikasi-wa.index', compact(
             'data', 'bulan', 'tahun', 'ringkasan', 'kelasList', 'kelasWali', 'kelasBkList', 'bisaFilterKelas', 'tanpaAksesData'

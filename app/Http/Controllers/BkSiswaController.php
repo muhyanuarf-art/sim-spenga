@@ -46,7 +46,7 @@ class BkSiswaController extends Controller
         })->sortByDesc('poin_aktif')->values();
 
         $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
-            ? Kelas::orderBy('nama_kelas')->get()
+            ? Kelas::aktif()->orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 
         return view('bk.siswa.index', compact('siswas', 'kelasList'));

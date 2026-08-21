@@ -19,7 +19,10 @@ class SiswaImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 
     public function model(array $row)
     {
-        $kelas = Kelas::where('nama_kelas', trim($row['kode_kelas']))->first();
+        // STEP 5 — kelas sekarang per tahun ajaran; siswa diimpor selalu ke
+        // kelas pada TAHUN AJARAN AKTIF (import data siswa adalah operasi
+        // "saat ini", bukan histori).
+        $kelas = Kelas::aktif()->where('nama_kelas', trim($row['kode_kelas']))->first();
         if (! $kelas) {
             $this->dilewatiKelasTidakDitemukan[] = trim($row['nis'] ?? '');
             return null;

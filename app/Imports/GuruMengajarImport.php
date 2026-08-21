@@ -22,7 +22,10 @@ class GuruMengajarImport implements ToModel, WithHeadingRow, SkipsEmptyRows
     public function model(array $row)
     {
         $guru = User::where('nip', trim($row['nip_guru']))->where('role', 'guru')->first();
-        $kelas = Kelas::where('nama_kelas', trim($row['kode_kelas']))->first();
+        // STEP 5 — kelas harus berasal dari TAHUN AJARAN YANG SAMA dengan
+        // mapping ini (Bagian 16), bukan kelas manapun yang kebetulan
+        // nama_kelas-nya cocok.
+        $kelas = Kelas::untukTahunAjaranId($this->tahunAjaranId)->where('nama_kelas', trim($row['kode_kelas']))->first();
         $mapel = MataPelajaran::where('kode', trim($row['kode_mapel']))->first();
 
         if (! $guru || ! $kelas || ! $mapel) {

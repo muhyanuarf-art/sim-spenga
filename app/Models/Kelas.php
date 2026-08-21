@@ -13,46 +13,24 @@ class Kelas extends Model
 
     protected $table = 'kelas';
 
-    protected $fillable = ['nama_kelas', 'tingkat', 'wali_kelas_id'];
+    public const STATUS_AKTIF = 'aktif';
+    public const STATUS_NONAKTIF = 'nonaktif';
+
+    protected $fillable = ['tahun_ajaran_id', 'nama_kelas', 'tingkat', 'wali_kelas_id', 'status'];
+
+    /**
+     * STEP 5 Bagian 4 — setiap baris kelas terikat SATU tahun ajaran.
+     * Konvensi: SELALU baris Semester GANJIL (lihat catatan lengkap di
+     * migrasi 2026_08_20_000005_add_tahun_ajaran_to_kelas_table.php).
+     */
+    public function tahunAjaran(): BelongsTo
+    {
+        return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id');
+    }
 
     public function waliKelas(): BelongsTo
     {
         return $this->belongsTo(User::class, 'wali_kelas_id');
-    }
-
-    /** STEP 4 — histori wali kelas per tahun ajaran (lihat WaliKelasHistori). */
-    public function waliKelasHistori(): HasMany
-    {
-        return $this->hasMany(WaliKelasHistori::class, 'kelas_id');
-    }
-
-    /**
-     * Wali kelas kelas ini pada tahun ajaran tertentu (mis. "2026/2027"),
-     * BUKAN wali kelas saat ini. Null kalau belum pernah tercatat untuk
-     * tahun ajaran tsb (mis. tahun sebelum STEP 4 dipasang).
-     */
-    public function waliKelasPada(string $tahunAjaranNama): ?User
-    {
-        $baris = $this->waliKelasHistori()
-            ->where('tahun_ajaran_nama', $tahunAjaranNama)
-            ->first();
-
-        return $baris?->waliKelas;
-    }
-
-    /**
-     * STEP 4 Bagian 16 — catat snapshot wali kelas untuk tahun ajaran yang
-     * SEDANG AKTIF saat ini, dipanggil setiap kali wali_kelas_id berubah
-     * (lihat KelasController::update()). TIDAK menyentuh baris histori
-     * tahun ajaran lain — itulah yang membuat wali kelas tahun lama tidak
-     * ikut berubah saat wali kelas tahun baru diatur (Test 5).
-     */
-    public function catatWaliKelasHistori(string $tahunAjaranNama, ?int $waliKelasId, ?User $olehUser): void
-    {
-        WaliKelasHistori::updateOrCreate(
-            ['kelas_id' => $this->id, 'tahun_ajaran_nama' => $tahunAjaranNama],
-            ['wali_kelas_id' => $waliKelasId, 'diatur_oleh_id' => $olehUser?->id]
-        );
     }
 
     public function siswas(): HasMany
@@ -68,5 +46,44 @@ class Kelas extends Model
     public function jadwal(): HasMany
     {
         return $this->hasMany(JadwalPelajaran::class, 'kelas_id');
+    }
+
+    /**
+     * STEP 5 Bagian 23 — SATU sumber utama untuk "kelas pada tahun ajaran
+     * X", dipakai di seluruh app (dashboard, jadwal, guru mengajar, wali
+     * kelas, BK, dst) supaya query-nya konsisten di satu tempat. Cocokkan
+     * lewat NAMA (bukan tahun_ajaran_id persis) — lihat catatan konvensi
+     * di migrasi.
+     */
+    public function scopeUntukTahunAjaran($query, TahunAjaran $tahunAjaran)
+    {
+        return $query->whereHas('tahunAjaran', fn ($q) => $q->where('nama', $tahunAjaran->nama));
+    }
+
+    /** Sama seperti scopeUntukTahunAjaran(), tapi menerima ID tahun ajaran (dipakai import Excel). */
+    public function scopeUntukTahunAjaranId($query, int $tahunAjaranId)
+    {
+        $tahunAjaran = TahunAjaran::find($tahunAjaranId);
+        if (! $tahunAjaran) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->untukTahunAjaran($tahunAjaran);
+    }
+
+    /**
+     * STEP 5 Bagian 23 — kelas pada TAHUN AJARAN YANG SEDANG AKTIF. Ini
+     * default untuk hampir semua halaman (dashboard, dropdown pilih kelas,
+     * dll) — halaman histori yang sengaja butuh tahun ajaran lain harus
+     * eksplisit memakai scopeUntukTahunAjaran() dengan periode pilihan.
+     */
+    public function scopeAktif($query)
+    {
+        $periodeAktif = TahunAjaran::aktif();
+        if (! $periodeAktif) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->untukTahunAjaran($periodeAktif);
     }
 }
