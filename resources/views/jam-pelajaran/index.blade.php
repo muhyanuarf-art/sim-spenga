@@ -37,11 +37,12 @@
         </p>
         <form method="POST" action="{{ route('jam-pelajaran.salin') }}" class="space-y-4">
             @csrf
+            @php($hariDefault = old('hari', request('hari', $hariList[0])))
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Salin dari hari</label>
                 <select name="hari_sumber" required class="input max-w-xs">
                     @foreach($hariList as $h)
-                        <option value="{{ $h }}" {{ $hariAktif === $h ? 'selected' : '' }}>{{ $h }}</option>
+                        <option value="{{ $h }}" {{ $hariDefault === $h ? 'selected' : '' }}>{{ $h }}</option>
                     @endforeach
                 </select>
             </div>
