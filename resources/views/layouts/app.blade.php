@@ -190,24 +190,29 @@
 
     {{-- Main --}}
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
-            <div class="flex items-center gap-3">
-                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg hover:bg-slate-100">☰</button>
-                <h1 class="font-semibold text-slate-800 text-base lg:text-lg">@yield('title', 'Dashboard')</h1>
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-2">
+            <div class="flex items-center gap-3 min-w-0">
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 shrink-0">☰</button>
+                <h1 class="font-semibold text-slate-800 text-base lg:text-lg truncate">@yield('title', 'Dashboard')</h1>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                {{-- STEP 8 Bagian 3/22 — badge periode aktif SELALU tampil, termasuk
+                     di layar kecil (sebelumnya hidden di mobile — admin/guru yang
+                     paling sering pakai HP justru tidak pernah melihat info ini). --}}
                 @php $periodeAktif = \App\Models\TahunAjaran::aktif(); @endphp
                 @if($periodeAktif)
-                    <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-700' }} hidden sm:inline-flex">
-                        📅 {{ $periodeAktif->labelSingkat() }}
-                        @if($periodeAktif->isTerkunci()) &nbsp;🔒 Terkunci @endif
+                    <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-700' }} inline-flex">
+                        📅 <span class="hidden sm:inline">{{ $periodeAktif->labelSingkat() }}</span><span class="sm:hidden">{{ $periodeAktif->nama }}</span>
+                        @if($periodeAktif->isTerkunci()) &nbsp;🔒 @endif
                     </span>
+                @else
+                    <span class="badge bg-amber-50 text-amber-700 inline-flex">⚠️ <span class="hidden sm:inline">Belum ada periode aktif</span></span>
                 @endif
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
                     <p class="text-xs text-slate-400 leading-tight">{{ auth()->user()->roleLabel() }}</p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">
+                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
             </div>

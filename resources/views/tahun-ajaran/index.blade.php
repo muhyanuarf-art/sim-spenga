@@ -46,12 +46,16 @@
     <div class="card p-5">
         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Tahun Ajaran Berikutnya</p>
         @if($tahunAjaranBerikutnyaSudahAda)
-            <p class="text-sm text-slate-600">
-                Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> sudah dibuat.
-                Lengkapi Kenaikan Kelas, Wali Kelas, Guru Mengajar &amp; Jadwal-nya, lalu aktifkan Semester 1-nya
-                lewat tombol "✅ Aktifkan" di tabel bawah — sistem akan menolak otomatis kalau
-                Tahun Ajaran {{ $periodeAktif->nama }} belum selesai &amp; terkunci sepenuhnya (kedua semester).
-            </p>
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <p class="text-sm text-slate-600">
+                    Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> sudah dibuat.
+                    Sistem akan menolak aktivasi otomatis kalau Tahun Ajaran {{ $periodeAktif->nama }} belum
+                    selesai &amp; terkunci sepenuhnya (kedua semester).
+                </p>
+                <a href="{{ route('tahun-ajaran.persiapan', $tahunAjaranBerikutnya) }}" class="btn-primary whitespace-nowrap">
+                    📋 Lihat Persiapan {{ $namaTahunAjaranBerikutnya }}
+                </a>
+            </div>
         @else
             <div class="flex flex-wrap items-end justify-between gap-4">
                 <p class="text-sm text-slate-600 max-w-md">

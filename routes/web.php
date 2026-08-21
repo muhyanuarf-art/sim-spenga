@@ -192,6 +192,7 @@ Route::middleware('auth')->group(function () {
             ->except(['create', 'edit', 'show'])
             ->parameters(['tahun-ajaran' => 'tahunAjaran']);
         Route::post('tahun-ajaran-baru', [TahunAjaranController::class, 'buatTahunAjaranBaru'])->name('tahun-ajaran.buat-baru');
+        Route::get('tahun-ajaran/{tahunAjaran}/persiapan', [TahunAjaranController::class, 'persiapan'])->name('tahun-ajaran.persiapan');
         Route::post('tahun-ajaran/{tahunAjaran}/aktifkan', [TahunAjaranController::class, 'aktifkan'])->name('tahun-ajaran.aktifkan');
         Route::post('tahun-ajaran/{tahunAjaran}/kunci', [TahunAjaranController::class, 'kunci'])->name('tahun-ajaran.kunci');
         Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');

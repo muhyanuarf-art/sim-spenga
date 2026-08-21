@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
+use App\Models\RiwayatKelasSiswa;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,13 +37,17 @@ class TahunAjaranController extends Controller
         $namaTahunAjaranBerikutnya = $periodeAktif
             ? TahunAjaran::namaTahunAjaranBerikutnya($periodeAktif->nama)
             : null;
-        $tahunAjaranBerikutnyaSudahAda = $namaTahunAjaranBerikutnya
-            ? TahunAjaran::where('nama', $namaTahunAjaranBerikutnya)->exists()
-            : false;
+        // STEP 8 — sekarang simpan barisnya (bukan cuma boolean), supaya
+        // kartu ini bisa langsung mengarahkan admin ke halaman Persiapan
+        // Tahun Ajaran (satu pintu, bukan "cari sendiri di tabel bawah").
+        $tahunAjaranBerikutnya = $namaTahunAjaranBerikutnya
+            ? TahunAjaran::where('nama', $namaTahunAjaranBerikutnya)->where('semester', 'Ganjil')->first()
+            : null;
+        $tahunAjaranBerikutnyaSudahAda = (bool) $tahunAjaranBerikutnya;
 
         return view('tahun-ajaran.index', compact(
             'tahunAjaran', 'periodeAktif', 'jadwalSemesterBerikutnyaTersedia',
-            'namaTahunAjaranBerikutnya', 'tahunAjaranBerikutnyaSudahAda'
+            'namaTahunAjaranBerikutnya', 'tahunAjaranBerikutnyaSudahAda', 'tahunAjaranBerikutnya'
         ));
     }
 
@@ -107,8 +113,9 @@ class TahunAjaranController extends Controller
             'tanggal_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
         ]);
 
-        DB::transaction(function () use ($validated) {
-            TahunAjaran::create([
+        $tahunAjaranGanjil = null;
+        DB::transaction(function () use ($validated, &$tahunAjaranGanjil) {
+            $tahunAjaranGanjil = TahunAjaran::create([
                 'nama' => $validated['nama'],
                 'semester' => 'Ganjil',
                 'status' => TahunAjaran::STATUS_AKAN_DATANG,
@@ -122,7 +129,11 @@ class TahunAjaranController extends Controller
             ]);
         });
 
-        return back()->with('success', "Tahun ajaran {$validated['nama']} berhasil dibuat (Semester 1 & Semester 2, status Akan Datang). Lengkapi tanggal akhir Semester 1 / tanggal mulai Semester 2, kenaikan kelas, wali kelas, dan jadwal sebelum mengaktifkannya.");
+        // STEP 8 Bagian 2/4 — langsung arahkan ke halaman Persiapan supaya
+        // admin punya SATU alur berkelanjutan (bukan kembali ke tabel lalu
+        // harus mencari sendiri tahun ajaran yang baru dibuat).
+        return redirect()->route('tahun-ajaran.persiapan', $tahunAjaranGanjil)
+            ->with('success', "Tahun ajaran {$validated['nama']} berhasil dibuat (Semester 1 & Semester 2, status Akan Datang). Lengkapi langkah-langkah di bawah sebelum mengaktifkannya.");
     }
 
     public function update(Request $request, TahunAjaran $tahunAjaran)
@@ -489,5 +500,75 @@ class TahunAjaranController extends Controller
         }
 
         return redirect()->route('tahun-ajaran.index')->with($mengajarDisalin + $jadwalDisalin > 0 ? 'success' : 'error', $pesan);
+    }
+
+    /**
+     * STEP 8 Bagian 2/5/6/11-15 — HALAMAN UTAMA "Persiapan Tahun Ajaran
+     * Baru". Mengumpulkan status semua langkah persiapan dalam SATU
+     * halaman (Bagian 21: hindari redundansi menu — admin tidak perlu
+     * membuka banyak halaman terpisah hanya untuk tahu apa yang belum
+     * selesai) memakai data yang SUDAH ADA (Bagian 26: jangan buat
+     * service/logika duplikat) — tidak ada tabel/kolom baru.
+     *
+     * PENTING (Bagian 6): checklist ini HANYA PANDUAN, bukan syarat wajib
+     * — tombol Aktifkan tetap bisa ditekan berapa pun status checklist-nya
+     * (aktifkan() di STEP4 sudah menegakkan syarat yang BENAR-BENAR wajib:
+     * tahun ajaran lama harus terkunci penuh). $tahunAjaran = baris
+     * Semester Ganjil tahun yang mau disiapkan.
+     */
+    public function persiapan(TahunAjaran $tahunAjaran)
+    {
+        $semesterGenap = TahunAjaran::where('nama', $tahunAjaran->nama)->where('semester', 'Genap')->first();
+
+        $kelasList = Kelas::untukTahunAjaran($tahunAjaran)->withCount('siswas')->with('waliKelas')->orderBy('tingkat')->orderBy('nama_kelas')->get();
+        $jumlahKelas = $kelasList->count();
+        $jumlahSiswaDitempatkan = $kelasList->sum('siswas_count');
+
+        // Bagian 11 — Status Kenaikan Kelas per kelas ASAL (tahun sebelumnya),
+        // supaya admin tahu persis kelas mana yang belum selesai diproses.
+        $tahunSebelumnya = $tahunAjaran->tahunAjaranSebelumnya();
+        $statusKenaikan = collect();
+        if ($tahunSebelumnya) {
+            $kelasAsalList = Kelas::untukTahunAjaran($tahunSebelumnya)->orderBy('tingkat')->orderBy('nama_kelas')->get();
+            foreach ($kelasAsalList as $kelasAsal) {
+                $totalSiswa = $kelasAsal->siswas()->where('is_active', true)->count();
+                $sudahDiproses = RiwayatKelasSiswa::where('tahun_ajaran_id', $tahunAjaran->id)
+                    ->whereIn('siswa_id', $kelasAsal->siswas()->where('is_active', true)->pluck('id'))
+                    ->count();
+                $statusKenaikan->push([
+                    'kelas' => $kelasAsal,
+                    'total' => $totalSiswa,
+                    'sudah' => $sudahDiproses,
+                    'belum' => max(0, $totalSiswa - $sudahDiproses),
+                ]);
+            }
+        }
+        $totalSiswaAsal = $statusKenaikan->sum('total');
+        $totalBelumDiproses = $statusKenaikan->sum('belum');
+
+        // Bagian 12 — status Wali Kelas per kelas TUJUAN.
+        $kelasBelumWali = $kelasList->filter(fn ($k) => ! $k->wali_kelas_id)->count();
+
+        // Bagian 13 — status Guru Mengajar: berapa dari kelas tujuan yang
+        // SUDAH punya minimal 1 mapping guru mengajar.
+        $kelasDenganMengajar = $jumlahKelas > 0
+            ? GuruMengajarKelas::where('tahun_ajaran_id', $tahunAjaran->id)->distinct('kelas_id')->count('kelas_id')
+            : 0;
+        $totalMappingMengajar = GuruMengajarKelas::where('tahun_ajaran_id', $tahunAjaran->id)->count();
+
+        // Bagian 14 — status Jadwal: sekadar ada/tidak (bukan lengkap 100%,
+        // supaya tidak memaksakan definisi "lengkap" yang belum tentu benar).
+        $jadwalTersedia = JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->exists();
+
+        // Bagian 6 — pisahkan WAJIB vs DIBUTUHKAN vs PERSIAPAN. Status
+        // keseluruhan HANYA dipengaruhi tahap WAJIB (yang sudah pasti
+        // terpenuhi karena baris ini sendiri ada) — tahap lain sekadar info.
+        $siapDiaktifkan = ! $tahunAjaran->is_active; // satu-satunya syarat teknis nyata: belum aktif
+
+        return view('tahun-ajaran.persiapan', compact(
+            'tahunAjaran', 'semesterGenap', 'kelasList', 'jumlahKelas', 'jumlahSiswaDitempatkan',
+            'tahunSebelumnya', 'statusKenaikan', 'totalSiswaAsal', 'totalBelumDiproses',
+            'kelasBelumWali', 'kelasDenganMengajar', 'totalMappingMengajar', 'jadwalTersedia', 'siapDiaktifkan'
+        ));
     }
 }
