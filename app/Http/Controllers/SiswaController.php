@@ -67,10 +67,27 @@ class SiswaController extends Controller
         return back()->with('success', 'Data siswa berhasil diperbarui.');
     }
 
+    /**
+     * STEP 7 Bagian 30 — sebelumnya method ini memanggil $siswa->delete()
+     * TANPA perlindungan apa pun: kalau siswa punya histori (BK, absensi,
+     * riwayat kelas, dll — hampir selalu ada untuk siswa aktif), cascade
+     * FK lama akan MENGHAPUS SELURUH HISTORI itu secara diam-diam. Sejak
+     * migrasi 2026_08_21_000001, FK yang bersangkutan sudah RESTRICT
+     * (menolak, bukan mencascade), jadi sekarang dibungkus helper yang
+     * sama seperti Kelas & Tahun Ajaran supaya errornya ditangkap ramah.
+     *
+     * Untuk siswa lulus/keluar sekolah, gunakan toggle "Aktif/Nonaktif"
+     * di form edit (is_active) — BUKAN tombol hapus ini. Hapus hanya
+     * untuk data yang benar-benar salah input & belum punya histori sama
+     * sekali (STEP 4 Bagian 24).
+     */
     public function destroy(Siswa $siswa)
     {
-        $siswa->delete();
-        return back()->with('success', 'Siswa berhasil dihapus.');
+        return $this->hapusAtauGagalDenganPesan(
+            $siswa,
+            'Siswa berhasil dihapus.',
+            'Siswa ini tidak dapat dihapus karena sudah memiliki data terkait (riwayat kelas, absensi, BK, atau data lain). Gunakan toggle nonaktifkan di form edit untuk siswa yang lulus/keluar.'
+        );
     }
 
     public function importForm()
