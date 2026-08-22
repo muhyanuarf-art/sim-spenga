@@ -11,6 +11,7 @@ use App\Models\MataPelajaran;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 
 class LaporanGuruController extends Controller
@@ -44,11 +45,11 @@ class LaporanGuruController extends Controller
         $ringkasan = ['pertemuan' => 0, 'hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alfa' => 0];
 
         if ($guru && $mapelId) {
+            [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
             $jurnal = JurnalMengajar::with(['kelas', 'jamPelajaran'])
                 ->where('guru_id', $guru->id)
                 ->where('mata_pelajaran_id', $mapelId)
-                ->whereYear('tanggal', $tahun)
-                ->whereMonth('tanggal', $bulan)
+                ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
                 ->orderBy('tanggal')
                 ->orderBy('jam_pelajaran_id')
                 ->get();
@@ -104,9 +105,9 @@ class LaporanGuruController extends Controller
         if ($guru && $mapelId && $kelasId) {
             $siswas = Siswa::where('kelas_id', $kelasId)->where('is_active', true)->orderBy('nama')->get();
 
+            [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
             $absensiRaw = AbsensiSiswa::where('kelas_id', $kelasId)
-                ->whereYear('tanggal', $tahun)
-                ->whereMonth('tanggal', $bulan)
+                ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
                 ->whereHas('jurnal', function ($q) use ($guru, $mapelId) {
                     $q->where('guru_id', $guru->id)->where('mata_pelajaran_id', $mapelId);
                 })

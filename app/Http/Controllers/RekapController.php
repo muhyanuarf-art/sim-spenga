@@ -9,6 +9,7 @@ use App\Models\JurnalMengajar;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Support\SesiMengajarGrouper;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 
 class RekapController extends Controller
@@ -32,6 +33,8 @@ class RekapController extends Controller
         // dengan sendirinya begitu kalender berganti.
         $bulan = (int) $request->get('bulan', now()->month);
         $tahun = (int) $request->get('tahun', now()->year);
+        // PERBAIKAN PERFORMA — dihitung SEKALI, dipakai ulang di semua query bulan ini di bawah (lihat App\Support\RentangBulan).
+        [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
         $tahunAjaran = TahunAjaran::aktif();
         $jumlahHari = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
 
@@ -58,8 +61,7 @@ class RekapController extends Controller
             // Semua jurnal bulan ini diambil SEKALI, dikelompokkan per
             // jadwal_pelajaran_id (= slot jam AWAL sesi), supaya tidak query
             // berulang per guru/per sesi (hindari N+1).
-            $jurnalBulanIni = JurnalMengajar::whereMonth('tanggal', $bulan)
-                ->whereYear('tanggal', $tahun)
+            $jurnalBulanIni = JurnalMengajar::whereBetween('tanggal', [$awalBulan, $akhirBulan])
                 ->get(['id', 'jadwal_pelajaran_id', 'tanggal'])
                 ->groupBy('jadwal_pelajaran_id');
 
@@ -111,15 +113,15 @@ class RekapController extends Controller
         $rekapKelas = Kelas::aktif()->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
             ->orderBy('nama_kelas')
             ->get()
-            ->map(function ($kelas) use ($bulan, $tahun) {
+            ->map(function ($kelas) use ($awalBulan, $akhirBulan) {
                 $jumlahJurnal = JurnalMengajar::where('kelas_id', $kelas->id)
-                    ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)->count();
+                    ->whereBetween('tanggal', [$awalBulan, $akhirBulan])->count();
 
                 // Pakai status final per hari (bukan mentah semua mapel), supaya
                 // siswa yang tercatat Alfa oleh 2 guru mapel di hari yang sama
                 // tidak dihitung 2x. Konsisten dengan Rekap Absensi Bulanan Wali Kelas.
                 $absensiKelas = AbsensiSiswa::where('kelas_id', $kelas->id)
-                    ->whereMonth('tanggal', $bulan)->whereYear('tanggal', $tahun)
+                    ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
                     ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
                     ->get()
                     ->groupBy('siswa_id');

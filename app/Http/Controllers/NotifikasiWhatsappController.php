@@ -65,13 +65,21 @@ class NotifikasiWhatsappController extends Controller
             $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
         }
 
-        $data = $tanpaAksesData ? collect() : $query->orderByDesc('tanggal')->orderBy('siswa_id')->get();
-
-        $ringkasan = [
-            'terkirim' => $data->where('status_kirim', 'terkirim')->count(),
-            'pending' => $data->where('status_kirim', 'pending')->count(),
-            'gagal' => $data->where('status_kirim', 'gagal')->count(),
+        // PERBAIKAN PERFORMA — ringkasan dihitung lewat 3 query COUNT
+        // ringan (memakai index yang sama), BUKAN lagi dari koleksi penuh
+        // di memori — supaya tetap akurat (mencakup SELURUH bulan) walau
+        // $data di bawah sekarang dipaginasi (tidak lagi memuat semua baris
+        // sekaligus, yang sebelumnya bisa jadi ribuan baris untuk sekolah
+        // dengan banyak siswa & tanpa batas apa pun).
+        $ringkasan = $tanpaAksesData ? ['terkirim' => 0, 'pending' => 0, 'gagal' => 0] : [
+            'terkirim' => (clone $query)->where('status_kirim', 'terkirim')->count(),
+            'pending' => (clone $query)->where('status_kirim', 'pending')->count(),
+            'gagal' => (clone $query)->where('status_kirim', 'gagal')->count(),
         ];
+
+        $data = $tanpaAksesData
+            ? new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50)
+            : $query->orderByDesc('tanggal')->orderBy('siswa_id')->paginate(50)->withQueryString();
 
         $kelasList = $bisaFilterKelas ? Kelas::aktif()->orderBy('nama_kelas')->get() : collect();
 

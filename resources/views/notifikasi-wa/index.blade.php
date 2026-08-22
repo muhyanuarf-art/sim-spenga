@@ -121,6 +121,7 @@
                     </tbody>
                 </table>
             </div>
+            <div class="mt-4">{{ $data->links() }}</div>
         </div>
     @endif
 </div>

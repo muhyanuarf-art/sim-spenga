@@ -89,8 +89,23 @@ class AbsensiSiswa extends Model
             $query->where('kelas_id', $kelasId);
         }
 
-        return $query->get()
-            ->groupBy('siswa_id')
+        return static::alfaDariRecordsPerSiswa($query->get()->groupBy('siswa_id'));
+    }
+
+    /**
+     * PERBAIKAN PERFORMA — logika yang tadinya "terkunci" di dalam
+     * siswaAlfaHariIniByTanggal() (yang SELALU query ulang ke DB) diekstrak
+     * ke sini, supaya bisa dipakai dari data yang SUDAH di-fetch sebelumnya
+     * (mis. DashboardController role admin, yang sudah mengambil seluruh
+     * absensi hari ini untuk keperluan rekap status — dulu di-query LAGI
+     * dari nol khusus untuk daftar Alfa, padahal sumber datanya sama).
+     *
+     * @param  \Illuminate\Support\Collection  $recordsPerSiswaId  Hasil groupBy('siswa_id') dari AbsensiSiswa,
+     *         harus sudah eager-load 'siswa', 'kelas', 'jurnal.mapel', 'jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'.
+     */
+    public static function alfaDariRecordsPerSiswa($recordsPerSiswaId)
+    {
+        return $recordsPerSiswaId
             ->map(fn ($recordsSiswa) => static::finalPerHari($recordsSiswa)->first())
             ->filter(fn ($r) => $r && $r->status === 'Alfa')
             ->map(fn ($r) => [

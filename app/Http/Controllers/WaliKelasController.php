@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AbsensiSiswa;
 use App\Models\Kelas;
 use App\Models\JurnalMengajar;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 
 class WaliKelasController extends Controller
@@ -44,8 +45,7 @@ class WaliKelasController extends Controller
         // menentukan "sesi mana yang jam-nya paling akhir pada hari itu"
         // tanpa query tambahan per baris.
         $absensiRaw = AbsensiSiswa::where('kelas_id', $kelas->id)
-            ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bulan)
+            ->whereBetween('tanggal', RentangBulan::dari($tahun, $bulan))
             ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
             ->get()
             ->groupBy('siswa_id');
@@ -118,8 +118,7 @@ class WaliKelasController extends Controller
 
         $jurnal = JurnalMengajar::with(['guru', 'mapel', 'jamPelajaran'])
             ->where('kelas_id', $kelas->id)
-            ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bulan)
+            ->whereBetween('tanggal', RentangBulan::dari($tahun, $bulan))
             ->orderBy('tanggal')
             ->orderBy('jam_pelajaran_id')
             ->get();

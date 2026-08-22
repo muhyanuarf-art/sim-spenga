@@ -28,8 +28,14 @@ class DashboardController extends Controller
             // STEP 5 Bagian 23 — hitungan kelas default TAHUN AJARAN AKTIF.
             $totalKelas = Kelas::aktif()->count();
 
+            // PERBAIKAN PERFORMA — sebelumnya absensi hari ini di-fetch DUA KALI
+            // terpisah (1x di sini untuk rekap status, 1x lagi lewat
+            // AbsensiSiswa::siswaAlfaHariIni() untuk daftar Alfa), padahal
+            // sumber datanya sama persis (seluruh absensi hari ini). Sekarang
+            // eager-load-nya digabung jadi satu query, lalu dipakai ulang
+            // untuk kedua keperluan lewat AbsensiSiswa::alfaDariRecordsPerSiswa().
             $absensiHariIniRaw = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
-                ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
+                ->with(['siswa', 'kelas', 'jurnal.mapel', 'jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
                 ->get()
                 ->groupBy('siswa_id');
 
@@ -41,7 +47,7 @@ class DashboardController extends Controller
                 ->groupBy('status')
                 ->map->count();
 
-            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
+            $siswaAlfaHariIni = AbsensiSiswa::alfaDariRecordsPerSiswa($absensiHariIniRaw);
 
             $jurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
             $jadwalHariIni = $tahunAjaran

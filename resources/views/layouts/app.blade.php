@@ -9,6 +9,21 @@
          Sekarang semua di-build & di-self-host lewat Vite, jadi cuma 1 file CSS
          dan 1 file JS yang sudah ter-minify + bisa di-cache browser. --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- JARING PENGAMAN ikon (permintaan admin: "icon masih tidak muncul").
+         KHUSUS Font Awesome dari CDN sebagai cadangan — BUKAN Tailwind CDN
+         (itu yang sengaja dihapus di atas karena lambat; CSS Font Awesome
+         statis begini TIDAK dikompilasi di browser, jadi tidak menimbulkan
+         masalah performa yang sama). Kalau versi self-hosted di atas
+         berhasil dimuat, browser cukup memakai definisi @font-face yang
+         datang duluan/sama — tidak dobel-render, tidak menambah lag. Kalau
+         versi self-hosted GAGAL dimuat (mis. public/build belum sempat
+         di-build ulang di server tertentu), ikon tetap tampil dari sini
+         sebagai cadangan. Hapus blok ini kapan pun setelah dipastikan
+         `npm run build` di server selalu berjalan otomatis saat deploy. --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+          integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased" x-data="{ sidebarOpen: false }">
 

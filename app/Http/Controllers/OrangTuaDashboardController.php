@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AbsensiSiswa;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -17,9 +18,9 @@ class OrangTuaDashboardController extends Controller
         $bulan = (int) $request->get('bulan', now()->month);
         $tahun = (int) $request->get('tahun', now()->year);
 
+        [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
         $absensiRaw = AbsensiSiswa::where('siswa_id', $siswa->id)
-            ->whereYear('tanggal', $tahun)
-            ->whereMonth('tanggal', $bulan)
+            ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
             ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
             ->get();
 

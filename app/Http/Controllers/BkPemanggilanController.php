@@ -7,6 +7,7 @@ use App\Models\PemanggilanOrangTua;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Support\BkAccessScope;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 
 class BkPemanggilanController extends Controller
@@ -23,10 +24,12 @@ class BkPemanggilanController extends Controller
             $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
         }
 
-        if ($request->filled('bulan')) {
+        if ($request->filled('bulan') && $request->filled('tahun')) {
+            [$awal, $akhir] = RentangBulan::dari((int) $request->tahun, (int) $request->bulan);
+            $query->whereBetween('tanggal', [$awal, $akhir]);
+        } elseif ($request->filled('bulan')) {
             $query->whereMonth('tanggal', $request->bulan);
-        }
-        if ($request->filled('tahun')) {
+        } elseif ($request->filled('tahun')) {
             $query->whereYear('tanggal', $request->tahun);
         }
         if ($request->filled('status')) {

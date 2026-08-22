@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\NoCacheHeaders::class,
+            \App\Http\Middleware\QueryDebugBadge::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

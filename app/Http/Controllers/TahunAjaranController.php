@@ -182,6 +182,8 @@ class TahunAjaranController extends Controller
             ]);
         });
 
+        TahunAjaran::lupakanCacheAktif();
+
         return back()->with('success', "Tahun ajaran {$tahunAjaran->nama} {$tahunAjaran->semester} sekarang aktif.");
     }
 

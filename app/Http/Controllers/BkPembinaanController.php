@@ -10,6 +10,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
+use App\Support\RentangBulan;
 use App\Support\PeriodeAkademik;
 use Illuminate\Http\Request;
 
@@ -32,10 +33,12 @@ class BkPembinaanController extends Controller
         if ($request->filled('kelas_id')) {
             $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
         }
-        if ($request->filled('bulan')) {
+        if ($request->filled('bulan') && $request->filled('tahun')) {
+            [$awal, $akhir] = RentangBulan::dari((int) $request->tahun, (int) $request->bulan);
+            $query->whereBetween('tanggal', [$awal, $akhir]);
+        } elseif ($request->filled('bulan')) {
             $query->whereMonth('tanggal', $request->bulan);
-        }
-        if ($request->filled('tahun')) {
+        } elseif ($request->filled('tahun')) {
             $query->whereYear('tanggal', $request->tahun);
         }
 

@@ -58,9 +58,64 @@ class TahunAjaran extends Model
         return $this->belongsTo(User::class, 'diaktifkan_oleh_id');
     }
 
+    /**
+     * PERBAIKAN PERFORMA (permintaan admin, keluhan "lambat bahkan di
+     * localhost") — aktif() ini dipanggil di 30+ tempat di seluruh app,
+     * TERMASUK di header yang tampil di SETIAP halaman (lihat
+     * layouts.app & AppServiceProvider::boot()), dan transitif lewat
+     * Kelas::scopeAktif(), User::kelasWali(), User::kelasBk(). Sebelum
+     * perbaikan ini, SETIAP pemanggilan menjalankan query baru — dalam
+     * 1 kali buka halaman bisa terkumpul puluhan query kecil yang
+     * sebenarnya semuanya menanyakan hal yang PERSIS SAMA.
+     *
+     * Sekarang di-cache SEKALI PER REQUEST (pola yang sama persis
+     * dengan PengaturanSekolah::current() yang sudah ada di codebase
+     * ini — lihat app/Models/PengaturanSekolah.php). Static property
+     * otomatis reset di request berikutnya (proses PHP baru), jadi
+     * TIDAK BERISIKO menampilkan data basi lintas request. Untuk
+     * jaga-jaga kalau is_active berubah lalu dibaca ulang DALAM
+     * request yang sama, panggil lupakanCacheAktif() — sudah dipasang
+     * di titik-titik yang mengubah is_active (lihat
+     * TahunAjaranController::aktifkan()/tutup()/bukaKembali()).
+     */
+    protected static ?self $cachedAktif = null;
+    protected static bool $cachedAktifSudahDicek = false;
+
     public static function aktif(): ?self
     {
-        return static::where('is_active', true)->first();
+        if (! static::$cachedAktifSudahDicek) {
+            static::$cachedAktif = static::where('is_active', true)->first();
+            static::$cachedAktifSudahDicek = true;
+        }
+        return static::$cachedAktif;
+    }
+
+    /** Reset cache aktif() — panggil setelah is_active berubah supaya request yang sama langsung lihat data terbaru. */
+    public static function lupakanCacheAktif(): void
+    {
+        static::$cachedAktif = null;
+        static::$cachedAktifSudahDicek = false;
+    }
+
+    /**
+     * PERBAIKAN PERFORMA — dipakai Kelas::scopeUntukTahunAjaran() &
+     * User::kelasWali() supaya keduanya bisa WHERE tahun_ajaran_id = ...
+     * langsung (index biasa), BUKAN whereHas(...)/EXISTS subquery yang
+     * lebih mahal untuk database & dipanggil sangat sering (kelas.
+     * tahun_ajaran_id SELALU baris Semester Ganjil — lihat migrasi
+     * 2026_08_20_000005). Di-cache per nama supaya tidak query ulang
+     * kalau dipanggil berkali-kali dalam 1 request yang sama.
+     */
+    private static array $cacheIdSemesterGanjil = [];
+
+    public static function idSemesterGanjilUntukNama(string $nama): ?int
+    {
+        if (! array_key_exists($nama, static::$cacheIdSemesterGanjil)) {
+            static::$cacheIdSemesterGanjil[$nama] = static::where('nama', $nama)
+                ->where('semester', 'Ganjil')->value('id');
+        }
+
+        return static::$cacheIdSemesterGanjil[$nama];
     }
 
     /**

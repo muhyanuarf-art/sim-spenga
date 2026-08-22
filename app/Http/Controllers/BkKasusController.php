@@ -11,6 +11,7 @@ use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
 use App\Support\PeriodeAkademik;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -41,10 +42,12 @@ class BkKasusController extends Controller
         if ($request->filled('kelas_id')) {
             $query->where('kelas_id', $request->kelas_id);
         }
-        if ($request->filled('bulan')) {
+        if ($request->filled('bulan') && $request->filled('tahun')) {
+            [$awal, $akhir] = RentangBulan::dari((int) $request->tahun, (int) $request->bulan);
+            $query->whereBetween('tanggal_kejadian', [$awal, $akhir]);
+        } elseif ($request->filled('bulan')) {
             $query->whereMonth('tanggal_kejadian', $request->bulan);
-        }
-        if ($request->filled('tahun')) {
+        } elseif ($request->filled('tahun')) {
             $query->whereYear('tanggal_kejadian', $request->tahun);
         }
 

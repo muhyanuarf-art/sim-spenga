@@ -54,10 +54,29 @@ class Kelas extends Model
      * kelas, BK, dst) supaya query-nya konsisten di satu tempat. Cocokkan
      * lewat NAMA (bukan tahun_ajaran_id persis) — lihat catatan konvensi
      * di migrasi.
+     *
+     * PERBAIKAN PERFORMA — sebelumnya memakai whereHas('tahunAjaran', ...)
+     * yang menghasilkan SUBQUERY EXISTS berkorelasi (lebih mahal untuk
+     * database). Method ini dipanggil SANGAT SERING lewat Kelas::aktif()
+     * (dashboard, dropdown kelas di hampir semua halaman). Sekarang
+     * langsung WHERE tahun_ajaran_id = ... (index biasa, jauh lebih murah)
+     * — kelas.tahun_ajaran_id SELALU baris Semester GANJIL (lihat catatan
+     * migrasi), jadi kalau $tahunAjaran yang diberikan Semester Genap,
+     * cari dulu id baris Ganjil pasangannya (1x lookup, di-cache per
+     * nama supaya tidak query ulang kalau dipanggil berkali-kali dalam 1
+     * request yang sama).
      */
     public function scopeUntukTahunAjaran($query, TahunAjaran $tahunAjaran)
     {
-        return $query->whereHas('tahunAjaran', fn ($q) => $q->where('nama', $tahunAjaran->nama));
+        $idGanjil = $tahunAjaran->semester === 'Ganjil'
+            ? $tahunAjaran->id
+            : TahunAjaran::idSemesterGanjilUntukNama($tahunAjaran->nama);
+
+        if (! $idGanjil) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('tahun_ajaran_id', $idGanjil);
     }
 
     /** Sama seperti scopeUntukTahunAjaran(), tapi menerima ID tahun ajaran (dipakai import Excel). */

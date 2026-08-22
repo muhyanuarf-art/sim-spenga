@@ -9,6 +9,7 @@ use App\Models\PenguranganPoinSiswa;
 use App\Models\Siswa;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
+use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 
 class BkDashboardController extends Controller
@@ -24,9 +25,10 @@ class BkDashboardController extends Controller
         $pembinaanQuery = PembinaanSiswa::when($kelasIds !== null,
             fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->whereIn('kelas_id', $kelasIds)));
 
+        // PERBAIKAN PERFORMA — lihat App\Support\RentangBulan.
+        [$awalBulanIni, $akhirBulanIni] = RentangBulan::dari((int) now()->year, (int) now()->month);
         $totalKasusBulanIni = (clone $kasusQuery)
-            ->whereMonth('tanggal_kejadian', now()->month)
-            ->whereYear('tanggal_kejadian', now()->year)
+            ->whereBetween('tanggal_kejadian', [$awalBulanIni, $akhirBulanIni])
             ->count();
 
         $siswaKasusAktifIds = (clone $kasusQuery)
