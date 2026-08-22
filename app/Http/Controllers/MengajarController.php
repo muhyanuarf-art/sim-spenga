@@ -8,6 +8,7 @@ use App\Models\JurnalMengajar;
 use App\Models\JurnalMengajarSlot;
 use App\Models\NotifikasiAlfaTerkirim;
 use App\Models\TahunAjaran;
+use App\Models\User;
 use App\Support\PeriodeAkademik;
 use App\Support\SesiMengajarGrouper;
 use App\Jobs\KirimNotifikasiAlfaWhatsapp;
@@ -28,61 +29,87 @@ class MengajarController extends Controller
      * absensi yang tertinggal di periode lampau tetap bisa diisi tanpa
      * harus mengaktifkan ulang periode itu (yang justru akan mengacaukan
      * periode aktif sekolah saat ini).
+     *
+     * Admin juga bisa membuka halaman ini untuk MEWAKILI guru tertentu
+     * (mis. guru berhalangan/lupa mengisi) lewat query string `guru_id` —
+     * admin memilih guru dulu, baru daftar periode & jadwal di bawah
+     * mengikuti guru yang dipilih itu, persis seperti guru itu sendiri yang
+     * membuka halamannya. Guru biasa tidak melihat pemilih ini sama sekali
+     * (selalu mewakili dirinya sendiri).
      */
     public function index(Request $request)
     {
         $user = $request->user();
+        $isAdmin = $user->isAdmin();
+
+        $guruList = collect();
+        $guru = $user;
+
+        if ($isAdmin) {
+            $guruList = User::where('role', 'guru')->orderBy('name')->get();
+            $guruId = (int) $request->get('guru_id', 0);
+            $guru = $guruList->firstWhere('id', $guruId);
+        }
+
         $tahunAjaranAktif = TahunAjaran::aktif();
         $hari = $request->get('hari', $this->hariIniIndonesia());
 
-        // Periode yang boleh dipilih guru ini: periode AKTIF (selalu, kalau
-        // ada) + periode lain di mana guru ini punya jadwal DAN periode itu
-        // sedang tidak terkunci. Periode yang masih terkunci sengaja tidak
-        // dimasukkan supaya tidak muncul pilihan yang ujung-ujungnya gagal
-        // disimpan (store() tetap menolaknya lewat PeriodeAkademik::pastikanTidakTerkunci(),
-        // tapi lebih baik guru tidak diberi pilihan yang pasti gagal).
-        $periodeIdMilikGuru = JadwalPelajaran::where('guru_id', $user->id)
-            ->distinct()
-            ->pluck('tahun_ajaran_id');
-
-        $periodeList = TahunAjaran::whereIn('id', $periodeIdMilikGuru)
-            ->where(function ($q) use ($tahunAjaranAktif) {
-                $q->where('terkunci', false);
-                if ($tahunAjaranAktif) {
-                    $q->orWhere('id', $tahunAjaranAktif->id);
-                }
-            })
-            ->orderByDesc('tanggal_mulai')
-            ->get();
-
-        $periodeId = $request->get('periode');
-        $tahunAjaran = $periodeId ? $periodeList->firstWhere('id', (int) $periodeId) : null;
-        $tahunAjaran = $tahunAjaran ?? $tahunAjaranAktif;
-
+        $periodeList = collect();
+        $tahunAjaran = null;
         $sesiList = collect();
-        if ($tahunAjaran) {
-            $jadwal = JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
-                ->where('guru_id', $user->id)
-                ->where('tahun_ajaran_id', $tahunAjaran->id)
-                ->where('hari', $hari)
+
+        if ($guru) {
+            // Periode yang boleh dipilih untuk guru ini: periode AKTIF
+            // (selalu, kalau ada) + periode lain di mana guru ini punya
+            // jadwal DAN periode itu sedang tidak terkunci. Periode yang
+            // masih terkunci sengaja tidak dimasukkan supaya tidak muncul
+            // pilihan yang ujung-ujungnya gagal disimpan (store() tetap
+            // menolaknya lewat PeriodeAkademik::pastikanTidakTerkunci(),
+            // tapi lebih baik tidak diberi pilihan yang pasti gagal).
+            $periodeIdMilikGuru = JadwalPelajaran::where('guru_id', $guru->id)
+                ->distinct()
+                ->pluck('tahun_ajaran_id');
+
+            $periodeList = TahunAjaran::whereIn('id', $periodeIdMilikGuru)
+                ->where(function ($q) use ($tahunAjaranAktif) {
+                    $q->where('terkunci', false);
+                    if ($tahunAjaranAktif) {
+                        $q->orWhere('id', $tahunAjaranAktif->id);
+                    }
+                })
+                ->orderByDesc('tanggal_mulai')
                 ->get();
 
-            $sesiList = SesiMengajarGrouper::kelompokkan($jadwal);
+            $periodeId = $request->get('periode');
+            $tahunAjaran = $periodeId ? $periodeList->firstWhere('id', (int) $periodeId) : null;
+            $tahunAjaran = $tahunAjaran ?? $tahunAjaranAktif;
 
-            // tandai sesi yang sudah diisi jurnalnya hari ini — hanya relevan
-            // kalau yang sedang dilihat memang periode AKTIF & harinya hari
-            // ini juga; untuk periode lampau penandaan "hari ini" tidak
-            // bermakna dan bisa menyesatkan.
-            $sedangLihatPeriodeAktif = $tahunAjaranAktif && $tahunAjaran->id === $tahunAjaranAktif->id;
-            if ($hari === $this->hariIniIndonesia() && $sedangLihatPeriodeAktif) {
-                $sesiList = SesiMengajarGrouper::tandaiSudahDiisi($sesiList, $jadwal);
+            if ($tahunAjaran) {
+                $jadwal = JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
+                    ->where('guru_id', $guru->id)
+                    ->where('tahun_ajaran_id', $tahunAjaran->id)
+                    ->where('hari', $hari)
+                    ->get();
+
+                $sesiList = SesiMengajarGrouper::kelompokkan($jadwal);
+
+                // tandai sesi yang sudah diisi jurnalnya hari ini — hanya
+                // relevan kalau yang sedang dilihat memang periode AKTIF &
+                // harinya hari ini juga (berlaku sama baik dibuka oleh guru
+                // sendiri maupun oleh admin yang mewakilinya, karena yang
+                // dicek adalah jurnal milik GURU tsb, bukan milik admin).
+                $sedangLihatPeriodeAktif = $tahunAjaranAktif && $tahunAjaran->id === $tahunAjaranAktif->id;
+                if ($hari === $this->hariIniIndonesia() && $sedangLihatPeriodeAktif) {
+                    $sesiList = SesiMengajarGrouper::tandaiSudahDiisi($sesiList, $jadwal);
+                }
             }
         }
 
         $hariList = JadwalPelajaran::HARI_LIST();
 
         return view('absensi.pilih-kelas', compact(
-            'sesiList', 'hari', 'hariList', 'tahunAjaran', 'tahunAjaranAktif', 'periodeList'
+            'sesiList', 'hari', 'hariList', 'tahunAjaran', 'tahunAjaranAktif',
+            'periodeList', 'isAdmin', 'guruList', 'guru'
         ));
     }
 

@@ -3,12 +3,28 @@
 
 @section('content')
 <div class="space-y-6">
+    @if($isAdmin)
+        <div class="card p-5">
+            <p class="font-bold text-slate-800 mb-3">Wakili Guru</p>
+            <p class="text-xs text-slate-400 -mt-1 mb-3">Pilih guru untuk melihat &amp; membantu mengisi jurnal/absensi atas nama guru tersebut (mis. guru lupa mengisi &amp; sedang berhalangan).</p>
+            <form method="GET" action="{{ route('mengajar.index') }}" class="flex flex-wrap items-center gap-2">
+                <select name="guru_id" onchange="this.form.submit()" class="input max-w-xs">
+                    <option value="">— Pilih Guru —</option>
+                    @foreach($guruList as $g)
+                        <option value="{{ $g->id }}" {{ $guru && $guru->id === $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                    @endforeach
+                </select>
+                <noscript><button type="submit" class="btn-outline">Tampilkan</button></noscript>
+            </form>
+        </div>
+    @endif
+
     @if($periodeList->count() > 1)
         <div class="card p-5">
             <p class="font-bold text-slate-800 mb-3">Periode</p>
             <div class="flex flex-wrap gap-2">
                 @foreach($periodeList as $p)
-                    <a href="{{ route('mengajar.index', ['hari' => $hari, 'periode' => $p->id]) }}"
+                    <a href="{{ route('mengajar.index', ['hari' => $hari, 'periode' => $p->id, 'guru_id' => $guru->id ?? null]) }}"
                        class="px-4 py-2 rounded-lg text-sm font-semibold border {{ $tahunAjaran && $p->id === $tahunAjaran->id ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
                         {{ $p->labelSingkat() }}
                         @if($tahunAjaranAktif && $p->id === $tahunAjaranAktif->id)
@@ -24,7 +40,7 @@
         <p class="font-bold text-slate-800 mb-3">Pilih Hari</p>
         <div class="flex flex-wrap gap-2">
             @foreach($hariList as $h)
-                <a href="{{ route('mengajar.index', ['hari' => $h, 'periode' => $tahunAjaran->id ?? null]) }}"
+                <a href="{{ route('mengajar.index', ['hari' => $h, 'periode' => $tahunAjaran->id ?? null, 'guru_id' => $guru->id ?? null]) }}"
                    class="px-4 py-2 rounded-lg text-sm font-semibold border {{ $h === $hari ? 'bg-brand-600 text-white border-brand-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}">
                     {{ $h }}
                 </a>
@@ -33,8 +49,19 @@
     </div>
 
     <div class="card p-5">
-        <p class="font-bold text-slate-800 mb-4">Jadwal Mengajar - {{ $hari }}</p>
+        <p class="font-bold text-slate-800 mb-4">
+            Jadwal Mengajar - {{ $hari }}
+            @if($isAdmin && $guru)
+                <span class="text-sm font-normal text-slate-400">&middot; atas nama {{ $guru->name }}</span>
+            @endif
+        </p>
         <p class="text-xs text-slate-400 -mt-3 mb-4">Jam yang berurutan untuk kelas & mapel yang sama otomatis digabung jadi 1 sesi — cukup isi absensi & jurnal 1x.</p>
+
+        @if($isAdmin && $guru)
+            <div class="rounded-xl bg-sky-50 border border-sky-200 text-sky-700 px-4 py-3 text-sm mb-4">
+                <i class="fa-solid fa-user-shield mr-1.5"></i> Anda sedang mengisi jurnal/absensi sebagai <strong>Admin</strong>, mewakili guru <strong>{{ $guru->name }}</strong>.
+            </div>
+        @endif
 
         @if($tahunAjaran && $tahunAjaranAktif && $tahunAjaran->id !== $tahunAjaranAktif->id)
             <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm mb-4">
@@ -48,7 +75,9 @@
             </div>
         @endif
 
-        @if(!$tahunAjaran)
+        @if($isAdmin && !$guru)
+            <p class="text-sm text-slate-400 py-8 text-center">Pilih guru terlebih dahulu di atas untuk melihat jadwalnya.</p>
+        @elseif(!$tahunAjaran)
             <p class="text-sm text-amber-600">Tidak ada Tahun Ajaran aktif.</p>
         @elseif($sesiList->isEmpty())
             <p class="text-sm text-slate-400 py-8 text-center">Tidak ada jadwal mengajar pada hari {{ $hari }}.</p>
