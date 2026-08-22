@@ -30,25 +30,25 @@
 
     @if(!$periodeAktif)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Aktifkan Tahun Ajaran terlebih dahulu sebelum menambah mapping.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Aktifkan Tahun Ajaran terlebih dahulu sebelum menambah mapping.
         </div>
     @elseif(!$periodeDilihat)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Periode tidak ditemukan.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Periode tidak ditemukan.
         </div>
     @elseif($periodeDilihat->id !== $periodeAktif->id)
         <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
-            📖 Anda sedang melihat histori periode {{ $periodeDilihat->labelPeriode() }} (bukan periode aktif). Data ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus dari sini.
+            <i class="fa-solid fa-book-open mr-1.5"></i> Anda sedang melihat histori periode {{ $periodeDilihat->labelPeriode() }} (bukan periode aktif). Data ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus dari sini.
         </div>
     @elseif($periodeDilihat->isTerkunci())
         <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
-            🔒 Periode {{ $periodeDilihat->labelPeriode() }} sudah ditutup dan terkunci. Data pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
+            <i class="fa-solid fa-lock mr-1.5"></i> Periode {{ $periodeDilihat->labelPeriode() }} sudah ditutup dan terkunci. Data pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
         </div>
     @endif
 
     <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex gap-2">
-            <a href="{{ route('kurikulum.guru-mengajar.import.form') }}" class="btn-outline">📥 Import Excel</a>
+            <a href="{{ route('kurikulum.guru-mengajar.import.form') }}" class="btn-outline"><i class="fa-solid fa-file-import mr-1.5"></i> Import Excel</a>
         </div>
         @if($bisaEdit)
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Mapping</button>
@@ -109,12 +109,12 @@
                         <td class="td-aksi">
                             <div class="action-buttons">
                                 @if(!$bisaEdit)
-                                    <span class="text-xs text-slate-400">🔒 Tidak dapat diubah</span>
+                                    <span class="text-xs text-slate-400"><i class="fa-solid fa-lock mr-1.5"></i> Tidak dapat diubah</span>
                                 @else
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('kurikulum.guru-mengajar.destroy', $d) }}" onsubmit="return confirm('Hapus mapping ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                                 @endif
                             </div>

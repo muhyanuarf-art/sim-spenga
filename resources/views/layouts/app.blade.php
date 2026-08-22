@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard') - SIM-SPENGA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js" defer></script>
+    {{-- Plugin x-collapse WAJIB dimuat sebelum Alpine core agar animasi buka/tutup submenu berjalan mulus --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.13.5/dist/cdn.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <script>
         tailwind.config = {
             theme: {
@@ -46,130 +49,141 @@
             </div>
         </div>
 
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1 text-base">
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 text-base">
             @php $user = auth()->user(); @endphp
 
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-active' : '' }}">
-                <span class="text-lg">🏠</span> Dashboard
-            </a>
+            <x-nav-link :href="route('dashboard')" icon="fa-house" :active="request()->routeIs('dashboard')">
+                Dashboard
+            </x-nav-link>
 
             @if($user->role === 'guru' || $user->role === 'admin')
-                <p class="nav-section">Guru Mapel</p>
-                <a href="{{ route('mengajar.index') }}" class="nav-link {{ request()->routeIs('mengajar.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📝</span> Absensi & Jurnal Mengajar
-                </a>
+                <x-nav-group icon="fa-chalkboard-user" label="Guru Mapel" :active="request()->routeIs('mengajar.*')">
+                    <x-nav-sublink :href="route('mengajar.index')" :active="request()->routeIs('mengajar.*')">
+                        Absensi & Jurnal Mengajar
+                    </x-nav-sublink>
+                </x-nav-group>
             @endif
 
             @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <p class="nav-section">PELANGGARAN</p>
-                @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <a href="{{ route('bk.dashboard') }}" class="nav-link {{ request()->routeIs('bk.dashboard') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🧭</span> Pantau Pelanggaran
-                </a>
-                @endif
-                <a href="{{ route('bk.kasus.index') }}" class="nav-link {{ request()->routeIs('bk.kasus.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📁</span> Kasus/Pelanggaran
-                </a>
-                @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <a href="{{ route('bk.pembinaan.index') }}" class="nav-link {{ request()->routeIs('bk.pembinaan.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🤝</span> Pembinaan
-                </a>
-                <a href="{{ route('bk.pengurangan.index') }}" class="nav-link {{ request()->routeIs('bk.pengurangan.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">➖</span> Pengurangan Poin
-                </a>
-                <a href="{{ route('bk.pemanggilan.index') }}" class="nav-link {{ request()->routeIs('bk.pemanggilan.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📞</span> Pemanggilan Orang Tua
-                </a>
-                <a href="{{ route('bk.siswa.index') }}" class="nav-link {{ request()->routeIs('bk.siswa.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🔍</span> Monitoring Siswa
-                </a>
-                @endif
-                @if(in_array($user->role, ['guru_bk', 'admin']))
-                <a href="{{ route('bk.jenis-pelanggaran.index') }}" class="nav-link {{ request()->routeIs('bk.jenis-pelanggaran.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🗂️</span> Data Pelanggaran (Master)
-                </a>
-                @endif
+                <x-nav-group icon="fa-triangle-exclamation" label="Pelanggaran" :active="request()->routeIs('bk.*')">
+                    @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
+                    <x-nav-sublink :href="route('bk.dashboard')" :active="request()->routeIs('bk.dashboard')">
+                        Pantau Pelanggaran
+                    </x-nav-sublink>
+                    @endif
+                    <x-nav-sublink :href="route('bk.kasus.index')" :active="request()->routeIs('bk.kasus.*')">
+                        Kasus/Pelanggaran
+                    </x-nav-sublink>
+                    @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
+                    <x-nav-sublink :href="route('bk.pembinaan.index')" :active="request()->routeIs('bk.pembinaan.*')">
+                        Pembinaan
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('bk.pengurangan.index')" :active="request()->routeIs('bk.pengurangan.*')">
+                        Pengurangan Poin
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('bk.pemanggilan.index')" :active="request()->routeIs('bk.pemanggilan.*')">
+                        Pemanggilan Orang Tua
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('bk.siswa.index')" :active="request()->routeIs('bk.siswa.*')">
+                        Monitoring Siswa
+                    </x-nav-sublink>
+                    @endif
+                    @if(in_array($user->role, ['guru_bk', 'admin']))
+                    <x-nav-sublink :href="route('bk.jenis-pelanggaran.index')" :active="request()->routeIs('bk.jenis-pelanggaran.*')">
+                        Data Pelanggaran (Master)
+                    </x-nav-sublink>
+                    @endif
+                </x-nav-group>
             @endif
 
             @if($user->role === 'kesiswaan')
-                <p class="nav-section">PELANGGARAN</p>
-                <a href="{{ route('bk.dashboard') }}" class="nav-link {{ request()->routeIs('bk.dashboard') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🧭</span> Pantau Pelanggaran
-                </a>
+                <x-nav-group icon="fa-triangle-exclamation" label="Pelanggaran" :active="request()->routeIs('bk.dashboard')">
+                    <x-nav-sublink :href="route('bk.dashboard')" :active="request()->routeIs('bk.dashboard')">
+                        Pantau Pelanggaran
+                    </x-nav-sublink>
+                </x-nav-group>
             @endif
 
             @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
-                <p class="nav-section">Monitoring Kelas</p>
-                <a href="{{ route('walikelas.absensi-bulanan') }}" class="nav-link {{ request()->routeIs('walikelas.absensi-bulanan') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📊</span> Rekap Absensi Bulanan
-                </a>
-                @if($user->role !== 'kesiswaan')
-                <a href="{{ route('walikelas.jurnal-kelas') }}" class="nav-link {{ request()->routeIs('walikelas.jurnal-kelas') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📔</span> Jurnal Mengajar Kelas
-                </a>
-                @endif
+                <x-nav-group icon="fa-chalkboard" label="Monitoring Kelas" :active="request()->routeIs('walikelas.*')">
+                    <x-nav-sublink :href="route('walikelas.absensi-bulanan')" :active="request()->routeIs('walikelas.absensi-bulanan')">
+                        Rekap Absensi Bulanan
+                    </x-nav-sublink>
+                    @if($user->role !== 'kesiswaan')
+                    <x-nav-sublink :href="route('walikelas.jurnal-kelas')" :active="request()->routeIs('walikelas.jurnal-kelas')">
+                        Jurnal Mengajar Kelas
+                    </x-nav-sublink>
+                    @endif
+                </x-nav-group>
             @endif
 
             @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <p class="nav-section">Laporan</p>
-                @if($user->role !== 'guru_bk')
-                <a href="{{ route('laporan.jurnal-guru') }}" class="nav-link {{ request()->routeIs('laporan.jurnal-guru') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📘</span> Jurnal Mengajar Guru Tiap Mapel
-                </a>
-                <a href="{{ route('laporan.absensi-guru') }}" class="nav-link {{ request()->routeIs('laporan.absensi-guru') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🗒️</span> Absensi Guru Tiap Mapel
-                </a>
-                @endif
-                <a href="{{ route('notifikasi-wa.index') }}" class="nav-link {{ request()->routeIs('notifikasi-wa.index') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📲</span> Status WhatsApp Ortu
-                </a>
+                <x-nav-group icon="fa-file-lines" label="Laporan" :active="request()->routeIs('laporan.*') || request()->routeIs('notifikasi-wa.*')">
+                    @if($user->role !== 'guru_bk')
+                    <x-nav-sublink :href="route('laporan.jurnal-guru')" :active="request()->routeIs('laporan.jurnal-guru')">
+                        Jurnal Mengajar Guru Tiap Mapel
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('laporan.absensi-guru')" :active="request()->routeIs('laporan.absensi-guru')">
+                        Absensi Guru Tiap Mapel
+                    </x-nav-sublink>
+                    @endif
+                    <x-nav-sublink :href="route('notifikasi-wa.index')" :active="request()->routeIs('notifikasi-wa.index')">
+                        Status WhatsApp Ortu
+                    </x-nav-sublink>
+                </x-nav-group>
             @endif
 
             @if(in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah']))
-                <a href="{{ route('rekap.index') }}" class="nav-link {{ request()->routeIs('rekap.index') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📈</span> Rekapitulasi
-                </a>
+                <x-nav-link :href="route('rekap.index')" icon="fa-chart-line" :active="request()->routeIs('rekap.index')">
+                    Rekapitulasi
+                </x-nav-link>
             @endif
 
             @if($user->role === 'kurikulum' || $user->role === 'admin')
-                <p class="nav-section">Kurikulum</p>
-                <a href="{{ route('kurikulum.guru-mengajar.index') }}" class="nav-link {{ request()->routeIs('kurikulum.guru-mengajar.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">👨‍🏫</span> Mapping Guru Mengajar
-                </a>
-                <a href="{{ route('kurikulum.guru-bk.index') }}" class="nav-link {{ request()->routeIs('kurikulum.guru-bk.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🧭</span> Mapping Guru BK
-                </a>
-                <a href="{{ route('jadwal.index') }}" class="nav-link {{ request()->routeIs('jadwal.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🗓️</span> Jadwal Pelajaran
-                </a>
-                <a href="{{ route('siswa.index') }}" class="nav-link {{ request()->routeIs('siswa.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🧑‍🎓</span> Data Siswa
-                </a>
-                <a href="{{ route('orangtua-akun.index') }}" class="nav-link {{ request()->routeIs('orangtua-akun.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">👪</span> Data Orang Tua
-                </a>
-                <a href="{{ route('kelas.index') }}" class="nav-link {{ request()->routeIs('kelas.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🏫</span> Data Kelas
-                </a>
-                <a href="{{ route('mapel.index') }}" class="nav-link {{ request()->routeIs('mapel.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📚</span> Mata Pelajaran
-                </a>
-                <a href="{{ route('tahun-ajaran.index') }}" class="nav-link {{ request()->routeIs('tahun-ajaran.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">📅</span> Tahun Ajaran
-                </a>
-                <a href="{{ route('pengaturan-sekolah.edit') }}" class="nav-link {{ request()->routeIs('pengaturan-sekolah.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">🏫</span> Pengaturan Sekolah
-                </a>
+                <x-nav-group icon="fa-graduation-cap" label="Kurikulum" :active="
+                    request()->routeIs('kurikulum.*') || request()->routeIs('jadwal.*') || request()->routeIs('siswa.*') ||
+                    request()->routeIs('orangtua-akun.*') || request()->routeIs('kelas.*') || request()->routeIs('mapel.*') ||
+                    request()->routeIs('tahun-ajaran.*') || request()->routeIs('pengaturan-sekolah.*')
+                ">
+                    <x-nav-sublink :href="route('kurikulum.guru-mengajar.index')" :active="request()->routeIs('kurikulum.guru-mengajar.*')">
+                        Mapping Guru Mengajar
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('kurikulum.guru-bk.index')" :active="request()->routeIs('kurikulum.guru-bk.*')">
+                        Mapping Guru BK
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('jadwal.index')" :active="request()->routeIs('jadwal.*')">
+                        Jadwal Pelajaran
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('siswa.index')" :active="request()->routeIs('siswa.*')">
+                        Data Siswa
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('orangtua-akun.index')" :active="request()->routeIs('orangtua-akun.*')">
+                        Data Orang Tua
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('kelas.index')" :active="request()->routeIs('kelas.*')">
+                        Data Kelas
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('mapel.index')" :active="request()->routeIs('mapel.*')">
+                        Mata Pelajaran
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('tahun-ajaran.index')" :active="request()->routeIs('tahun-ajaran.*')">
+                        Tahun Ajaran
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('pengaturan-sekolah.edit')" :active="request()->routeIs('pengaturan-sekolah.*')">
+                        Pengaturan Sekolah
+                    </x-nav-sublink>
+                </x-nav-group>
             @endif
 
             @if($user->role === 'admin')
-                <p class="nav-section">Administrator</p>
-                <a href="{{ route('jam-pelajaran.index') }}" class="nav-link {{ request()->routeIs('jam-pelajaran.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">⏰</span> Jam Pelajaran
-                </a>
-                <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'nav-active' : '' }}">
-                    <span class="text-lg">👤</span> Kelola Pengguna
-                </a>
+                <x-nav-group icon="fa-user-shield" label="Administrator" :active="request()->routeIs('jam-pelajaran.*') || request()->routeIs('users.*')">
+                    <x-nav-sublink :href="route('jam-pelajaran.index')" :active="request()->routeIs('jam-pelajaran.*')">
+                        Jam Pelajaran
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('users.index')" :active="request()->routeIs('users.*')">
+                        Kelola Pengguna
+                    </x-nav-sublink>
+                </x-nav-group>
             @endif
         </nav>
 
@@ -177,7 +191,7 @@
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button class="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-base font-semibold text-red-300 hover:bg-red-500/10 hover:text-red-200 transition">
-                    <span class="text-lg">🚪</span> Keluar
+                    <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Keluar
                 </button>
             </form>
         </div>
@@ -189,7 +203,9 @@
     <div class="flex-1 flex flex-col min-w-0">
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-2">
             <div class="flex items-center gap-3 min-w-0">
-                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 shrink-0">☰</button>
+                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 shrink-0 text-slate-600">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
                 <h1 class="font-semibold text-slate-800 text-base lg:text-lg truncate">@yield('title', 'Dashboard')</h1>
             </div>
             <div class="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -199,11 +215,11 @@
                 @php $periodeAktif = \App\Models\TahunAjaran::aktif(); @endphp
                 @if($periodeAktif)
                     <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-700' }} inline-flex">
-                        📅 <span class="hidden sm:inline">{{ $periodeAktif->labelSingkat() }}</span><span class="sm:hidden">{{ $periodeAktif->nama }}</span>
-                        @if($periodeAktif->isTerkunci()) &nbsp;🔒 @endif
+                        <i class="fa-solid fa-calendar-days mr-1.5"></i> <span class="hidden sm:inline">{{ $periodeAktif->labelSingkat() }}</span><span class="sm:hidden">{{ $periodeAktif->nama }}</span>
+                        @if($periodeAktif->isTerkunci()) &nbsp;<i class="fa-solid fa-lock mr-1.5"></i> @endif
                     </span>
                 @else
-                    <span class="badge bg-amber-50 text-amber-700 inline-flex">⚠️ <span class="hidden sm:inline">Belum ada periode aktif</span></span>
+                    <span class="badge bg-amber-50 text-amber-700 inline-flex"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> <span class="hidden sm:inline">Belum ada periode aktif</span></span>
                 @endif
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
@@ -218,17 +234,17 @@
         <main class="flex-1 p-4 lg:p-8">
             @if(session('success'))
                 <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm font-medium">
-                    ✅ {{ session('success') }}
+                    <i class="fa-solid fa-circle-check mr-1.5"></i> {{ session('success') }}
                 </div>
             @endif
             @if(session('error'))
                 <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm font-medium">
-                    ⚠️ {{ session('error') }}
+                    <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> {{ session('error') }}
                 </div>
             @endif
             @if($errors->any())
                 <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-                    <p class="font-medium mb-1">⚠️ Terjadi kesalahan:</p>
+                    <p class="font-medium mb-1"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Terjadi kesalahan:</p>
                     <ul class="list-disc list-inside space-y-0.5">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -243,10 +259,24 @@
 </div>
 
 <style>
-    .nav-link { display:flex; align-items:center; gap:.7rem; padding:.7rem .85rem; border-radius:.7rem; color:#c7d2ef; font-weight:600; font-size:1rem; transition:.15s; }
+    .nav-link { display:flex; align-items:center; gap:.75rem; padding:.7rem .85rem; border-radius:.7rem; color:#c7d2ef; font-weight:600; font-size:1rem; transition:.15s; }
     .nav-link:hover { background:rgba(255,255,255,.08); color:#ffffff; }
     .nav-active { background:#2554e0; color:#ffffff; box-shadow:0 2px 8px 0 rgba(0,0,0,.25); }
     .nav-section { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:#7e93d6; font-weight:800; padding:1.1rem .85rem .35rem; }
+
+    /* ===== Menu icon (Font Awesome) ===== */
+    .nav-icon { display:inline-flex; align-items:center; justify-content:center; width:1.5rem; flex-shrink:0; font-size:1rem; }
+
+    /* ===== Menu induk yang bisa dibuka/ditutup (accordion: Menu -> Sub Menu) ===== */
+    .nav-group-btn { display:flex; align-items:center; gap:.75rem; width:100%; padding:.7rem .85rem; border-radius:.7rem; color:#c7d2ef; font-weight:600; font-size:1rem; background:transparent; border:0; cursor:pointer; transition:.15s; text-align:left; }
+    .nav-group-btn:hover { background:rgba(255,255,255,.08); color:#ffffff; }
+    .nav-group-btn-active { color:#ffffff; }
+    .nav-chevron { font-size:.7rem; color:#7e93d6; transition:transform .2s ease; flex-shrink:0; }
+    .nav-sub { margin-top:.15rem; margin-left:1.05rem; padding-left:.85rem; border-left:1px solid rgba(255,255,255,.1); display:flex; flex-direction:column; gap:.15rem; }
+    .nav-sublink { display:flex; align-items:center; gap:.65rem; padding:.55rem .75rem; border-radius:.6rem; color:#a8b6e3; font-weight:500; font-size:.9rem; transition:.15s; }
+    .nav-sublink:hover { background:rgba(255,255,255,.08); color:#ffffff; }
+    .nav-sublink-active { background:#2554e0; color:#ffffff; font-weight:600; box-shadow:0 2px 8px 0 rgba(0,0,0,.25); }
+    .nav-dot { width:.35rem; height:.35rem; border-radius:999px; background:currentColor; opacity:.6; flex-shrink:0; }
     .card { background:#fff; border:1px solid #e2e8f0; border-radius:1rem; box-shadow:0 2px 10px 0 rgba(20,30,60,.05); }
     .btn-primary { background:#1c68f2; color:#fff; padding:.55rem 1.1rem; border-radius:.65rem; font-weight:600; font-size:.875rem; transition:.15s; }
     .btn-primary:hover { background:#1553de; }

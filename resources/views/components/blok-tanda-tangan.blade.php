@@ -27,7 +27,7 @@
                    class="text-center bg-transparent border-b border-dashed border-slate-300 focus:outline-none focus:border-brand-500 w-36 print:border-b-0"
                    aria-label="Tanggal tanda tangan (bisa diubah sebelum cetak)">
         </p>
-        <p class="text-xs text-slate-400 mb-1 print:hidden">✏️ Kota & tanggal bisa diketik ulang di atas sebelum Cetak</p>
+        <p class="text-xs text-slate-400 mb-1 print:hidden"><i class="fa-solid fa-pen mr-1.5"></i> Kota & tanggal bisa diketik ulang di atas sebelum Cetak</p>
         <p>{{ $jabatan }}</p>
         <div class="h-16"></div>
         <p class="font-bold underline underline-offset-2">{{ $nama ?: '............................' }}</p>

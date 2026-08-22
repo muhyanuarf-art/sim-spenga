@@ -24,7 +24,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <a href="{{ route('orangtua.ganti-password.form') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-lg transition-colors">🔑 Ganti Password</a>
+                <a href="{{ route('orangtua.ganti-password.form') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-lg transition-colors"><i class="fa-solid fa-key mr-1.5"></i> Ganti Password</a>
                 <form method="POST" action="{{ route('orangtua.logout') }}">
                     @csrf
                     <button class="text-sm font-semibold text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors">Keluar</button>
@@ -145,7 +145,7 @@
                     <p class="text-xs text-slate-400 mt-0.5">Kategori: {{ $kasus->kategori }} · Poin: {{ $kasus->poin }} · Status: {{ $kasus->status }}</p>
                 </div>
             @empty
-                <p class="text-sm text-slate-400 py-4 text-center">Tidak ada catatan pelanggaran. 👍</p>
+                <p class="text-sm text-slate-400 py-4 text-center">Tidak ada catatan pelanggaran. <i class="fa-solid fa-thumbs-up"></i></p>
             @endforelse
         </div>
     </main>

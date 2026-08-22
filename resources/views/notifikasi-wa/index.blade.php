@@ -34,33 +34,33 @@
             @endif
         </form>
         <p class="text-xs text-slate-400 mt-3">
-            📅 Hari ini: <b class="text-slate-500">{{ now()->translatedFormat('l, d F Y') }}</b>
+            <i class="fa-solid fa-calendar-days mr-1.5"></i> Hari ini: <b class="text-slate-500">{{ now()->translatedFormat('l, d F Y') }}</b>
             &middot; bulan &amp; tahun di atas otomatis mengikuti tanggal server saat halaman ini dibuka.
         </p>
     </div>
 
     @if($tanpaAksesData)
         <div class="rounded-xl bg-slate-50 border border-slate-200 text-slate-500 px-5 py-6 text-sm text-center">
-            📲 Menu ini menampilkan histori notifikasi WA per KELAS (bukan per mapel), jadi hanya relevan untuk
+            <i class="fa-solid fa-mobile-screen mr-1.5"></i> Menu ini menampilkan histori notifikasi WA per KELAS (bukan per mapel), jadi hanya relevan untuk
             <b>Wali Kelas</b> atau <b>Guru BK</b> yang sudah di-mapping ke kelas. Anda saat ini belum ditetapkan
             sebagai wali kelas manapun / belum di-mapping ke kelas manapun oleh Kurikulum.
         </div>
     @else
         <div class="grid grid-cols-3 gap-4">
-            <x-stat-card color="emerald" icon="✅" label="Terkirim" :value="$ringkasan['terkirim']" />
-            <x-stat-card color="amber" icon="⏳" label="Menunggu Diproses" :value="$ringkasan['pending']" />
-            <x-stat-card color="rose" icon="⚠️" label="Gagal Terkirim" :value="$ringkasan['gagal']" />
+            <x-stat-card color="emerald" icon="fa-circle-check" label="Terkirim" :value="$ringkasan['terkirim']" />
+            <x-stat-card color="amber" icon="fa-hourglass-half" label="Menunggu Diproses" :value="$ringkasan['pending']" />
+            <x-stat-card color="rose" icon="fa-triangle-exclamation" label="Gagal Terkirim" :value="$ringkasan['gagal']" />
         </div>
 
         @if($ringkasan['pending'] > 0)
             <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-                ⏳ Ada {{ $ringkasan['pending'] }} notifikasi yang masih menunggu diproses queue worker.
+                <i class="fa-solid fa-hourglass-half mr-1.5"></i> Ada {{ $ringkasan['pending'] }} notifikasi yang masih menunggu diproses queue worker.
                 Pastikan <code class="bg-amber-100 px-1 rounded">php artisan queue:work</code> sedang berjalan di server.
             </div>
         @endif
         @if($ringkasan['gagal'] > 0)
             <div class="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 text-sm">
-                ⚠️ Ada {{ $ringkasan['gagal'] }} notifikasi gagal terkirim — kemungkinan nomor WA ortu kosong/salah format,
+                <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Ada {{ $ringkasan['gagal'] }} notifikasi gagal terkirim — kemungkinan nomor WA ortu kosong/salah format,
                 atau gateway WA sedang bermasalah.
             </div>
         @endif
@@ -104,11 +104,11 @@
                             </td>
                             <td>
                                 @if($n->status_kirim === 'terkirim')
-                                    <span class="badge bg-emerald-50 text-emerald-700">✅ Terkirim</span>
+                                    <span class="badge bg-emerald-50 text-emerald-700"><i class="fa-solid fa-circle-check mr-1.5"></i> Terkirim</span>
                                 @elseif($n->status_kirim === 'gagal')
-                                    <span class="badge bg-rose-50 text-rose-700">⚠️ Gagal</span>
+                                    <span class="badge bg-rose-50 text-rose-700"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Gagal</span>
                                 @else
-                                    <span class="badge bg-amber-50 text-amber-700">⏳ Menunggu</span>
+                                    <span class="badge bg-amber-50 text-amber-700"><i class="fa-solid fa-hourglass-half mr-1.5"></i> Menunggu</span>
                                 @endif
                             </td>
                             <td class="text-slate-500 whitespace-nowrap">
@@ -116,7 +116,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-emerald-600 py-8">🎉 Tidak ada notifikasi Alfa bulan ini.</td></tr>
+                        <tr><td colspan="6" class="text-center text-emerald-600 py-8"><i class="fa-solid fa-circle-check mr-1.5"></i> Tidak ada notifikasi Alfa bulan ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

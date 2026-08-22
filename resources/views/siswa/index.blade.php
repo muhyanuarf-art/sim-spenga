@@ -13,7 +13,7 @@
             <button class="btn-outline">Cari</button>
         </form>
         <div class="flex gap-2">
-            <a href="{{ route('siswa.import.form') }}" class="btn-outline">📥 Import Excel</a>
+            <a href="{{ route('siswa.import.form') }}" class="btn-outline"><i class="fa-solid fa-file-import mr-1.5"></i> Import Excel</a>
             <button @click="showForm = !showForm" class="btn-primary">+ Tambah Siswa</button>
         </div>
     </div>
@@ -52,7 +52,7 @@
                         <td>{{ $s->kelas->nama_kelas }}</td>
                         <td>
                             @if($s->no_wa_ortu)
-                                <span class="badge bg-emerald-50 text-emerald-700" title="{{ $s->nama_ortu }}">📱 {{ $s->no_wa_ortu }}</span>
+                                <span class="badge bg-emerald-50 text-emerald-700" title="{{ $s->nama_ortu }}"><i class="fa-solid fa-mobile-screen mr-1.5"></i> {{ $s->no_wa_ortu }}</span>
                             @else
                                 <span class="badge bg-slate-100 text-slate-400">Belum diisi</span>
                             @endif
@@ -63,11 +63,11 @@
                         </td>
                         <td class="td-aksi">
                             <div class="action-buttons">
-                                <a href="{{ route('siswa.riwayat-kelas', $s) }}" class="btn-chip btn-chip-cancel">🕘 Riwayat Kelas</a>
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <a href="{{ route('siswa.riwayat-kelas', $s) }}" class="btn-chip btn-chip-cancel"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i> Riwayat Kelas</a>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('siswa.destroy', $s) }}" onsubmit="return confirm('Hapus siswa ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                             </div>
                         </td>

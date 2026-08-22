@@ -4,13 +4,13 @@
 @section('content')
 <div class="space-y-6">
     <div>
-        <p class="text-xl font-extrabold text-slate-800">Selamat datang, {{ auth()->user()->name }} 👋</p>
+        <p class="text-xl font-extrabold text-slate-800">Selamat datang, {{ auth()->user()->name }} <i class="fa-solid fa-hand"></i></p>
         <p class="text-sm text-slate-400">Pilih anak untuk melihat absensi dan riwayat pelanggaran.</p>
     </div>
 
     @if($anakList->isEmpty())
         <div class="card p-10 text-center">
-            <p class="text-3xl mb-2">🧒</p>
+            <p class="text-3xl mb-2"><i class="fa-solid fa-child"></i></p>
             <p class="font-bold text-slate-700">Belum ada data anak yang ditautkan</p>
             <p class="text-sm text-slate-400 mt-1">Silakan hubungi Admin sekolah untuk menautkan akun Anda ke data siswa.</p>
         </div>

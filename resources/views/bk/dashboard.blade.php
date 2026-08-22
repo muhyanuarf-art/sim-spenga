@@ -4,16 +4,16 @@
 @section('content')
 <div class="space-y-6">
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-rose-600 via-rose-600 to-orange-500 text-white px-5 py-4 shadow-lg shadow-rose-500/20">
-        <p class="font-bold flex items-center gap-2">🧭 Pantau Pelanggaran</p>
+        <p class="font-bold flex items-center gap-2"><i class="fa-solid fa-compass mr-1.5"></i> Pantau Pelanggaran</p>
         <p class="text-sm text-white/80">Pantau kasus, pembinaan, dan perkembangan perilaku siswa.</p>
         <div class="absolute -right-6 -bottom-10 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <x-stat-card color="rose" icon="📁" label="Total Kasus Bulan Ini" :value="$totalKasusBulanIni" />
-        <x-stat-card color="amber" icon="⚠️" label="Siswa Kasus Aktif" :value="$siswaKasusAktifIds->count()" />
-        <x-stat-card color="violet" icon="🤝" label="Sedang Dalam Pembinaan" :value="$siswaDalamPembinaan->count()" />
-        <x-stat-card color="sky" icon="📞" label="Perlu Pemanggilan Ortu" :value="$butuhPemanggilanOrtu->count()" />
+        <x-stat-card color="rose" icon="fa-folder-open" label="Total Kasus Bulan Ini" :value="$totalKasusBulanIni" />
+        <x-stat-card color="amber" icon="fa-triangle-exclamation" label="Siswa Kasus Aktif" :value="$siswaKasusAktifIds->count()" />
+        <x-stat-card color="violet" icon="fa-handshake" label="Sedang Dalam Pembinaan" :value="$siswaDalamPembinaan->count()" />
+        <x-stat-card color="sky" icon="fa-phone" label="Perlu Pemanggilan Ortu" :value="$butuhPemanggilanOrtu->count()" />
     </div>
 
     <div class="card p-5">
@@ -30,7 +30,7 @@
 
     <div class="grid lg:grid-cols-2 gap-6">
         <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-1">🔴 Poin Aktif Tertinggi</p>
+            <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-circle mr-1.5"></i> Poin Aktif Tertinggi</p>
             <p class="text-xs text-slate-400 mb-4">Perlu perhatian lebih.</p>
             <div class="space-y-2">
                 @forelse($siswaPoinTertinggi as $r)
@@ -51,7 +51,7 @@
         </div>
 
         <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-1">📞 Rekomendasi Pemanggilan Orang Tua</p>
+            <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-phone mr-1.5"></i> Rekomendasi Pemanggilan Orang Tua</p>
             <p class="text-xs text-slate-400 mb-4">Siswa dengan rekomendasi tahap 4-5 (poin aktif ≥51).</p>
             <div class="space-y-2">
                 @forelse($butuhPemanggilanOrtu as $r)
@@ -66,13 +66,13 @@
                     <span class="badge bg-amber-50 text-amber-700 font-bold">Tahap {{ $r['rekomendasi_tahap'] }}</span>
                 </a>
                 @empty
-                <p class="text-sm text-emerald-600 text-center py-4">🎉 Tidak ada.</p>
+                <p class="text-sm text-emerald-600 text-center py-4"><i class="fa-solid fa-circle-check mr-1.5"></i> Tidak ada.</p>
                 @endforelse
             </div>
         </div>
 
         <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-1">📋 Kasus Belum Selesai</p>
+            <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Kasus Belum Selesai</p>
             <div class="space-y-2">
                 @forelse($siswaKasusBelumSelesai as $r)
                 <a href="{{ route('bk.siswa.show', $r['siswa']) }}" class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
@@ -83,13 +83,13 @@
                     <span class="badge bg-slate-100 text-slate-600">{{ $r['jumlah_kasus'] }} kasus</span>
                 </a>
                 @empty
-                <p class="text-sm text-emerald-600 text-center py-4">🎉 Tidak ada.</p>
+                <p class="text-sm text-emerald-600 text-center py-4"><i class="fa-solid fa-circle-check mr-1.5"></i> Tidak ada.</p>
                 @endforelse
             </div>
         </div>
 
         <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-1">🌱 Menunjukkan Perbaikan (30 hari terakhir)</p>
+            <p class="font-bold text-slate-800 mb-1"><i class="fa-solid fa-seedling mr-1.5"></i> Menunjukkan Perbaikan (30 hari terakhir)</p>
             <div class="space-y-2">
                 @forelse($siswaMembaik as $r)
                 <a href="{{ route('bk.siswa.show', $r['siswa']) }}" class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">

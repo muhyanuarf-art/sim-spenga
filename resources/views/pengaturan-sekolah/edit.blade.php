@@ -67,7 +67,7 @@
             </p>
 
             <div class="pt-2">
-                <button type="submit" class="btn-primary">💾 Simpan Pengaturan</button>
+                <button type="submit" class="btn-primary"><i class="fa-solid fa-floppy-disk mr-1.5"></i> Simpan Pengaturan</button>
             </div>
         </form>
     </div>

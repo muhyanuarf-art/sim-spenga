@@ -4,7 +4,7 @@
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">
     <div class="flex justify-end gap-2">
-        <a href="{{ route('mapel.import.form') }}" class="btn-outline">📥 Import Excel</a>
+        <a href="{{ route('mapel.import.form') }}" class="btn-outline"><i class="fa-solid fa-file-import mr-1.5"></i> Import Excel</a>
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Mapel</button>
     </div>
 
@@ -29,10 +29,10 @@
                         <td>{{ $m->nama_mapel }}</td>
                         <td class="td-aksi">
                             <div class="action-buttons">
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('mapel.destroy', $m) }}" onsubmit="return confirm('Hapus mata pelajaran ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                             </div>
                         </td>

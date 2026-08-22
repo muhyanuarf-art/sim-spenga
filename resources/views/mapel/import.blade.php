@@ -11,7 +11,7 @@
         </p>
 
         <a href="{{ route('mapel.template') }}" class="inline-flex items-center gap-1.5 text-brand-600 hover:underline text-sm font-semibold mb-5">
-            📄 Download Template Excel
+            <i class="fa-solid fa-file-lines mr-1.5"></i> Download Template Excel
         </a>
 
         <form method="POST" action="{{ route('mapel.import') }}" enctype="multipart/form-data" class="space-y-4">

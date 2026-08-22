@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="max-w-lg mx-auto card p-8 text-center space-y-3">
-    <div class="text-4xl">🔒</div>
+    <div class="text-4xl"><i class="fa-solid fa-lock"></i></div>
     <p class="text-lg font-bold text-slate-800">Periode Terkunci</p>
     <p class="text-sm text-slate-500 leading-relaxed">
         {{ $exception->getMessage() ?: 'Periode akademik ini sudah ditutup dan terkunci. Data hanya dapat dilihat, tidak dapat diubah.' }}

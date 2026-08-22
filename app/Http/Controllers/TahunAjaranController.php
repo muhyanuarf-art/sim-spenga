@@ -246,7 +246,7 @@ class TahunAjaranController extends Controller
     // "Tutup Semester X & Aktifkan Semester Y") DIHAPUS dari sini karena
     // dianggap membingungkan admin. Alur pergantian semester sekarang murni
     // 2 langkah terpisah yang sudah ada masing-masing sebagai tombol sendiri
-    // di tabel: "🔒 Tutup Semester" (kunci()) lalu "✅ Aktifkan" (aktifkan())
+    // di tabel: "Tutup Semester" (kunci()) lalu "Aktifkan" (aktifkan())
     // pada baris semester berikutnya — TIDAK ADA mekanisme kedua yang
     // menggabungkan keduanya secara otomatis.
 

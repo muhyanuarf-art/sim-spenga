@@ -23,21 +23,21 @@
             </div>
         </form>
         <p class="text-xs text-slate-400 mt-3">
-            📅 Hari ini: <b class="text-slate-500">{{ now()->translatedFormat('l, d F Y') }}</b>
+            <i class="fa-solid fa-calendar-days mr-1.5"></i> Hari ini: <b class="text-slate-500">{{ now()->translatedFormat('l, d F Y') }}</b>
             &middot; bulan &amp; tahun di atas otomatis mengikuti tanggal server saat halaman ini dibuka.
         </p>
     </div>
 
     @if(!$tahunAjaran)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm no-print">
-            ⚠️ Belum ada Tahun Ajaran aktif, jadi jumlah "seharusnya" belum bisa dihitung dari jadwal.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Belum ada Tahun Ajaran aktif, jadi jumlah "seharusnya" belum bisa dihitung dari jadwal.
         </div>
     @endif
 
     <div class="card p-5 print-section" id="print-rekap-guru">
         <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p class="font-extrabold text-slate-800 text-lg">Rekapitulasi Jurnal Mengajar</p>
-            <button type="button" onclick="cetakBagian('print-rekap-guru')" class="btn-outline no-print">🖨️ Cetak Rekap Guru</button>
+            <button type="button" onclick="cetakBagian('print-rekap-guru')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak Rekap Guru</button>
         </div>
         <p class="text-sm text-slate-400 mb-4">
             Bulan {{ \Carbon\Carbon::create()->month($bulan)->translatedFormat('F') }} {{ $tahun }} &middot;
@@ -112,7 +112,7 @@
     <div class="card p-5 print-section" id="print-rekap-kelas">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <p class="font-bold text-slate-800">Rekap Per Kelas</p>
-            <button type="button" onclick="cetakBagian('print-rekap-kelas')" class="btn-outline no-print">🖨️ Cetak Rekap Kelas</button>
+            <button type="button" onclick="cetakBagian('print-rekap-kelas')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak Rekap Kelas</button>
         </div>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">

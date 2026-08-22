@@ -5,14 +5,14 @@
 <div class="space-y-6">
     @if(!$tahunAjaran)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Belum ada Tahun Ajaran aktif. Hubungi Admin/Kurikulum.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Belum ada Tahun Ajaran aktif. Hubungi Admin/Kurikulum.
         </div>
     @endif
 
     @if($kelasWali)
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-600 via-brand-600 to-indigo-500 text-white px-5 py-4 flex items-center justify-between flex-wrap gap-3 shadow-lg shadow-brand-500/20">
             <div class="relative z-10">
-                <p class="font-bold flex items-center gap-2">🎓 Anda adalah Wali Kelas {{ $kelasWali->nama_kelas }}</p>
+                <p class="font-bold flex items-center gap-2"><i class="fa-solid fa-graduation-cap mr-1.5"></i> Anda adalah Wali Kelas {{ $kelasWali->nama_kelas }}</p>
                 <p class="text-sm text-white/80">Pantau kehadiran & jurnal mengajar kelas Anda.</p>
             </div>
             <div class="relative z-10 flex gap-2">

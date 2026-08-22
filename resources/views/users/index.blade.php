@@ -60,10 +60,10 @@
                         </td>
                         <td class="td-aksi">
                             <div class="action-buttons">
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('users.destroy', $u) }}" onsubmit="return confirm('Hapus pengguna ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                             </div>
                         </td>

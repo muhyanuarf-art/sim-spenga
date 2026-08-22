@@ -16,7 +16,7 @@
             @if($jumlahSiswaBelumPunyaAkun > 0)
                 <form method="POST" action="{{ route('orangtua-akun.generate') }}" onsubmit="return confirm('Buat akun orang tua untuk {{ $jumlahSiswaBelumPunyaAkun }} siswa yang belum punya akun? Password default: password.');">
                     @csrf
-                    <button type="submit" class="btn-primary">✨ Buat Akun Otomatis ({{ $jumlahSiswaBelumPunyaAkun }} Siswa)</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> Buat Akun Otomatis ({{ $jumlahSiswaBelumPunyaAkun }} Siswa)</button>
                 </form>
             @endif
         </div>
@@ -24,7 +24,7 @@
 
     @if($jumlahSiswaBelumPunyaAkun > 0)
         <div class="card p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-            ⚠️ Ada <strong>{{ $jumlahSiswaBelumPunyaAkun }}</strong> siswa aktif yang belum punya akun orang tua.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Ada <strong>{{ $jumlahSiswaBelumPunyaAkun }}</strong> siswa aktif yang belum punya akun orang tua.
             Klik <strong>"Buat Akun Otomatis"</strong> di atas — akunnya dibuat langsung dari data siswa yang sudah diinput di menu Data Siswa (tidak perlu upload file).
         </div>
     @endif
@@ -41,21 +41,23 @@
                         <td>{{ $akun->siswa->kelas->nama_kelas ?? '-' }}</td>
                         <td>
                             @if($akun->password_diubah_at)
-                                <span class="badge bg-emerald-50 text-emerald-700">✓ Sudah diganti</span>
+                                <span class="badge bg-emerald-50 text-emerald-700"><i class="fa-solid fa-check mr-1.5"></i> Sudah diganti</span>
                             @else
                                 <span class="badge bg-slate-100 text-slate-400">Masih default</span>
                             @endif
                         </td>
                         <td class="text-slate-400 text-sm">{{ $akun->created_at->format('d/m/Y') }}</td>
-                        <td class="flex gap-2">
-                            <form method="POST" action="{{ route('orangtua-akun.reset-password', $akun) }}" onsubmit="return confirm('Reset password akun ini ke default (password)?');">
-                                @csrf
-                                <button class="btn-outline text-xs">🔑 Reset Password</button>
-                            </form>
-                            <form method="POST" action="{{ route('orangtua-akun.destroy', $akun) }}" onsubmit="return confirm('Hapus akun orang tua ini?');">
-                                @csrf @method('DELETE')
-                                <button class="btn-outline text-xs text-red-600">Hapus</button>
-                            </form>
+                        <td class="td-aksi">
+                            <div class="action-buttons">
+                                <form method="POST" action="{{ route('orangtua-akun.reset-password', $akun) }}" onsubmit="return confirm('Reset password akun ini ke default (password)?');">
+                                    @csrf
+                                    <button class="btn-chip btn-chip-edit"><i class="fa-solid fa-key mr-1.5"></i> Reset Password</button>
+                                </form>
+                                <form method="POST" action="{{ route('orangtua-akun.destroy', $akun) }}" onsubmit="return confirm('Hapus akun orang tua ini?');">
+                                    @csrf @method('DELETE')
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

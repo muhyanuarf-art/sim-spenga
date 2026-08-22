@@ -41,7 +41,7 @@
                 @endforeach
             </ol>
             <p class="text-xs text-amber-600 mb-2">
-                ⚠️ Catatan: Kelas & Wali Kelas disalin sebagai titik awal untuk {{ $tujuan->nama }} — silakan
+                <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Catatan: Kelas & Wali Kelas disalin sebagai titik awal untuk {{ $tujuan->nama }} — silakan
                 sesuaikan lagi di menu Data Kelas kalau ada perubahan wali kelas untuk periode ini.
             </p>
             @endif

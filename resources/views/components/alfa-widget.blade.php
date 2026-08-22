@@ -4,7 +4,7 @@
     <div class="bg-gradient-to-r from-rose-500 via-rose-500 to-orange-400 px-5 py-4 flex items-center justify-between gap-3">
         <div class="min-w-0">
             <p class="font-bold text-white flex items-center gap-2">
-                <span class="text-lg">🚩</span> {{ $title }}
+                <span class="text-lg"><i class="fa-solid fa-flag"></i></span> {{ $title }}
             </p>
             <p class="text-xs text-rose-50/90 mt-0.5">
                 {{ $subtitle ?? 'Absensi Kelas — status dari guru mapel dengan jam paling akhir hari ini' }}
@@ -42,7 +42,7 @@
                 @empty
                 <tr>
                     <td colspan="{{ $showKelas ? 4 : 3 }}" class="text-center text-emerald-600 py-8">
-                        🎉 Tidak ada siswa Alfa hari ini — kehadiran lancar!
+                        <i class="fa-solid fa-circle-check mr-1.5"></i> Tidak ada siswa Alfa hari ini — kehadiran lancar!
                     </td>
                 </tr>
                 @endforelse

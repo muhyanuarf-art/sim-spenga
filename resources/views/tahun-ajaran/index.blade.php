@@ -65,11 +65,11 @@
                         </td>
                         <td>
                             @if($t->isTerkunci())
-                                <span class="badge bg-red-50 text-red-700" title="Ditutup {{ optional($t->terkunci_at)->translatedFormat('d M Y H:i') }} oleh {{ $t->terkunciOleh->name ?? '-' }}">🔒 Terkunci</span>
+                                <span class="badge bg-red-50 text-red-700" title="Ditutup {{ optional($t->terkunci_at)->translatedFormat('d M Y H:i') }} oleh {{ $t->terkunciOleh->name ?? '-' }}"><i class="fa-solid fa-lock mr-1.5"></i> Terkunci</span>
                             @elseif($t->dibuka_at)
-                                <span class="badge bg-slate-100 text-slate-500" title="Dibuka kembali {{ $t->dibuka_at->translatedFormat('d M Y H:i') }} oleh {{ $t->dibukaOleh->name ?? '-' }}">🔓 Terbuka</span>
+                                <span class="badge bg-slate-100 text-slate-500" title="Dibuka kembali {{ $t->dibuka_at->translatedFormat('d M Y H:i') }} oleh {{ $t->dibukaOleh->name ?? '-' }}"><i class="fa-solid fa-lock-open mr-1.5"></i> Terbuka</span>
                             @else
-                                <span class="badge bg-slate-100 text-slate-500">🔓 Terbuka</span>
+                                <span class="badge bg-slate-100 text-slate-500"><i class="fa-solid fa-lock-open mr-1.5"></i> Terbuka</span>
                             @endif
                         </td>
                         <td class="td-aksi">
@@ -82,31 +82,31 @@
                                     <button class="btn-chip btn-chip-success">+ Tambah Semester {{ $semesterHilangPerNama[$t->nama] }}</button>
                                 </form>
                                 @endif
-                                <button type="button" @click="salin = true" class="btn-chip btn-chip-edit">📋 Salin Data</button>
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <button type="button" @click="salin = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data</button>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 @unless($t->is_active)
                                 <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $t) }}">
                                     @csrf
-                                    <button class="btn-chip btn-chip-success">✅ Aktifkan</button>
+                                    <button class="btn-chip btn-chip-success"><i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan</button>
                                 </form>
                                 @endunless
                                 @if($t->isTerkunci())
                                     @if(auth()->user()->isAdmin())
                                     <form method="POST" action="{{ route('tahun-ajaran.buka-kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} ini sudah terkunci.\nMembuka kembali akan memungkinkan perubahan data historis.\nLanjutkan?')">
                                         @csrf
-                                        <button class="btn-chip btn-chip-success">🔓 Buka Kembali</button>
+                                        <button class="btn-chip btn-chip-success"><i class="fa-solid fa-lock-open mr-1.5"></i> Buka Kembali</button>
                                     </form>
                                     @endif
                                 @else
                                 <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} akan ditutup.\nSetelah ditutup, SELURUH data pada semester ini (jurnal, absensi, jadwal, guru mengajar, BK, dst) tidak dapat diubah oleh pengguna biasa — tapi tetap bisa dilihat & dijadikan sumber Salin Data.\nAnda yakin ingin melanjutkan?')">
                                     @csrf
-                                    <button class="btn-chip btn-chip-cancel">🔒 Tutup Semester</button>
+                                    <button class="btn-chip btn-chip-cancel"><i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester</button>
                                 </form>
                                 @endif
                                 @unless($t->isTerkunci())
                                 <form method="POST" action="{{ route('tahun-ajaran.destroy', $t) }}" onsubmit="return confirm('Hapus tahun ajaran ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                                 @endunless
                             </div>
@@ -177,7 +177,7 @@
          terbiasa, tapi selalu ada untuk dibuka kapan saja butuh. --}}
     <div class="card p-5" x-data="{ showBantuan: false }">
         <button type="button" @click="showBantuan = !showBantuan" class="w-full flex items-center justify-between text-left">
-            <span class="font-bold text-slate-800">ℹ️ Panduan Penggunaan Halaman Tahun Ajaran</span>
+            <span class="font-bold text-slate-800"><i class="fa-solid fa-circle-info mr-1.5"></i> Panduan Penggunaan Halaman Tahun Ajaran</span>
             <span class="text-slate-400" x-text="showBantuan ? '▲ Tutup' : '▼ Buka'"></span>
         </button>
 
@@ -202,27 +202,27 @@
                                 <td>Muncul di baris tahun ajaran yang baru punya 1 semester. Klik untuk langsung membuat semester yang masih kurang.</td>
                             </tr>
                             <tr>
-                                <td class="font-semibold whitespace-nowrap">✏️ Edit</td>
+                                <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-pen mr-1.5"></i> Edit</td>
                                 <td>Mengubah nama tahun ajaran, semester, atau status (Akan Datang/Selesai) satu baris. Tidak bisa dipakai untuk mengaktifkan — pakai tombol Aktifkan.</td>
                             </tr>
                             <tr>
-                                <td class="font-semibold whitespace-nowrap">📋 Salin Data</td>
+                                <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data</td>
                                 <td>Menyalin Kelas, Wali Kelas, Guru Mengajar, Guru BK, dan Jadwal dari periode ini ke periode lain yang dipilih. Menampilkan halaman Preview (daftar lengkap apa yang akan disalin) sebelum benar-benar tersimpan.</td>
                             </tr>
                             <tr>
-                                <td class="font-semibold whitespace-nowrap">✅ Aktifkan</td>
+                                <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan</td>
                                 <td>Menjadikan semester ini sebagai Periode Aktif sistem. Semester yang tadinya aktif otomatis berhenti aktif (statusnya jadi Selesai). Kalau target beda Tahun Ajaran, sistem akan MENOLAK jika Tahun Ajaran lama belum ditutup penuh.</td>
                             </tr>
                             <tr>
-                                <td class="font-semibold whitespace-nowrap">🔒 Tutup Semester</td>
+                                <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester</td>
                                 <td>Mengunci SEMUA data pada semester ini (jurnal, absensi, jadwal, guru mengajar, BK, dst) — tidak bisa diubah pengguna biasa lagi. Data tetap bisa dilihat & tetap bisa dijadikan sumber Salin Data.</td>
                             </tr>
                             <tr>
-                                <td class="font-semibold whitespace-nowrap">🔓 Buka Kembali</td>
+                                <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-lock-open mr-1.5"></i> Buka Kembali</td>
                                 <td>KHUSUS ADMIN. Membuka kembali semester yang sudah terkunci supaya bisa diedit lagi. Dicatat siapa & kapan yang membuka.</td>
                             </tr>
                             <tr>
-                                <td class="font-semibold whitespace-nowrap">🗑️ Hapus</td>
+                                <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</td>
                                 <td>Menghapus baris tahun ajaran/semester. HANYA bisa dilakukan kalau semester itu Terbuka (belum dikunci) DAN belum punya data apa pun — kalau masih ada data terkait, sistem akan menolak dengan pesan jelas.</td>
                             </tr>
                         </tbody>
@@ -234,9 +234,9 @@
                 <p class="font-semibold text-slate-700 mb-2">Langkah-Langkah: Pergantian Semester (Ganjil → Genap, Tahun Ajaran Sama)</p>
                 <ol class="text-sm text-slate-600 list-decimal list-inside space-y-1">
                     <li>Pastikan Semester Genap sudah ada (kalau belum, klik "+ Tambah Semester Genap" di baris Semester Ganjil).</li>
-                    <li>(Opsional, kalau Guru Mengajar/Jadwal Semester Genap belum ada dan memang sama dengan Semester Ganjil) Klik "📋 Salin Data" pada baris Semester Ganjil → pilih tujuan Semester Genap → cek Preview → "Salin Sekarang".</li>
-                    <li>Klik "🔒 Tutup Semester" pada baris Semester Ganjil → konfirmasi.</li>
-                    <li>Klik "✅ Aktifkan" pada baris Semester Genap.</li>
+                    <li>(Opsional, kalau Guru Mengajar/Jadwal Semester Genap belum ada dan memang sama dengan Semester Ganjil) Klik "<i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data" pada baris Semester Ganjil → pilih tujuan Semester Genap → cek Preview → "Salin Sekarang".</li>
+                    <li>Klik "<i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester" pada baris Semester Ganjil → konfirmasi.</li>
+                    <li>Klik "<i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan" pada baris Semester Genap.</li>
                 </ol>
                 <p class="text-xs text-slate-400 mt-2">
                     Selesai — Semester Genap jadi Periode Aktif. Data baru otomatis masuk ke Semester Genap, data Semester Ganjil tetap tersimpan & bisa dilihat kapan saja.
@@ -246,16 +246,16 @@
             <div>
                 <p class="font-semibold text-slate-700 mb-2">Langkah-Langkah: Pergantian Tahun Ajaran (Akhir Tahun)</p>
                 <ol class="text-sm text-slate-600 list-decimal list-inside space-y-1">
-                    <li>Pastikan Semester Genap tahun ajaran LAMA sudah ditutup: klik "🔒 Tutup Semester" pada baris itu (kalau belum).</li>
+                    <li>Pastikan Semester Genap tahun ajaran LAMA sudah ditutup: klik "<i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester" pada baris itu (kalau belum).</li>
                     <li>Buat Tahun Ajaran BARU: klik "+ Buat Tahun Ajaran [nama]" (otomatis membuat Semester Ganjil & Genap).</li>
-                    <li>Klik "📋 Salin Data" pada baris Semester GENAP tahun LAMA → pilih tujuan Semester GANJIL tahun BARU → cek halaman Preview (Kelas & Wali Kelas, Guru Mengajar, Guru BK, Jadwal) → "Salin Sekarang".</li>
+                    <li>Klik "<i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data" pada baris Semester GENAP tahun LAMA → pilih tujuan Semester GANJIL tahun BARU → cek halaman Preview (Kelas & Wali Kelas, Guru Mengajar, Guru BK, Jadwal) → "Salin Sekarang".</li>
                     <li>Buka menu Data Kelas (tahun baru) → sesuaikan Wali Kelas kalau ada pergantian.</li>
                     <li>Buka menu Kenaikan Kelas → Tahun Ajaran Asal pilih tahun LAMA → proses kenaikan kelas per kelas.</li>
                     <li>Periksa menu Guru Mengajar & Jadwal untuk tahun baru — lengkapi kalau ada yang masih kurang.</li>
-                    <li>Kembali ke halaman ini → klik "✅ Aktifkan" pada Semester Ganjil tahun BARU.</li>
+                    <li>Kembali ke halaman ini → klik "<i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan" pada Semester Ganjil tahun BARU.</li>
                 </ol>
                 <p class="text-xs text-amber-600 mt-2">
-                    ⚠️ Kalau tombol Aktifkan ditolak: masih ada semester (Ganjil atau Genap) tahun lama yang belum di-"Tutup Semester". Tutup dulu semuanya, baru coba Aktifkan lagi.
+                    <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Kalau tombol Aktifkan ditolak: masih ada semester (Ganjil atau Genap) tahun lama yang belum di-"Tutup Semester". Tutup dulu semuanya, baru coba Aktifkan lagi.
                 </p>
             </div>
 
@@ -264,9 +264,9 @@
                 <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
                     <li>Hanya ada SATU periode aktif dalam satu waktu — dijaga otomatis oleh sistem.</li>
                     <li>Data yang sudah Terkunci hanya bisa dilihat, tidak bisa diubah oleh guru/wali kelas/BK.</li>
-                    <li>Hanya Admin yang bisa "🔓 Buka Kembali" semester yang sudah terkunci.</li>
+                    <li>Hanya Admin yang bisa "<i class="fa-solid fa-lock-open mr-1.5"></i> Buka Kembali" semester yang sudah terkunci.</li>
                     <li>Tahun Ajaran baru tidak bisa diaktifkan sebelum Tahun Ajaran lama ditutup penuh (Ganjil & Genap-nya sama-sama terkunci).</li>
-                    <li>"📋 Salin Data" aman dijalankan berulang kali — data yang sudah pernah tersalin tidak akan dobel.</li>
+                    <li>"<i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data" aman dijalankan berulang kali — data yang sudah pernah tersalin tidak akan dobel.</li>
                 </ul>
             </div>
 

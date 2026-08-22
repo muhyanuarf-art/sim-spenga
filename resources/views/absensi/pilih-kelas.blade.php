@@ -21,7 +21,7 @@
 
         @if($tahunAjaran && $tahunAjaran->isTerkunci())
             <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm mb-4">
-                🔒 Periode {{ $tahunAjaran->labelPeriode() }} sudah ditutup dan terkunci. Jurnal & absensi pada periode ini hanya dapat dilihat, tidak dapat diisi/diubah.
+                <i class="fa-solid fa-lock mr-1.5"></i> Periode {{ $tahunAjaran->labelPeriode() }} sudah ditutup dan terkunci. Jurnal & absensi pada periode ini hanya dapat dilihat, tidak dapat diisi/diubah.
             </div>
         @endif
 

@@ -31,7 +31,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="button" onclick="cetakBagian('print-jurnal-kelas')" class="btn-outline">🖨️ Cetak / Export PDF</button>
+            <button type="button" onclick="cetakBagian('print-jurnal-kelas')" class="btn-outline"><i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF</button>
         </form>
     </div>
 

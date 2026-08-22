@@ -45,7 +45,7 @@
                                     <span class="badge bg-slate-100 text-slate-400">Nonaktif</span>
                                 @endif
                             </td>
-                            <td class="td-aksi"><button @click="editing = true" class="btn-chip">Edit</button></td>
+                            <td class="td-aksi"><button @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button></td>
                         </tr>
                         <tr x-show="editing" x-cloak>
                             <td colspan="6" class="bg-brand-50/40">

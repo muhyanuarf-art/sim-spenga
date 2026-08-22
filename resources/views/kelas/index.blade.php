@@ -25,9 +25,9 @@
 
     @if($tahunAjaranDipilih)
     <div class="flex justify-end gap-2">
-        <a href="{{ route('kelas.import.form') }}" class="btn-outline">📥 Import Excel</a>
+        <a href="{{ route('kelas.import.form') }}" class="btn-outline"><i class="fa-solid fa-file-import mr-1.5"></i> Import Excel</a>
         @if($tahunAjaranSumberPilihan->isNotEmpty())
-        <button @click="showSalin = !showSalin" class="btn-outline">📋 Salin Struktur Kelas</button>
+        <button @click="showSalin = !showSalin" class="btn-outline"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Struktur Kelas</button>
         @endif
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Kelas</button>
     </div>
@@ -95,10 +95,10 @@
                         <td>{{ $k->siswas_count }}</td>
                         <td class="td-aksi">
                             <div class="action-buttons">
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('kelas.destroy', $k) }}" onsubmit="return confirm('Hapus kelas ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                             </div>
                         </td>

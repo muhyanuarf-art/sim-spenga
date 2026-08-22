@@ -51,7 +51,7 @@
     <div class="card p-5 print-section" id="print-pembinaan">
         <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p class="font-extrabold text-slate-800 text-lg">Rekap Pembinaan Siswa</p>
-            <button type="button" onclick="cetakBagian('print-pembinaan')" class="btn-outline no-print">🖨️ Cetak / Export PDF</button>
+            <button type="button" onclick="cetakBagian('print-pembinaan')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF</button>
         </div>
         <p class="text-sm text-slate-400 mb-4">
             @if(request('bulan')) Bulan {{ \Carbon\Carbon::create()->month((int) request('bulan'))->translatedFormat('F') }} @endif
@@ -76,7 +76,7 @@
                             </span>
                         </td>
                         <td class="text-slate-500">{{ $p->petugas->name ?? '-' }}</td>
-                        <td class="td-aksi no-print"><a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="btn-chip">Detail</a></td>
+                        <td class="td-aksi no-print"><a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye mr-1.5"></i> Detail</a></td>
                     </tr>
                     @empty
                     <tr><td colspan="8" class="text-center text-slate-400 py-8">Belum ada pembinaan tercatat.</td></tr>

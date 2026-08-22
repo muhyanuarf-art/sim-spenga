@@ -37,11 +37,11 @@
 
     {{-- Ringkasan --}}
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <x-stat-card color="rose" icon="⚖️" label="Poin Aktif" :value="$ringkasan['poin_aktif']" />
-        <x-stat-card color="violet" icon="🧭" label="Tahap Saat Ini" :value="$tahapLabel($ringkasan['tahap_saat_ini'])" />
-        <x-stat-card color="amber" icon="📋" label="Rekomendasi" :value="$ringkasan['rekomendasi_tahap'] ? 'Tahap '.$ringkasan['rekomendasi_tahap'] : 'Normal'" />
-        <x-stat-card color="sky" icon="📁" label="Jumlah Kasus" :value="$ringkasan['jumlah_kasus']" />
-        <x-stat-card color="emerald" icon="🤝" label="Pembinaan" :value="$ringkasan['jumlah_pembinaan']" />
+        <x-stat-card color="rose" icon="fa-scale-balanced" label="Poin Aktif" :value="$ringkasan['poin_aktif']" />
+        <x-stat-card color="violet" icon="fa-compass" label="Tahap Saat Ini" :value="$tahapLabel($ringkasan['tahap_saat_ini'])" />
+        <x-stat-card color="amber" icon="fa-clipboard-list" label="Rekomendasi" :value="$ringkasan['rekomendasi_tahap'] ? 'Tahap '.$ringkasan['rekomendasi_tahap'] : 'Normal'" />
+        <x-stat-card color="sky" icon="fa-folder-open" label="Jumlah Kasus" :value="$ringkasan['jumlah_kasus']" />
+        <x-stat-card color="emerald" icon="fa-handshake" label="Pembinaan" :value="$ringkasan['jumlah_pembinaan']" />
     </div>
 
     @php
@@ -74,17 +74,17 @@
                     Semua ({{ $timeline->count() }})
                 </button>
                 @foreach([
-                    'kasus' => ['📁', 'Kasus'],
-                    'pembinaan' => ['🤝', 'Pembinaan'],
-                    'pengurangan' => ['✅', 'Pengurangan'],
-                    'pemanggilan' => ['📞', 'Panggil Ortu'],
+                    'kasus' => ['fa-folder-open', 'Kasus'],
+                    'pembinaan' => ['fa-handshake', 'Pembinaan'],
+                    'pengurangan' => ['fa-circle-check', 'Pengurangan'],
+                    'pemanggilan' => ['fa-phone', 'Panggil Ortu'],
                 ] as $jenisKey => [$icon, $label])
                     @php $jumlahJenis = $timeline->where('jenis', $jenisKey)->count(); @endphp
                     @if($jumlahJenis > 0)
                     <button type="button" @click="filter = '{{ $jenisKey }}'"
                         :class="filter === '{{ $jenisKey }}' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
                         class="text-xs font-semibold px-3 py-1.5 rounded-full transition">
-                        {{ $icon }} {{ $label }} ({{ $jumlahJenis }})
+                        <i class="fa-solid {{ $icon }}"></i> {{ $label }} ({{ $jumlahJenis }})
                     </button>
                     @endif
                 @endforeach
@@ -100,17 +100,17 @@
             @php
                 $d = $item['data'];
                 $tampilan = match ($item['jenis']) {
-                    'kasus' => ['📁', 'bg-rose-100 text-rose-600', 'Kasus/Pelanggaran'],
-                    'pembinaan' => ['🤝', 'bg-violet-100 text-violet-600', 'Pembinaan'],
-                    'pengurangan' => ['✅', 'bg-emerald-100 text-emerald-600', 'Pengurangan Poin'],
-                    default => ['📞', 'bg-sky-100 text-sky-600', 'Pemanggilan Orang Tua'],
+                    'kasus' => ['fa-folder-open', 'bg-rose-100 text-rose-600', 'Kasus/Pelanggaran'],
+                    'pembinaan' => ['fa-handshake', 'bg-violet-100 text-violet-600', 'Pembinaan'],
+                    'pengurangan' => ['fa-circle-check', 'bg-emerald-100 text-emerald-600', 'Pengurangan Poin'],
+                    default => ['fa-phone', 'bg-sky-100 text-sky-600', 'Pemanggilan Orang Tua'],
                 };
                 [$ikon, $kelasIkon, $labelJenis] = $tampilan;
             @endphp
             <div x-show="filter === 'semua' || filter === '{{ $item['jenis'] }}'" x-cloak class="flex gap-3">
                 {{-- Node ikon + garis penghubung --}}
                 <div class="flex flex-col items-center shrink-0">
-                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 {{ $kelasIkon }}">{{ $ikon }}</div>
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 {{ $kelasIkon }}"><i class="fa-solid {{ $ikon }}"></i></div>
                     @if(!$loop->last)<div class="w-px flex-1 bg-slate-200 my-1" style="min-height: 0.5rem;"></div>@endif
                 </div>
 
@@ -134,7 +134,7 @@
                         @if($d->bukti_catatan)<p class="text-xs text-slate-400 italic">Catatan: {{ $d->bukti_catatan }}</p>@endif
                         @if($d->bukti_file_url)
                             <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                📎 Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
+                                <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
                             </a>
                         @endif
                         @if($d->dibatalkan_at)
@@ -165,7 +165,7 @@
                         @if($d->hasil_pembinaan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pembinaan }}</p>@endif
                         @if($d->bukti_file_url)
                             <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                📎 Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
+                                <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
                             </a>
                         @endif
                         <p class="text-xs text-slate-400 mt-1">Petugas: {{ $d->petugas->name ?? '-' }}</p>
@@ -206,7 +206,7 @@
                         @if($d->hasil_pertemuan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pertemuan }}</p>@endif
                         @if($d->bukti_file_url)
                             <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                📎 Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
+                                <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
                             </a>
                         @endif
                     @endif

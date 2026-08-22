@@ -32,7 +32,7 @@
                     @endforelse
                 </select>
             </div>
-            <a href="{{ route('jadwal.import.form') }}" class="btn-outline">📥 Import Excel</a>
+            <a href="{{ route('jadwal.import.form') }}" class="btn-outline"><i class="fa-solid fa-file-import mr-1.5"></i> Import Excel</a>
             @if($bisaEdit)
             <button type="button" @click="showForm = !showForm" class="btn-primary">+ Tambah Jadwal</button>
             @endif
@@ -41,25 +41,25 @@
 
     @if(!$periodeAktif)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Aktifkan Tahun Ajaran terlebih dahulu.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Aktifkan Tahun Ajaran terlebih dahulu.
         </div>
     @elseif(!$periodeDilihat)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Periode tidak ditemukan.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Periode tidak ditemukan.
         </div>
     @elseif($periodeDilihat->id !== $periodeAktif->id)
         <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
-            📖 Anda sedang melihat histori periode {{ $periodeDilihat->labelPeriode() }} (bukan periode aktif). Jadwal ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus dari sini.
+            <i class="fa-solid fa-book-open mr-1.5"></i> Anda sedang melihat histori periode {{ $periodeDilihat->labelPeriode() }} (bukan periode aktif). Jadwal ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus dari sini.
         </div>
     @elseif($periodeDilihat->isTerkunci())
         <div class="rounded-xl bg-slate-100 border border-slate-200 text-slate-600 px-4 py-3 text-sm">
-            🔒 Periode {{ $periodeDilihat->labelPeriode() }} sudah ditutup dan terkunci. Jadwal pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
+            <i class="fa-solid fa-lock mr-1.5"></i> Periode {{ $periodeDilihat->labelPeriode() }} sudah ditutup dan terkunci. Jadwal pada periode ini hanya dapat dilihat, tidak dapat ditambah/diubah/dihapus.
         </div>
     @endif
 
     @if($bisaEdit && $kelas && $mapelList->isEmpty())
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Belum ada data Mapping Guru Mengajar untuk kelas {{ $kelas->nama_kelas }}. Silakan lengkapi dulu di menu <strong>Mapping Guru Mengajar</strong> sebelum menyusun jadwal.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Belum ada data Mapping Guru Mengajar untuk kelas {{ $kelas->nama_kelas }}. Silakan lengkapi dulu di menu <strong>Mapping Guru Mengajar</strong> sebelum menyusun jadwal.
         </div>
     @endif
 
@@ -147,12 +147,12 @@
                         </div>
                         <div class="action-buttons">
                             @if(!$bisaEdit)
-                                <span class="text-xs text-slate-400" title="Tidak dapat diubah">🔒</span>
+                                <span class="text-xs text-slate-400" title="Tidak dapat diubah"><i class="fa-solid fa-lock"></i></span>
                             @else
-                            <button type="button" @click="editing = true" class="btn-chip btn-chip-edit btn-chip-icon" title="Edit">✏️</button>
+                            <button type="button" @click="editing = true" class="btn-chip btn-chip-edit btn-chip-icon" title="Edit"><i class="fa-solid fa-pen"></i></button>
                             <form method="POST" action="{{ route('jadwal.destroy', $j) }}" onsubmit="return confirm('Hapus jadwal ini?')">
                                 @csrf @method('DELETE')
-                                <button class="btn-chip btn-chip-delete btn-chip-icon" title="Hapus">🗑️</button>
+                                <button class="btn-chip btn-chip-delete btn-chip-icon" title="Hapus"><i class="fa-solid fa-trash"></i></button>
                             </form>
                             @endif
                         </div>

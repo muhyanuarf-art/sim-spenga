@@ -58,21 +58,21 @@
                     @endforeach
                 </select>
             </div>
-            <button type="button" onclick="cetakBagian('print-absensi-guru')" class="btn-outline">🖨️ Cetak</button>
+            <button type="button" onclick="cetakBagian('print-absensi-guru')" class="btn-outline"><i class="fa-solid fa-print mr-1.5"></i> Cetak</button>
         </form>
     </div>
 
     @if(!$guru)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Belum ada data guru.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Belum ada data guru.
         </div>
     @elseif($mapelDiampu->isEmpty())
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ {{ $guru->name }} belum diampukan mata pelajaran apapun oleh Kurikulum. Silakan atur di menu Mapping Guru Mengajar.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> {{ $guru->name }} belum diampukan mata pelajaran apapun oleh Kurikulum. Silakan atur di menu Mapping Guru Mengajar.
         </div>
     @elseif($kelasDiampu->isEmpty())
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ {{ $guru->name }} belum mengajar {{ $mapelAktif->nama_mapel ?? 'mapel ini' }} di kelas manapun.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> {{ $guru->name }} belum mengajar {{ $mapelAktif->nama_mapel ?? 'mapel ini' }} di kelas manapun.
         </div>
     @else
         <div class="card p-5 print-section" id="print-absensi-guru">

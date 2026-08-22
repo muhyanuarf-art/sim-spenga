@@ -94,7 +94,7 @@ class TahunAjaran extends Model
      * STEP 2 Bagian 10 — Buka Kembali: hanya melepas kunci tulis. Kolom
      * `status` SENGAJA tidak dikembalikan ke 'akan_datang'/'aktif' —
      * secara kronologis periode ini tetap "sudah terjadi/selesai" walau
-     * datanya sekarang bisa diedit lagi. Badge "🔓 Terbuka" di kolom Kunci
+     * datanya sekarang bisa diedit lagi. Badge "Terbuka" (ikon gembok terbuka) di kolom Kunci
      * pada halaman admin sudah cukup menunjukkan bahwa datanya kini bisa
      * diubah, tanpa perlu status kedua yang artinya tumpang tindih dengan
      * `terkunci` (lihat catatan desain di migrasi STEP 1).

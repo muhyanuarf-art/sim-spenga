@@ -22,7 +22,7 @@
                     <span class="w-5 h-5 rounded-md flex items-center justify-center text-xs shrink-0
                         {{ $item['selesai'] ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-300' }}">
                         @if($item['selesai'])
-                            ✓
+                            <i class="fa-solid fa-check"></i>
                         @endif
                     </span>
 

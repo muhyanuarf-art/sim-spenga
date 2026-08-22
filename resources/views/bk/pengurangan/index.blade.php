@@ -61,7 +61,7 @@
                             <form method="POST" action="{{ route('bk.pengurangan.batalkan', $p) }}" onsubmit="return confirm('Batalkan transaksi ini?') && (this.querySelector('[name=alasan_pembatalan]').value = prompt('Alasan pembatalan:') || false)">
                                 @csrf
                                 <input type="hidden" name="alasan_pembatalan" value="">
-                                <button class="btn-chip btn-chip-delete">Batalkan</button>
+                                <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-ban mr-1.5"></i> Batalkan</button>
                             </form>
                             @endif
                         </td>

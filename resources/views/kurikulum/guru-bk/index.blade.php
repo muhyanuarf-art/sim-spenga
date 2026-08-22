@@ -6,13 +6,13 @@
 
     @if(!$tahunAjaran)
         <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            ⚠️ Aktifkan Tahun Ajaran terlebih dahulu sebelum menambah mapping.
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Aktifkan Tahun Ajaran terlebih dahulu sebelum menambah mapping.
         </div>
     @endif
 
     @if($guruBkList->isEmpty())
         <div class="rounded-xl bg-sky-50 border border-sky-200 text-sky-700 px-4 py-3 text-sm">
-            ℹ️ Belum ada pengguna dengan role <b>Guru BK</b>. Tambahkan dulu di menu
+            <i class="fa-solid fa-circle-info mr-1.5"></i> Belum ada pengguna dengan role <b>Guru BK</b>. Tambahkan dulu di menu
             <a href="{{ route('users.index') }}" class="underline font-semibold">Kelola Pengguna</a>
             (pilih role "Guru BK"), baru bisa di-mapping ke kelas di sini.
         </div>
@@ -69,7 +69,7 @@
                         <td class="td-aksi">
                             <form method="POST" action="{{ route('kurikulum.guru-bk.destroy', $d) }}" onsubmit="return confirm('Hapus mapping ini?')">
                                 @csrf @method('DELETE')
-                                <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                             </form>
                         </td>
                     </tr>

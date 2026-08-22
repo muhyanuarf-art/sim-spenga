@@ -4,7 +4,7 @@
 @section('content')
 <div class="space-y-6" x-data="{ hariAktif: '{{ old('hari', request('hari', $hariList[0])) }}', showForm: false, showSalin: false }">
     <div class="rounded-xl bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 text-sm">
-        ℹ️ Jam pelajaran sekarang diatur <b>per hari</b> (Senin - Sabtu), karena waktu setiap hari bisa berbeda-beda.
+        <i class="fa-solid fa-circle-info mr-1.5"></i> Jam pelajaran sekarang diatur <b>per hari</b> (Senin - Sabtu), karena waktu setiap hari bisa berbeda-beda.
         Setiap perubahan otomatis terhubung ke Jadwal Pelajaran, Absensi, dan tampilan Guru/Wali Kelas pada hari yang bersangkutan.
     </div>
 
@@ -23,7 +23,7 @@
 
     @if(auth()->user()->role === 'admin')
     <div class="flex justify-end gap-2">
-        <button @click="showSalin = !showSalin" class="btn-outline">🔁 Salin ke Hari Lain</button>
+        <button @click="showSalin = !showSalin" class="btn-outline"><i class="fa-solid fa-arrows-rotate mr-1.5"></i> Salin ke Hari Lain</button>
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Jam Ke</button>
     </div>
 
@@ -112,10 +112,10 @@
                         @if(auth()->user()->role === 'admin')
                         <td class="td-aksi">
                             <div class="action-buttons">
-                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit">✏️ Edit</button>
+                                <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('jam-pelajaran.destroy', $j) }}" onsubmit="return confirm('Hapus jam pelajaran ini?')">
                                     @csrf @method('DELETE')
-                                    <button class="btn-chip btn-chip-delete">🗑️ Hapus</button>
+                                    <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
                             </div>
                         </td>
