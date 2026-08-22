@@ -40,10 +40,16 @@ class BkSiswaController extends Controller
         // penuh 471 siswa yang tidak relevan sama sekali untuk BK).
         $query->whereHas('kasusBk');
 
-        $siswas = $query->orderBy('nama')->get()->map(function ($siswa) use ($poinService) {
-            $ringkasan = $poinService->ringkasan($siswa);
-            return ['siswa' => $siswa, ...$ringkasan];
-        })->sortByDesc('poin_aktif')->values();
+        // PERBAIKAN PERFORMA (N+1) — sebelumnya ->ringkasan($siswa) dipanggil
+        // di dalam map() per baris siswa (~9 query PER SISWA). Sekarang
+        // dihitung sekaligus untuk seluruh daftar lewat ringkasanBanyak()
+        // (jumlah query TETAP, tidak tergantung banyaknya siswa).
+        $siswaList = $query->orderBy('nama')->get();
+        $ringkasanPerSiswa = $poinService->ringkasanBanyak($siswaList->pluck('id'));
+
+        $siswas = $siswaList
+            ->map(fn ($siswa) => ['siswa' => $siswa, ...($ringkasanPerSiswa[$siswa->id] ?? [])])
+            ->sortByDesc('poin_aktif')->values();
 
         $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
             ? Kelas::aktif()->orderBy('nama_kelas')->get()

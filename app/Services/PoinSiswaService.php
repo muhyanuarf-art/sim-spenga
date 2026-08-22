@@ -135,4 +135,76 @@ class PoinSiswaService
             'jumlah_pembinaan' => PembinaanSiswa::where('siswa_id', $siswa->id)->count(),
         ];
     }
+
+    /**
+     * PERBAIKAN PERFORMA — sama persis hasilnya dengan memanggil ringkasan()
+     * untuk tiap siswa satu-satu, TAPI jumlah query TETAP (sekitar 4 query
+     * total) berapa pun banyaknya siswa — bukan lagi ~9 query PER SISWA
+     * (N+1). ringkasan() aslinya dipertahankan apa adanya untuk halaman
+     * yang memang cuma butuh 1 siswa (profil siswa) — method ini KHUSUS
+     * dipakai di halaman yang menampilkan BANYAK siswa sekaligus (Dashboard
+     * BK "Pantau Pelanggaran", Monitoring Siswa BK), supaya tidak query
+     * berulang-ulang untuk tiap baris.
+     *
+     * @param  iterable<int>  $siswaIds
+     * @return array<int, array>  siswa_id => ringkasan (struktur SAMA seperti ringkasan())
+     */
+    public function ringkasanBanyak(iterable $siswaIds): array
+    {
+        $ids = collect($siswaIds)->filter()->unique()->values()->all();
+        if (empty($ids)) {
+            return [];
+        }
+
+        $pelanggaranPerSiswa = KasusSiswa::whereIn('siswa_id', $ids)->aktif()
+            ->selectRaw('siswa_id, SUM(poin) as total_poin, COUNT(*) as jumlah')
+            ->groupBy('siswa_id')->get()->keyBy('siswa_id');
+
+        $penguranganPerSiswa = PenguranganPoinSiswa::whereIn('siswa_id', $ids)->aktif()
+            ->selectRaw('siswa_id, SUM(jumlah) as total_jumlah')
+            ->groupBy('siswa_id')->get()->keyBy('siswa_id');
+
+        $jumlahPembinaanPerSiswa = PembinaanSiswa::whereIn('siswa_id', $ids)
+            ->selectRaw('siswa_id, COUNT(*) as jumlah')
+            ->groupBy('siswa_id')->get()->keyBy('siswa_id');
+
+        // Pembinaan PALING TERAKHIR per siswa (buat tahap_saat_ini & status) —
+        // ambil semua baris punya siswa dalam $ids (bukan seluruh sekolah),
+        // urutkan, ambil yang pertama per grup di PHP. Aman karena jumlah
+        // barisnya sebanding dengan $ids yang diminta, bukan seluruh tabel.
+        $pembinaanTerakhirPerSiswa = PembinaanSiswa::whereIn('siswa_id', $ids)
+            ->orderByDesc('tanggal')->orderByDesc('id')
+            ->get(['siswa_id', 'tahap', 'status'])
+            ->unique('siswa_id')->keyBy('siswa_id');
+
+        $hasil = [];
+        foreach ($ids as $id) {
+            $pelanggaran = (int) ($pelanggaranPerSiswa[$id]->total_poin ?? 0);
+            $pengurangan = (int) ($penguranganPerSiswa[$id]->total_jumlah ?? 0);
+            $poinAktif = max(0, $pelanggaran - $pengurangan);
+            $pembinaanTerakhir = $pembinaanTerakhirPerSiswa[$id] ?? null;
+
+            $status = 'Normal';
+            if ($poinAktif > 0) {
+                $status = match ($pembinaanTerakhir?->status) {
+                    'Selesai' => 'Selesai',
+                    'Pembinaan' => 'Dalam Pembinaan',
+                    default => 'Menunggu Pembinaan',
+                };
+            }
+
+            $hasil[$id] = [
+                'total_pelanggaran' => $pelanggaran,
+                'total_pengurangan' => $pengurangan,
+                'poin_aktif' => $poinAktif,
+                'rekomendasi_tahap' => $this->rekomendasiTahap($poinAktif),
+                'tahap_saat_ini' => $pembinaanTerakhir?->tahap,
+                'status' => $status,
+                'jumlah_kasus' => (int) ($pelanggaranPerSiswa[$id]->jumlah ?? 0),
+                'jumlah_pembinaan' => (int) ($jumlahPembinaanPerSiswa[$id]->jumlah ?? 0),
+            ];
+        }
+
+        return $hasil;
+    }
 }

@@ -46,29 +46,45 @@ class BkDashboardController extends Controller
             ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
             ->distinct()->pluck('siswa_id');
 
-        $siswaPoinTertinggi = Siswa::with('kelas')->whereIn('id', $siswaIdsRelevan)->get()
-            ->map(fn ($s) => ['siswa' => $s, ...$poinService->ringkasan($s)])
-            ->sortByDesc('poin_aktif')->take(10)->values();
+        $siswaDalamPembinaanIds = (clone $pembinaanQuery)->where('status', 'Pembinaan')->distinct()->pluck('siswa_id');
 
-        $siswaKasusBelumSelesai = Siswa::with('kelas')->whereIn('id', $siswaKasusAktifIds)->get()
-            ->map(fn ($s) => ['siswa' => $s, ...$poinService->ringkasan($s)])
-            ->sortByDesc('poin_aktif')->values();
+        $siswaMembaikIds = PenguranganPoinSiswa::aktif()
+            ->when($kelasIds !== null, fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->whereIn('kelas_id', $kelasIds)))
+            ->where('tanggal', '>=', now()->subDays(30))
+            ->distinct()->pluck('siswa_id');
 
-        $siswaDalamPembinaan = Siswa::with('kelas')->whereIn('id',
-            (clone $pembinaanQuery)->where('status', 'Pembinaan')->distinct()->pluck('siswa_id')
-        )->get()->map(fn ($s) => ['siswa' => $s, ...$poinService->ringkasan($s)])->values();
+        // PERBAIKAN PERFORMA (N+1): dulu ringkasan poin dihitung SATU PER SATU
+        // per siswa lewat $poinService->ringkasan($s) di 5 tempat berbeda —
+        // bisa >9 query PER SISWA, dan siswa yang sama bisa muncul di >1
+        // daftar sehingga dihitung berkali-kali. Sekarang: kumpulkan SEMUA
+        // siswa_id yang relevan sekaligus, hitung ringkasannya dalam jumlah
+        // query TETAP lewat ringkasanBanyak() (lihat PoinSiswaService), baru
+        // susun masing-masing daftar dari hasil yang sama.
+        $semuaSiswaIds = $siswaIdsRelevan
+            ->merge($siswaKasusAktifIds)
+            ->merge($siswaDalamPembinaanIds)
+            ->merge($siswaMembaikIds)
+            ->unique()->values();
 
-        $butuhPemanggilanOrtu = Siswa::with('kelas')->whereIn('id', $siswaIdsRelevan)->get()
-            ->map(fn ($s) => ['siswa' => $s, ...$poinService->ringkasan($s)])
+        $ringkasanPerSiswa = $poinService->ringkasanBanyak($semuaSiswaIds);
+        $siswaMap = Siswa::with('kelas')->whereIn('id', $semuaSiswaIds)->get()->keyBy('id');
+
+        $susunDaftar = function ($ids) use ($siswaMap, $ringkasanPerSiswa) {
+            return collect($ids)
+                ->map(fn ($id) => isset($siswaMap[$id])
+                    ? ['siswa' => $siswaMap[$id], ...($ringkasanPerSiswa[$id] ?? [])]
+                    : null)
+                ->filter()
+                ->values();
+        };
+
+        $siswaPoinTertinggi = $susunDaftar($siswaIdsRelevan)->sortByDesc('poin_aktif')->take(10)->values();
+        $siswaKasusBelumSelesai = $susunDaftar($siswaKasusAktifIds)->sortByDesc('poin_aktif')->values();
+        $siswaDalamPembinaan = $susunDaftar($siswaDalamPembinaanIds)->values();
+        $butuhPemanggilanOrtu = $susunDaftar($siswaIdsRelevan)
             ->filter(fn ($r) => in_array($r['rekomendasi_tahap'], [4, 5]))
             ->sortByDesc('poin_aktif')->values();
-
-        $siswaMembaik = Siswa::with('kelas')->whereIn('id',
-            PenguranganPoinSiswa::aktif()
-                ->when($kelasIds !== null, fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->whereIn('kelas_id', $kelasIds)))
-                ->where('tanggal', '>=', now()->subDays(30))
-                ->distinct()->pluck('siswa_id')
-        )->get()->map(fn ($s) => ['siswa' => $s, ...$poinService->ringkasan($s)])->values();
+        $siswaMembaik = $susunDaftar($siswaMembaikIds)->values();
 
         return view('bk.dashboard', compact(
             'totalKasusBulanIni', 'siswaKasusAktifIds', 'sebaranTahap',

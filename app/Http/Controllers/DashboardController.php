@@ -48,18 +48,24 @@ class DashboardController extends Controller
                 ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
                 : 0;
 
-            $rekapPerKelas = Kelas::aktif()->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+            // PERBAIKAN PERFORMA (N+1) — sebelumnya query "sudah diabsen hari
+            // ini?" dijalankan SATU PER SATU per kelas di dalam map() (1 query
+            // × jumlah kelas). Sekarang dihitung sekaligus lewat 1 query
+            // GROUP BY, dan Wali Kelas di-eager-load (->with('waliKelas'))
+            // supaya tidak lazy-load 1 query per kelas juga.
+            $kelasSudahDiabsenIds = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
+                ->distinct()->pluck('kelas_id')->flip();
+
+            $rekapPerKelas = Kelas::aktif()->with('waliKelas')
+                ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
                 ->orderBy('nama_kelas')
                 ->get()
-                ->map(function ($kelas) {
-                    $hadirHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
-                        ->whereDate('tanggal', now()->toDateString())
-                        ->count();
+                ->map(function ($kelas) use ($kelasSudahDiabsenIds) {
                     return [
                         'kelas' => $kelas->nama_kelas,
                         'wali_kelas' => $kelas->waliKelas->name ?? '-',
                         'jumlah_siswa' => $kelas->siswas_count,
-                        'sudah_diabsen' => $hadirHariIni > 0,
+                        'sudah_diabsen' => $kelasSudahDiabsenIds->has($kelas->id),
                     ];
                 });
 
@@ -101,19 +107,22 @@ class DashboardController extends Controller
             $totalSiswa = Siswa::where('is_active', true)->count();
             $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
 
-            $rekapPerKelas = Kelas::aktif()->orderBy('nama_kelas')->get()->map(function ($kelas) {
-                $totalSiswaKelas = $kelas->siswas()->where('is_active', true)->count();
-                $alfaHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
-                    ->whereDate('tanggal', now()->toDateString())
-                    ->where('status', 'Alfa')
-                    ->distinct('siswa_id')
-                    ->count('siswa_id');
-                return [
+            // PERBAIKAN PERFORMA (N+1) — 2 query per kelas (total siswa +
+            // alfa hari ini) dijadikan 1 query GROUP BY masing-masing,
+            // dipakai bersama untuk semua kelas sekaligus.
+            $alfaPerKelasHariIni = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
+                ->where('status', 'Alfa')
+                ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
+                ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
+
+            $rekapPerKelas = Kelas::aktif()
+                ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+                ->orderBy('nama_kelas')->get()
+                ->map(fn ($kelas) => [
                     'kelas' => $kelas,
-                    'total_siswa' => $totalSiswaKelas,
-                    'alfa_hari_ini' => $alfaHariIni,
-                ];
-            });
+                    'total_siswa' => $kelas->siswas_count,
+                    'alfa_hari_ini' => (int) ($alfaPerKelasHariIni[$kelas->id] ?? 0),
+                ]);
 
             return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'rekapPerKelas', 'tahunAjaran'));
         }
@@ -134,19 +143,23 @@ class DashboardController extends Controller
                     ->filter(fn ($a) => $kelasBkIds->contains($a['kelas']?->id))
                     ->values();
 
-                $rekapPerKelasBk = $kelasBk->map(function ($kelas) {
-                    $totalSiswa = $kelas->siswas()->where('is_active', true)->count();
-                    $alfaHariIni = AbsensiSiswa::where('kelas_id', $kelas->id)
-                        ->whereDate('tanggal', now()->toDateString())
-                        ->where('status', 'Alfa')
-                        ->distinct('siswa_id')
-                        ->count('siswa_id');
-                    return [
-                        'kelas' => $kelas,
-                        'total_siswa' => $totalSiswa,
-                        'alfa_hari_ini' => $alfaHariIni,
-                    ];
-                });
+                // PERBAIKAN PERFORMA (N+1) — sama seperti Kesiswaan di atas:
+                // 2 query per kelas dijadikan 1 query GROUP BY untuk semua
+                // kelas mapping guru BK ini sekaligus.
+                $totalSiswaPerKelas = Kelas::whereIn('id', $kelasBkIds)
+                    ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+                    ->get()->pluck('siswas_count', 'id');
+                $alfaPerKelasHariIni = AbsensiSiswa::whereIn('kelas_id', $kelasBkIds)
+                    ->whereDate('tanggal', now()->toDateString())
+                    ->where('status', 'Alfa')
+                    ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
+                    ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
+
+                $rekapPerKelasBk = $kelasBk->map(fn ($kelas) => [
+                    'kelas' => $kelas,
+                    'total_siswa' => (int) ($totalSiswaPerKelas[$kelas->id] ?? 0),
+                    'alfa_hari_ini' => (int) ($alfaPerKelasHariIni[$kelas->id] ?? 0),
+                ]);
             }
 
             return view('dashboard.guru-bk', compact('kelasBk', 'siswaAlfaHariIni', 'rekapPerKelasBk', 'tahunAjaran'));

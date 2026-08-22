@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Kelas;
 use App\Models\NotifikasiAlfaTerkirim;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class NotifikasiWhatsappController extends Controller
 {
@@ -26,9 +27,20 @@ class NotifikasiWhatsappController extends Controller
         $tahun = (int) $request->get('tahun', now()->year);
         $user = $request->user();
 
+        // PERBAIKAN PERFORMA — whereMonth()/whereYear() membungkus kolom
+        // `tanggal` dengan fungsi (MONTH(tanggal), YEAR(tanggal)), yang
+        // membuat MySQL TIDAK BISA memakai index pada kolom tsb sama sekali
+        // (index hanya bisa dipakai untuk perbandingan langsung, bukan hasil
+        // fungsi) — jadi MySQL scan SELURUH tabel setiap halaman ini dibuka.
+        // whereBetween(tanggal, [awal, akhir]) di bawah ini setara secara
+        // hasil, tapi BISA memakai index (lihat migrasi index baru pada
+        // kolom `tanggal`), jauh lebih cepat begitu tabelnya sudah berisi
+        // data beberapa bulan/tahun.
+        $awalBulan = Carbon::create($tahun, $bulan, 1)->startOfDay();
+        $akhirBulan = $awalBulan->copy()->endOfMonth()->endOfDay();
+
         $query = NotifikasiAlfaTerkirim::with(['siswa.kelas', 'mapel'])
-            ->whereMonth('tanggal', $bulan)
-            ->whereYear('tanggal', $tahun);
+            ->whereBetween('tanggal', [$awalBulan, $akhirBulan]);
 
         $kelasWali = null;
         $bisaFilterKelas = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan']);
