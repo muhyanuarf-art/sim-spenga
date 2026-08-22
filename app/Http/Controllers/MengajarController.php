@@ -60,19 +60,24 @@ class MengajarController extends Controller
 
         if ($guru) {
             // Periode yang boleh dipilih untuk guru ini: periode AKTIF
-            // (selalu, kalau ada) + periode lain di mana guru ini punya
-            // jadwal DAN periode itu sedang tidak terkunci. Periode yang
-            // masih terkunci sengaja tidak dimasukkan supaya tidak muncul
-            // pilihan yang ujung-ujungnya gagal disimpan (store() tetap
-            // menolaknya lewat PeriodeAkademik::pastikanTidakTerkunci(),
-            // tapi lebih baik tidak diberi pilihan yang pasti gagal).
+            // (SELALU ditampilkan kalau ada, TERLEPAS dari apakah guru ini
+            // sudah punya baris jadwal di periode itu — mis. baru saja
+            // diaktifkan & jadwalnya belum di-"Salin Data" dari semester
+            // sebelumnya, guru tetap perlu lihat itu sebagai periode aktif)
+            // + periode lain di mana guru ini punya jadwal DAN periode itu
+            // sedang tidak terkunci. Periode non-aktif yang masih terkunci
+            // sengaja tidak dimasukkan supaya tidak muncul pilihan yang
+            // ujung-ujungnya gagal disimpan (store() tetap menolaknya lewat
+            // PeriodeAkademik::pastikanTidakTerkunci(), tapi lebih baik
+            // tidak diberi pilihan yang pasti gagal).
             $periodeIdMilikGuru = JadwalPelajaran::where('guru_id', $guru->id)
                 ->distinct()
                 ->pluck('tahun_ajaran_id');
 
-            $periodeList = TahunAjaran::whereIn('id', $periodeIdMilikGuru)
-                ->where(function ($q) use ($tahunAjaranAktif) {
-                    $q->where('terkunci', false);
+            $periodeList = TahunAjaran::where(function ($q) use ($periodeIdMilikGuru, $tahunAjaranAktif) {
+                    $q->where(function ($q2) use ($periodeIdMilikGuru) {
+                        $q2->whereIn('id', $periodeIdMilikGuru)->where('terkunci', false);
+                    });
                     if ($tahunAjaranAktif) {
                         $q->orWhere('id', $tahunAjaranAktif->id);
                     }

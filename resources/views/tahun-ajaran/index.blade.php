@@ -85,7 +85,17 @@
                                 <button type="button" @click="salin = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data</button>
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 @unless($t->is_active)
-                                <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $t) }}">
+                                @php
+                                    $adaPeriodeAktifLain = $periodeAktif && $periodeAktif->id !== $t->id;
+                                    $periodeAktifBelumTerkunci = $adaPeriodeAktifLain && ! $periodeAktif->isTerkunci();
+                                @endphp
+                                <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $t) }}"
+                                    @if($periodeAktifBelumTerkunci)
+                                        onsubmit="return confirm('PERHATIAN: {{ $periodeAktif->labelPeriode() }} masih AKTIF dan BELUM DIKUNCI.\nMengaktifkan {{ $t->labelPeriode() }} akan memindahkan status periode aktif sekolah, tapi data {{ $periodeAktif->labelPeriode() }} (jurnal, absensi, jadwal, dll) tetap bisa diubah sampai Anda menutup/menguncinya sendiri lewat tombol \'Tutup Semester\'.\nYakin ingin mengaktifkan {{ $t->labelPeriode() }} sekarang?')"
+                                    @else
+                                        onsubmit="return confirm('Aktifkan {{ $t->labelPeriode() }} sebagai periode aktif sekolah?')"
+                                    @endif
+                                >
                                     @csrf
                                     <button class="btn-chip btn-chip-success"><i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan</button>
                                 </form>
