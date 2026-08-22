@@ -20,7 +20,7 @@
                 <p class="text-xs text-emerald-600 font-semibold mt-1">{{ $jumlahJam }} jam pelajaran digabung jadi 1 sesi — cukup isi 1x untuk semuanya.</p>
             @endif
         </div>
-        <a href="{{ route('mengajar.index') }}" class="btn-outline">&larr; Kembali</a>
+        <a href="{{ route('mengajar.index', ['hari' => $jadwalAwal->hari, 'periode' => $jadwalAwal->tahun_ajaran_id]) }}" class="btn-outline">&larr; Kembali</a>
     </div>
 
     <form method="POST" action="{{ route('mengajar.store', $ids) }}" x-data="mengajarForm()">

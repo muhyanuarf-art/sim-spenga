@@ -20,12 +20,44 @@ class MengajarController extends Controller
      * Step 1: Guru memilih hari & melihat jadwal miliknya, sudah dikelompokkan
      * per SESI mengajar (jam-jam berurutan dengan kelas & mapel yang sama
      * digabung jadi 1 kartu, bukan 1 kartu per jam).
+     *
+     * Selain periode AKTIF, guru juga bisa pindah ke periode LAIN yang
+     * sudah dibuka kuncinya oleh admin (mis. Semester Ganjil yang sempat
+     * terlewat lalu dibuka lagi setelah Semester Genap jadi periode aktif),
+     * lewat query string `periode` (id tahun_ajaran). Ini supaya jurnal/
+     * absensi yang tertinggal di periode lampau tetap bisa diisi tanpa
+     * harus mengaktifkan ulang periode itu (yang justru akan mengacaukan
+     * periode aktif sekolah saat ini).
      */
     public function index(Request $request)
     {
         $user = $request->user();
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaranAktif = TahunAjaran::aktif();
         $hari = $request->get('hari', $this->hariIniIndonesia());
+
+        // Periode yang boleh dipilih guru ini: periode AKTIF (selalu, kalau
+        // ada) + periode lain di mana guru ini punya jadwal DAN periode itu
+        // sedang tidak terkunci. Periode yang masih terkunci sengaja tidak
+        // dimasukkan supaya tidak muncul pilihan yang ujung-ujungnya gagal
+        // disimpan (store() tetap menolaknya lewat PeriodeAkademik::pastikanTidakTerkunci(),
+        // tapi lebih baik guru tidak diberi pilihan yang pasti gagal).
+        $periodeIdMilikGuru = JadwalPelajaran::where('guru_id', $user->id)
+            ->distinct()
+            ->pluck('tahun_ajaran_id');
+
+        $periodeList = TahunAjaran::whereIn('id', $periodeIdMilikGuru)
+            ->where(function ($q) use ($tahunAjaranAktif) {
+                $q->where('terkunci', false);
+                if ($tahunAjaranAktif) {
+                    $q->orWhere('id', $tahunAjaranAktif->id);
+                }
+            })
+            ->orderByDesc('tanggal_mulai')
+            ->get();
+
+        $periodeId = $request->get('periode');
+        $tahunAjaran = $periodeId ? $periodeList->firstWhere('id', (int) $periodeId) : null;
+        $tahunAjaran = $tahunAjaran ?? $tahunAjaranAktif;
 
         $sesiList = collect();
         if ($tahunAjaran) {
@@ -37,15 +69,21 @@ class MengajarController extends Controller
 
             $sesiList = SesiMengajarGrouper::kelompokkan($jadwal);
 
-            // tandai sesi yang sudah diisi jurnalnya hari ini (jika hari = hari ini)
-            if ($hari === $this->hariIniIndonesia()) {
+            // tandai sesi yang sudah diisi jurnalnya hari ini — hanya relevan
+            // kalau yang sedang dilihat memang periode AKTIF & harinya hari
+            // ini juga; untuk periode lampau penandaan "hari ini" tidak
+            // bermakna dan bisa menyesatkan.
+            $sedangLihatPeriodeAktif = $tahunAjaranAktif && $tahunAjaran->id === $tahunAjaranAktif->id;
+            if ($hari === $this->hariIniIndonesia() && $sedangLihatPeriodeAktif) {
                 $sesiList = SesiMengajarGrouper::tandaiSudahDiisi($sesiList, $jadwal);
             }
         }
 
         $hariList = JadwalPelajaran::HARI_LIST();
 
-        return view('absensi.pilih-kelas', compact('sesiList', 'hari', 'hariList', 'tahunAjaran'));
+        return view('absensi.pilih-kelas', compact(
+            'sesiList', 'hari', 'hariList', 'tahunAjaran', 'tahunAjaranAktif', 'periodeList'
+        ));
     }
 
     /**
