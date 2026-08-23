@@ -24,7 +24,7 @@
                         @forelse($calonPembina as $u)
                             <label class="flex items-center gap-2 text-sm">
                                 <input type="checkbox" name="pembina_internal[]" value="{{ $u->id }}">
-                                {{ $u->name }}
+                                <span>{{ $u->name }} <span class="text-slate-400 text-xs">({{ $u->nip ?: $u->email }})</span></span>
                             </label>
                         @empty
                             <p class="text-xs text-slate-400">Belum ada data guru/staf.</p>
@@ -105,14 +105,14 @@
                          disentuh tanpa buka menu dulu. --}}
                     <div class="flex items-center gap-1.5 shrink-0">
                         <button type="button" @click="editing = true"
-                                class="w-10 h-10 flex items-center justify-center rounded-lg text-brand-600 hover:bg-brand-50 transition"
+                                class="w-10 h-10 flex items-center justify-center rounded-lg text-brand-600 cursor-pointer hover:bg-brand-50 active:bg-brand-100 active:text-brand-700 transition"
                                 title="Edit Kegiatan" aria-label="Edit Kegiatan {{ $e->nama_ekstrakurikuler }}">
                             <i class="fa-solid fa-pen"></i>
                         </button>
                         <form method="POST" action="{{ route('ekstrakurikuler.destroy', $e) }}" onsubmit="return confirm('Hapus kegiatan ekstrakurikuler ini?')">
                             @csrf @method('DELETE')
                             <button type="submit"
-                                    class="w-10 h-10 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition"
+                                    class="w-10 h-10 flex items-center justify-center rounded-lg text-red-500 cursor-pointer hover:bg-red-50 active:bg-red-100 active:text-red-700 transition"
                                     title="Hapus Kegiatan" aria-label="Hapus Kegiatan {{ $e->nama_ekstrakurikuler }}">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
@@ -126,17 +126,17 @@
                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-4 mb-2">Anggota &amp; Laporan</p>
                 <div class="grid grid-cols-3 gap-3">
                     <a href="{{ route('ekstrakurikuler.anggota.index', $e) }}"
-                       class="flex flex-col items-center justify-center gap-2 px-2 py-4 rounded-xl border border-slate-200 text-slate-700 hover:border-brand-300 hover:bg-brand-50/60 active:bg-brand-50 transition">
+                       class="flex flex-col items-center justify-center gap-2 px-2 py-4 rounded-xl border border-slate-200 text-slate-700 cursor-pointer hover:border-brand-300 hover:bg-brand-50/60 active:border-brand-400 active:bg-brand-100 transition">
                         <i class="fa-solid fa-users text-xl text-brand-600"></i>
                         <span class="text-xs font-semibold text-center leading-tight">Anggota</span>
                     </a>
                     <a href="{{ route('ekstrakurikuler.absensi.form', $e) }}"
-                       class="flex flex-col items-center justify-center gap-2 px-2 py-4 rounded-xl border border-slate-200 text-slate-700 hover:border-brand-300 hover:bg-brand-50/60 active:bg-brand-50 transition">
+                       class="flex flex-col items-center justify-center gap-2 px-2 py-4 rounded-xl border border-slate-200 text-slate-700 cursor-pointer hover:border-brand-300 hover:bg-brand-50/60 active:border-brand-400 active:bg-brand-100 transition">
                         <i class="fa-solid fa-clipboard-check text-xl text-brand-600"></i>
                         <span class="text-xs font-semibold text-center leading-tight">Absensi</span>
                     </a>
                     <a href="{{ route('ekstrakurikuler.rekap', $e) }}"
-                       class="flex flex-col items-center justify-center gap-2 px-2 py-4 rounded-xl border border-slate-200 text-slate-700 hover:border-brand-300 hover:bg-brand-50/60 active:bg-brand-50 transition">
+                       class="flex flex-col items-center justify-center gap-2 px-2 py-4 rounded-xl border border-slate-200 text-slate-700 cursor-pointer hover:border-brand-300 hover:bg-brand-50/60 active:border-brand-400 active:bg-brand-100 transition">
                         <i class="fa-solid fa-chart-column text-xl text-brand-600"></i>
                         <span class="text-xs font-semibold text-center leading-tight">Rekap</span>
                     </a>
@@ -163,7 +163,7 @@
                                 @foreach($calonPembina as $u)
                                     <label class="flex items-center gap-2 text-sm">
                                         <input type="checkbox" name="pembina_internal[]" value="{{ $u->id }}" @checked(in_array($u->id, $idInternalTerpilih))>
-                                        {{ $u->name }}
+                                        <span>{{ $u->name }} <span class="text-slate-400 text-xs">({{ $u->nip ?: $u->email }})</span></span>
                                     </label>
                                 @endforeach
                             </div>

@@ -56,6 +56,10 @@ class Ekstrakurikuler extends Model
      */
     public function isPembinaInternal(int $userId): bool
     {
-        return $this->pembinas->contains(fn ($p) => $p->user_id === $userId);
+        // (int) cast di kedua sisi — jaga-jaga kalau user_id kebaca sebagai
+        // string dari database (tergantung driver), supaya perbandingan
+        // ketat (===) tidak pernah gagal cocok gara-gara tipe data beda
+        // padahal nilainya sama.
+        return $this->pembinas->contains(fn ($p) => (int) $p->user_id === $userId);
     }
 }

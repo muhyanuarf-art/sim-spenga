@@ -9,7 +9,8 @@
             <p class="text-xs font-bold text-brand-600">Absensi Ekstrakurikuler</p>
             <p class="text-lg font-extrabold text-slate-800">{{ $ekstrakurikuler->nama_ekstrakurikuler }}</p>
         </div>
-        <a href="{{ route('ekstrakurikuler.absensi.pilih') }}" class="btn-outline">&larr; Kembali</a>
+        @php $kembaliKe = in_array(auth()->user()->role, ['kesiswaan', 'admin']) ? route('ekstrakurikuler.index') : route('ekstrakurikuler.absensi.pilih'); @endphp
+        <a href="{{ $kembaliKe }}" class="btn-outline">&larr; Kembali</a>
     </div>
 
     <form method="POST" action="{{ route('ekstrakurikuler.absensi.store', $ekstrakurikuler) }}" x-data="ekskulAbsensiForm()">
@@ -107,7 +108,7 @@
         </div>
 
         <div class="flex justify-end gap-3 mt-6">
-            <a href="{{ route('ekstrakurikuler.absensi.pilih') }}" class="btn-outline">Batal</a>
+            <a href="{{ $kembaliKe }}" class="btn-outline">Batal</a>
             <button type="submit" class="btn-primary">Simpan Absensi</button>
         </div>
     </form>
