@@ -71,10 +71,11 @@ class NotifikasiWhatsappController extends Controller
         // $data di bawah sekarang dipaginasi (tidak lagi memuat semua baris
         // sekaligus, yang sebelumnya bisa jadi ribuan baris untuk sekolah
         // dengan banyak siswa & tanpa batas apa pun).
-        $ringkasan = $tanpaAksesData ? ['terkirim' => 0, 'pending' => 0, 'gagal' => 0] : [
+        $ringkasan = $tanpaAksesData ? ['terkirim' => 0, 'pending' => 0, 'gagal' => 0, 'dilewati' => 0] : [
             'terkirim' => (clone $query)->where('status_kirim', 'terkirim')->count(),
             'pending' => (clone $query)->where('status_kirim', 'pending')->count(),
             'gagal' => (clone $query)->where('status_kirim', 'gagal')->count(),
+            'dilewati' => (clone $query)->where('status_kirim', 'dilewati')->count(),
         ];
 
         $data = $tanpaAksesData

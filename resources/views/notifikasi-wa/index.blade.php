@@ -46,11 +46,18 @@
             sebagai wali kelas manapun / belum di-mapping ke kelas manapun oleh Kurikulum.
         </div>
     @else
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <x-stat-card color="emerald" icon="fa-circle-check" label="Terkirim" :value="$ringkasan['terkirim']" />
             <x-stat-card color="amber" icon="fa-hourglass-half" label="Menunggu Diproses" :value="$ringkasan['pending']" />
             <x-stat-card color="rose" icon="fa-triangle-exclamation" label="Gagal Terkirim" :value="$ringkasan['gagal']" />
+            <x-stat-card color="sky" icon="fa-forward" label="Dilewati (Isi Terlambat)" :value="$ringkasan['dilewati']" />
         </div>
+
+        @if($ringkasan['dilewati'] > 0)
+            <div class="rounded-xl bg-sky-50 border border-sky-200 text-sky-700 px-4 py-3 text-sm">
+                <i class="fa-solid fa-forward mr-1.5"></i> Ada {{ $ringkasan['dilewati'] }} kejadian Alfa yang tercatat tapi WA sengaja TIDAK dikirim, karena jurnal/absensinya baru diisi setelah tanggal kejadian lewat (bukan hari yang sama).
+            </div>
+        @endif
 
         @if($ringkasan['pending'] > 0)
             <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
@@ -107,6 +114,8 @@
                                     <span class="badge bg-emerald-50 text-emerald-700"><i class="fa-solid fa-circle-check mr-1.5"></i> Terkirim</span>
                                 @elseif($n->status_kirim === 'gagal')
                                     <span class="badge bg-rose-50 text-rose-700"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Gagal</span>
+                                @elseif($n->status_kirim === 'dilewati')
+                                    <span class="badge bg-sky-50 text-sky-700" title="{{ $n->keterangan_gagal }}"><i class="fa-solid fa-forward mr-1.5"></i> Dilewati (Isi Terlambat)</span>
                                 @else
                                     <span class="badge bg-amber-50 text-amber-700"><i class="fa-solid fa-hourglass-half mr-1.5"></i> Menunggu</span>
                                 @endif

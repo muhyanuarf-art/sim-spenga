@@ -52,6 +52,7 @@ class NotifikasiAlfaTerkirim extends Model
             'pending' => 'Menunggu',
             'terkirim' => 'Terkirim',
             'gagal' => 'Gagal',
+            'dilewati' => 'Dilewati (Isi Terlambat)',
             default => ucfirst($this->status_kirim),
         };
     }
@@ -62,6 +63,7 @@ class NotifikasiAlfaTerkirim extends Model
             'pending' => 'bg-slate-100 text-slate-600',
             'terkirim' => 'bg-emerald-100 text-emerald-700',
             'gagal' => 'bg-red-100 text-red-700',
+            'dilewati' => 'bg-sky-100 text-sky-700',
             default => 'bg-slate-100 text-slate-600',
         };
     }

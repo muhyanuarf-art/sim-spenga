@@ -13,6 +13,7 @@ use App\Support\PeriodeAkademik;
 use App\Support\SesiMengajarGrouper;
 use App\Jobs\KirimNotifikasiAlfaWhatsapp;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class MengajarController extends Controller
@@ -268,6 +269,18 @@ class MengajarController extends Controller
      * tidak dikirim notifikasi dari sesi ini — biarkan sesi paling akhir
      * yang menentukan.
      *
+     * PENTING: notifikasi WA HANYA relevan untuk absensi tanggal HARI INI
+     * (saat guru menyimpannya). Kalau guru baru mengisi jurnal/absensi
+     * untuk tanggal yang SUDAH LEWAT (telat/lupa beberapa hari, baru
+     * diisi belakangan — termasuk lewat "Buka Kunci" periode lampau),
+     * status Alfa TETAP dicatat seperti biasa tapi WA-nya SENGAJA TIDAK
+     * dikirim: mengabari orang tua "anak Alfa" untuk kejadian berhari-hari
+     * yang lalu sudah tidak berguna/relevan lagi, dan berisiko membuat
+     * orang tua bingung atau panik tanpa alasan. Barisnya tetap dibuat di
+     * notifikasi_alfa_terkirims dengan status 'dilewati' supaya tetap
+     * tercatat di histori (bukan disembunyikan begitu saja) & anti-duplikat
+     * (siswa_id+tanggal unik) tetap berlaku seperti biasa.
+     *
      * Catatan: kalau nanti sesi ini "dikalahkan" oleh sesi lain yang jam-nya
      * lebih akhir dan mengoreksi jadi Hadir, sistem TIDAK mengirim pesan
      * "koreksi/pembatalan" — notifikasi yang sudah terlanjur terkirim tetap
@@ -280,6 +293,11 @@ class MengajarController extends Controller
         if ($siswaAlfaDiSesiIni->isEmpty()) {
             return;
         }
+
+        // Dibandingkan SEKALI di luar loop: apakah tanggal absensi yang
+        // baru disimpan ini sama dengan tanggal SEKARANG (server), atau
+        // ini pengisian susulan untuk tanggal yang sudah lewat.
+        $tanggalBukanHariIni = ! Carbon::parse($tanggal)->isToday();
 
         foreach ($siswaAlfaDiSesiIni as $siswaId) {
             $records = AbsensiSiswa::where('siswa_id', $siswaId)
@@ -294,17 +312,23 @@ class MengajarController extends Controller
 
             // Anti-duplikat: 1 siswa hanya diproses 1x per tanggal. Kalau
             // baris sudah ada (dibuat oleh penyimpanan sebelumnya hari ini),
-            // wasRecentlyCreated = false, artinya sudah pernah diantrikan.
+            // wasRecentlyCreated = false, artinya sudah pernah diantrikan
+            // (atau sudah sengaja dilewati) — tidak perlu diapa-apakan lagi.
             $baris = NotifikasiAlfaTerkirim::firstOrCreate(
                 ['siswa_id' => $siswaId, 'tanggal' => $tanggal],
                 [
-                    'status_kirim' => 'pending',
+                    'status_kirim' => $tanggalBukanHariIni ? 'dilewati' : 'pending',
+                    'keterangan_gagal' => $tanggalBukanHariIni
+                        ? 'Tidak dikirim: jurnal/absensi diisi terlambat (untuk tanggal '
+                            .Carbon::parse($tanggal)->translatedFormat('d M Y')
+                            .', bukan tanggal saat diisi). Kejadian Alfa tetap tercatat, hanya notifikasi WA yang sengaja dilewati.'
+                        : null,
                     'mata_pelajaran_id' => $final->jurnal?->mata_pelajaran_id,
                     'jam_ke' => $final->jurnal?->jamPelajaranAkhir?->jam_ke ?? $final->jurnal?->jamPelajaran?->jam_ke,
                 ]
             );
 
-            if (!$baris->wasRecentlyCreated) {
+            if (!$baris->wasRecentlyCreated || $tanggalBukanHariIni) {
                 continue;
             }
 
