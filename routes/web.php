@@ -166,6 +166,10 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);
+        // (2026-08-23) — aksi khusus untuk siswa pindah kelas DI TENGAH tahun
+        // ajaran berjalan (beda dengan siswa.update yang untuk koreksi data
+        // biasa). Lihat SiswaController::pindahKelas().
+        Route::post('siswa/{siswa}/pindah-kelas', [SiswaController::class, 'pindahKelas'])->name('siswa.pindah-kelas');
         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
         Route::get('siswa-import/template', [SiswaController::class, 'template'])->name('siswa.template');
         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');

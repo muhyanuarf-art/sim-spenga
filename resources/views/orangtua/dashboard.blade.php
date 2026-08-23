@@ -116,7 +116,10 @@
                             <span class="text-slate-400">&rarr;</span>
                             {{ $r->kelas->nama_kelas ?? '-' }}
                         </p>
-                        <p class="text-xs text-slate-400">{{ $r->tahunAjaran?->labelPeriode() ?? '-' }}</p>
+                        <p class="text-xs text-slate-400">
+                            {{ $r->tahunAjaran?->labelPeriode() ?? '-' }}
+                            @if($r->tanggal_mutasi) · {{ $r->tanggal_mutasi->translatedFormat('d M Y') }} @endif
+                        </p>
                     </div>
                 </div>
             @empty

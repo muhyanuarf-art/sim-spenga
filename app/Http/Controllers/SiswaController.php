@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Exports\TemplateExport;
 use App\Imports\SiswaImport;
 use App\Models\Kelas;
+use App\Models\RiwayatKelasSiswa;
 use App\Models\Siswa;
+use App\Models\TahunAjaran;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -63,8 +65,88 @@ class SiswaController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
         $validated['is_active'] = $request->boolean('is_active', true);
+
+        // (2026-08-23) — kelas_id boleh diubah lewat form Edit ini juga
+        // (mis. koreksi salah input), bukan cuma lewat tombol khusus
+        // "Pindah Kelas" di bawah. Supaya Riwayat Kelas TETAP akurat apa
+        // pun jalur yang dipakai admin/kurikulum, catat mutasinya di sini
+        // juga kalau kelas_id benar-benar berubah.
+        $kelasAsalId = $siswa->kelas_id;
         $siswa->update($validated);
+
+        if ((int) $validated['kelas_id'] !== (int) $kelasAsalId) {
+            $this->catatMutasiKelas($siswa, $kelasAsalId, (int) $validated['kelas_id'], now()->toDateString(),
+                'Diubah lewat form Edit Data Siswa.');
+        }
+
         return back()->with('success', 'Data siswa berhasil diperbarui.');
+    }
+
+    /**
+     * Aksi khusus "Pindah Kelas" — dipakai untuk siswa yang pindah kelas DI
+     * TENGAH tahun ajaran berjalan (mis. Juli-Agustus di 7A, September
+     * pindah ke 7B). Berbeda dengan update() di atas, aksi ini memang
+     * dikhususkan untuk mutasi (bukan koreksi data), sehingga tanggal
+     * efektif & keterangan bisa diisi eksplisit oleh operator.
+     *
+     * Data absensi & jurnal bulan-bulan sebelumnya TIDAK ikut berubah —
+     * absensi_siswas.kelas_id adalah snapshot permanen per baris (lihat
+     * catatan di WaliKelasController & LaporanGuruController), jadi riwayat
+     * Juli-Agustus siswa tetap tercatat di kelas lama.
+     */
+    public function pindahKelas(Request $request, Siswa $siswa)
+    {
+        $validated = $request->validate([
+            'kelas_tujuan_id' => [
+                'required',
+                Rule::exists('kelas', 'id')->where(fn ($q) => $q->whereIn('id', Kelas::aktif()->pluck('id'))),
+            ],
+            'tanggal_mutasi' => ['nullable', 'date'],
+            'keterangan' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $kelasTujuanId = (int) $validated['kelas_tujuan_id'];
+        if ($kelasTujuanId === (int) $siswa->kelas_id) {
+            return back()->with('error', 'Kelas tujuan sama dengan kelas siswa saat ini.');
+        }
+
+        $kelasAsalId = $siswa->kelas_id;
+        $tanggalMutasi = $validated['tanggal_mutasi'] ?? now()->toDateString();
+
+        $siswa->update(['kelas_id' => $kelasTujuanId]);
+
+        $this->catatMutasiKelas($siswa, $kelasAsalId, $kelasTujuanId, $tanggalMutasi, $validated['keterangan'] ?? null);
+
+        return back()->with('success', 'Siswa berhasil dipindahkan ke kelas baru. Data absensi/jurnal bulan-bulan sebelumnya tetap tercatat di kelas lama.');
+    }
+
+    /**
+     * Catat 1 baris riwayat_kelas_siswas jenis "pindah_kelas" untuk tahun
+     * ajaran aktif (baris Semester Ganjil, sama seperti konvensi di
+     * SiswaImport). Dipanggil dari update() (kalau kelas_id berubah lewat
+     * form Edit) maupun pindahKelas() (aksi khusus).
+     */
+    private function catatMutasiKelas(Siswa $siswa, ?int $kelasAsalId, int $kelasTujuanId, string $tanggalMutasi, ?string $keterangan): void
+    {
+        $tahunAjaranAktif = TahunAjaran::aktif();
+        if (! $tahunAjaranAktif) {
+            return;
+        }
+        $tahunAjaranGanjil = TahunAjaran::where('nama', $tahunAjaranAktif->nama)->where('semester', 'Ganjil')->first();
+        if (! $tahunAjaranGanjil) {
+            return;
+        }
+
+        RiwayatKelasSiswa::create([
+            'siswa_id' => $siswa->id,
+            'tahun_ajaran_id' => $tahunAjaranGanjil->id,
+            'kelas_asal_id' => $kelasAsalId,
+            'kelas_id' => $kelasTujuanId,
+            'jenis' => RiwayatKelasSiswa::JENIS_PINDAH_KELAS,
+            'tanggal_mutasi' => $tanggalMutasi,
+            'keterangan' => $keterangan,
+            'dicatat_oleh_id' => auth()->id(),
+        ]);
     }
 
     /**

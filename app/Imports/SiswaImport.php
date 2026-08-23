@@ -59,19 +59,31 @@ class SiswaImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 
         // Catat Riwayat Kelas untuk Tahun Ajaran aktif SAAT INI — baik untuk
         // siswa baru (kelas_asal_id = null, "pertama kali masuk") maupun
-        // siswa lama yang pindah kelas (naik kelas, pindah kelas, atau
-        // tinggal kelas kalau kelas tujuannya sama). Konvensi tahun_ajaran_id
-        // SELALU baris Semester Ganjil (sama seperti sebelumnya di menu
-        // Kenaikan Kelas). firstOrCreate mencegah dobel kalau siswa yang
-        // sama diimpor berkali-kali di tahun ajaran yang sama.
+        // siswa lama yang pindah kelas/naik kelas lewat import (ganti tahun
+        // ajaran). Konvensi tahun_ajaran_id SELALU baris Semester Ganjil
+        // (sama seperti sebelumnya di menu Kenaikan Kelas).
+        //
+        // (2026-08-23) — jenis dibedakan dari 'pindah_kelas' (mutasi di
+        // tengah tahun ajaran berjalan, lihat SiswaController::pindahKelas())
+        // supaya keduanya bisa hidup berdampingan di baris yang berbeda pada
+        // tahun ajaran yang sama. firstOrCreate DI-SCOPE juga dengan jenis
+        // supaya tetap mencegah dobel kalau siswa yang sama diimpor
+        // berkali-kali di tahun ajaran yang sama (perilaku lama tetap sama —
+        // hanya baris "kenaikan_kelas"/"awal_masuk" pertama yang tercatat,
+        // import ulang berikutnya tidak menimpanya).
         if ($tahunAjaranAktif) {
             $tahunAjaranGanjil = TahunAjaran::where('nama', $tahunAjaranAktif->nama)->where('semester', 'Ganjil')->first();
             if ($tahunAjaranGanjil) {
                 RiwayatKelasSiswa::firstOrCreate(
-                    ['siswa_id' => $siswa->id, 'tahun_ajaran_id' => $tahunAjaranGanjil->id],
+                    [
+                        'siswa_id' => $siswa->id,
+                        'tahun_ajaran_id' => $tahunAjaranGanjil->id,
+                        'jenis' => $kelasAsalId === null ? RiwayatKelasSiswa::JENIS_AWAL_MASUK : RiwayatKelasSiswa::JENIS_KENAIKAN_KELAS,
+                    ],
                     [
                         'kelas_asal_id' => $kelasAsalId,
                         'kelas_id' => $kelas->id,
+                        'tanggal_mutasi' => now()->toDateString(),
                         'keterangan' => 'Dicatat otomatis dari Import Excel Data Siswa.',
                         'dicatat_oleh_id' => auth()->id(),
                     ]

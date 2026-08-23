@@ -103,8 +103,6 @@ class LaporanGuruController extends Controller
 
         $rekap = collect();
         if ($guru && $mapelId && $kelasId) {
-            $siswas = Siswa::where('kelas_id', $kelasId)->where('is_active', true)->orderBy('nama')->get();
-
             [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
             $absensiRaw = AbsensiSiswa::where('kelas_id', $kelasId)
                 ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
@@ -113,6 +111,22 @@ class LaporanGuruController extends Controller
                 })
                 ->get()
                 ->groupBy('siswa_id');
+
+            // (2026-08-23) — PERBAIKAN BUG sama seperti di WaliKelasController
+            // ::absensiBulanan(): absensi_siswas.kelas_id adalah SNAPSHOT
+            // kelas SAAT sesi mengajar itu terjadi, bukan mengikuti kelas
+            // siswa sekarang. Sebelumnya daftar siswa di sini diambil dari
+            // Siswa::where('kelas_id', $kelasId) (kelas siswa SAAT INI),
+            // sehingga siswa yang sudah pindah kelas hilang dari laporan
+            // bulan-bulan sebelum ia pindah. Gabungkan siapa saja yang
+            // PERNAH tercatat (dari $absensiRaw) dengan siswa yang SEKARANG
+            // terdaftar di kelas ini (supaya kelas tetap tampil lengkap
+            // untuk bulan berjalan sebelum ada absensi diinput).
+            $siswaIdHistoris = $absensiRaw->keys();
+            $siswaIdSekarang = Siswa::where('kelas_id', $kelasId)->where('is_active', true)->pluck('id');
+            $siswas = Siswa::whereIn('id', $siswaIdHistoris->merge($siswaIdSekarang)->unique())
+                ->orderBy('nama')
+                ->get();
 
             $rekap = $siswas->map(function ($siswa) use ($absensiRaw, $jumlahHari) {
                 $data = array_fill(1, $jumlahHari, '');

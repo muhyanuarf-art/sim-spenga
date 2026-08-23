@@ -20,13 +20,23 @@
                 {{ $i + 1 }}
             </div>
             <div class="pl-8 pt-0.5">
-                <p class="font-semibold text-slate-800">
+                <p class="font-semibold text-slate-800 flex items-center gap-2 flex-wrap">
                     {{ $r->kelasAsal->nama_kelas ?? 'Belum tercatat' }}
                     <span class="text-slate-400">&rarr;</span>
                     {{ $r->kelas->nama_kelas ?? '-' }}
+                    @if($r->jenis === \App\Models\RiwayatKelasSiswa::JENIS_PINDAH_KELAS)
+                        <span class="badge bg-amber-50 text-amber-700">Pindah Kelas</span>
+                    @elseif($r->jenis === \App\Models\RiwayatKelasSiswa::JENIS_AWAL_MASUK)
+                        <span class="badge bg-emerald-50 text-emerald-700">Awal Masuk</span>
+                    @elseif($r->jenis === \App\Models\RiwayatKelasSiswa::JENIS_KENAIKAN_KELAS)
+                        <span class="badge bg-brand-50 text-brand-700">Kenaikan Kelas</span>
+                    @endif
                 </p>
                 <p class="text-sm text-slate-500">
                     {{ $r->tahunAjaran?->labelPeriode() ?? 'Tahun Ajaran -' }}
+                    @if($r->tanggal_mutasi)
+                        · Efektif {{ $r->tanggal_mutasi->translatedFormat('d M Y') }}
+                    @endif
                 </p>
                 @if($r->keterangan)
                     <p class="text-sm text-slate-600 mt-1">{{ $r->keterangan }}</p>

@@ -10,9 +10,30 @@ class RiwayatKelasSiswa extends Model
 {
     use HasFactory;
 
+    public const JENIS_AWAL_MASUK = 'awal_masuk';
+    public const JENIS_KENAIKAN_KELAS = 'kenaikan_kelas';
+    public const JENIS_PINDAH_KELAS = 'pindah_kelas';
+
     protected $fillable = [
-        'siswa_id', 'tahun_ajaran_id', 'kelas_asal_id', 'kelas_id', 'keterangan', 'dicatat_oleh_id',
+        'siswa_id', 'tahun_ajaran_id', 'kelas_asal_id', 'kelas_id', 'jenis',
+        'tanggal_mutasi', 'keterangan', 'dicatat_oleh_id',
     ];
+
+    protected function casts(): array
+    {
+        return ['tanggal_mutasi' => 'date'];
+    }
+
+    /** Label ramah-tampil untuk kolom `jenis`. */
+    public function labelJenis(): string
+    {
+        return match ($this->jenis) {
+            self::JENIS_AWAL_MASUK => 'Awal Masuk',
+            self::JENIS_KENAIKAN_KELAS => 'Kenaikan Kelas',
+            self::JENIS_PINDAH_KELAS => 'Pindah Kelas',
+            default => '-',
+        };
+    }
 
     public function siswa(): BelongsTo
     {

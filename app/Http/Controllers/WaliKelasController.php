@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AbsensiSiswa;
 use App\Models\Kelas;
 use App\Models\JurnalMengajar;
+use App\Models\Siswa;
 use App\Support\RentangBulan;
 use Illuminate\Http\Request;
 
@@ -39,8 +40,6 @@ class WaliKelasController extends Controller
         $tahun = (int) $request->get('tahun', now()->year);
         $jumlahHari = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
 
-        $siswas = $kelas->siswas()->where('is_active', true)->orderBy('nama')->get();
-
         // Eager-load info jam (awal & akhir sesi) tiap jurnal, supaya bisa
         // menentukan "sesi mana yang jam-nya paling akhir pada hari itu"
         // tanpa query tambahan per baris.
@@ -49,6 +48,25 @@ class WaliKelasController extends Controller
             ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
             ->get()
             ->groupBy('siswa_id');
+
+        // (2026-08-23) — PERBAIKAN BUG "siswa pindah kelas hilang dari
+        // laporan bulan lama". absensi_siswas.kelas_id adalah SNAPSHOT
+        // permanen (dicatat saat itu juga), bukan sekadar mengikuti
+        // siswa.kelas_id yang sekarang. Kalau daftar siswa di sini hanya
+        // diambil dari kelas siswa SAAT INI ($kelas->siswas()), siswa yang
+        // sudah pindah ke kelas lain tidak akan muncul lagi untuk bulan-
+        // bulan sebelum ia pindah — padahal datanya masih ada di database.
+        //
+        // Solusinya: gabungkan (a) siapa saja yang PERNAH tercatat di kelas
+        // ini pada bulan yang dilihat (dari $absensiRaw, sumbernya snapshot
+        // kelas_id) dengan (b) siswa yang SEKARANG terdaftar di kelas ini
+        // (supaya kelas tetap tampil lengkap untuk bulan berjalan/bulan
+        // depan sebelum ada absensi sama sekali yang diinput).
+        $siswaIdHistoris = $absensiRaw->keys();
+        $siswaIdSekarang = $kelas->siswas()->where('is_active', true)->pluck('id');
+        $siswas = Siswa::whereIn('id', $siswaIdHistoris->merge($siswaIdSekarang)->unique())
+            ->orderBy('nama')
+            ->get();
 
         $rekap = $siswas->map(function ($siswa) use ($absensiRaw, $jumlahHari) {
             $data = array_fill(1, $jumlahHari, '');

@@ -44,8 +44,8 @@
             <table class="table-clean w-full">
                 <thead><tr><th>NIS</th><th>Nama</th><th>L/P</th><th>Kelas</th><th>WA Ortu</th><th>Status</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($siswas as $s)
-                <tbody x-data="{ editing: false }">
-                    <tr x-show="!editing">
+                <tbody x-data="{ editing: false, pindah: false }">
+                    <tr x-show="!editing && !pindah">
                         <td>{{ $s->nis }}</td>
                         <td class="font-medium">{{ $s->nama }}</td>
                         <td>{{ $s->jenis_kelamin }}</td>
@@ -64,6 +64,7 @@
                         <td class="td-aksi">
                             <div class="action-buttons">
                                 <a href="{{ route('siswa.riwayat-kelas', $s) }}" class="btn-chip btn-chip-cancel"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i> Riwayat Kelas</a>
+                                <button type="button" @click="pindah = true" class="btn-chip btn-chip-cancel"><i class="fa-solid fa-right-left mr-1.5"></i> Pindah Kelas</button>
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('siswa.destroy', $s) }}" onsubmit="return confirm('Hapus siswa ini?')">
                                     @csrf @method('DELETE')
@@ -98,6 +99,38 @@
                                 <div class="flex gap-2 sm:col-span-4">
                                     <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                                     <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr x-show="pindah" x-cloak>
+                        <td colspan="7" class="bg-amber-50/50">
+                            <form method="POST" action="{{ route('siswa.pindah-kelas', $s) }}" class="grid sm:grid-cols-6 gap-3 items-end py-2">
+                                @csrf
+                                <div class="sm:col-span-6 text-xs text-slate-500">
+                                    Pindahkan <span class="font-semibold text-slate-700">{{ $s->nama }}</span> dari kelas
+                                    <span class="font-semibold text-slate-700">{{ $s->kelas->nama_kelas }}</span> ke kelas baru.
+                                    Data absensi &amp; jurnal bulan-bulan sebelumnya tetap tersimpan di riwayat kelas lama.
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-500">Kelas Tujuan</label>
+                                    <select name="kelas_tujuan_id" required class="input">
+                                        <option value="">Pilih Kelas</option>
+                                        @foreach($kelasList as $k)
+                                            @if($k->id != $s->kelas_id)
+                                                <option value="{{ $k->id }}">{{ $k->nama_kelas }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-500">Tanggal Efektif Pindah</label>
+                                    <input type="date" name="tanggal_mutasi" value="{{ now()->toDateString() }}" class="input">
+                                </div>
+                                <input type="text" name="keterangan" placeholder="Keterangan (opsional), mis. alasan pindah" class="input sm:col-span-2">
+                                <div class="flex gap-2 sm:col-span-2">
+                                    <button type="submit" class="btn-primary h-[38px]">Pindahkan</button>
+                                    <button type="button" @click="pindah = false" class="btn-outline h-[38px]">Batal</button>
                                 </div>
                             </form>
                         </td>
