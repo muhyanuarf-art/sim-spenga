@@ -138,6 +138,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('ekstrakurikuler/{ekstrakurikuler}/anggota')->name('ekstrakurikuler.anggota.')->group(function () {
             Route::get('/', [EkstrakurikulerAnggotaController::class, 'index'])->name('index');
             Route::post('/', [EkstrakurikulerAnggotaController::class, 'store'])->name('store');
+            Route::post('/sync-kelas', [EkstrakurikulerAnggotaController::class, 'syncKelas'])->name('sync-kelas');
             Route::delete('/{anggota}', [EkstrakurikulerAnggotaController::class, 'destroy'])->name('destroy');
         });
     });
