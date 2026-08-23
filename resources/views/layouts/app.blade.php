@@ -94,10 +94,25 @@
                 </x-nav-group>
             @endif
 
-            @if($user->role === 'kesiswaan' || $user->role === 'admin')
+            @if($user->role === 'kesiswaan')
                 <x-nav-link :href="route('ekstrakurikuler.index')" icon="fa-people-group" :active="request()->routeIs('ekstrakurikuler.*')">
                     Ekstrakurikuler
                 </x-nav-link>
+            @endif
+
+            {{-- (2026-08-23) — untuk Admin (yang sidebarnya sudah padat
+                 banyak grup), "Ekstrakurikuler" dikelompokkan dalam grup
+                 "Kesiswaan" tersendiri (pola sama seperti grup "Kurikulum"
+                 di bawah), supaya rapi & gampang ditambah menu kesiswaan
+                 lain nanti. Untuk role Kesiswaan sendiri TIDAK dikelompokkan
+                 seperti ini — tetap flat seperti di atas, karena sidebar-nya
+                 sudah ringkas dan ini yang diminta dipertahankan. --}}
+            @if($user->role === 'admin')
+                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*')">
+                    <x-nav-sublink :href="route('ekstrakurikuler.index')" :active="request()->routeIs('ekstrakurikuler.*')">
+                        Ekstrakurikuler
+                    </x-nav-sublink>
+                </x-nav-group>
             @endif
 
             @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
