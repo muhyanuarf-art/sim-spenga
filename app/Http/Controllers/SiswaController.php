@@ -45,7 +45,23 @@ class SiswaController extends Controller
                 Rule::exists('kelas', 'id')->where(fn ($q) => $q->whereIn('id', Kelas::aktif()->pluck('id'))),
             ],
         ]);
-        Siswa::create($validated);
+        $siswa = Siswa::create($validated);
+
+        // (2026-08-23) — catat baris riwayat "awal_masuk" saat siswa baru
+        // ditambahkan manual lewat sini. Sebelumnya method ini TIDAK
+        // membuat baris riwayat sama sekali, sehingga siswa yang kelak
+        // "Pindah Kelas" hanya punya 1 baris riwayat (baris pindahnya
+        // sendiri) tanpa riwayat kelas SEBELUM tanggal pindah itu — celah
+        // ini yang membuat form Isi Absensi untuk tanggal sebelum pindah
+        // salah mengira siswa itu belum pernah tercatat di kelas manapun.
+        // Lihat App\Support\KeanggotaanKelas untuk bagaimana riwayat ini
+        // dipakai (dan jaring pengaman tambahan di sana untuk data lama
+        // yang sudah kadung tidak punya baris awal_masuk).
+        $this->catatMutasiKelas(
+            $siswa, null, (int) $validated['kelas_id'], now()->toDateString(),
+            null, RiwayatKelasSiswa::JENIS_AWAL_MASUK
+        );
+
         return back()->with('success', 'Siswa berhasil ditambahkan.');
     }
 
@@ -121,13 +137,16 @@ class SiswaController extends Controller
     }
 
     /**
-     * Catat 1 baris riwayat_kelas_siswas jenis "pindah_kelas" untuk tahun
-     * ajaran aktif (baris Semester Ganjil, sama seperti konvensi di
-     * SiswaImport). Dipanggil dari update() (kalau kelas_id berubah lewat
-     * form Edit) maupun pindahKelas() (aksi khusus).
+     * Catat 1 baris riwayat_kelas_siswas untuk tahun ajaran aktif (baris
+     * Semester Ganjil, sama seperti konvensi di SiswaImport). Dipanggil
+     * dari store() (siswa baru -> jenis awal_masuk), update() (kalau
+     * kelas_id berubah lewat form Edit -> jenis pindah_kelas) maupun
+     * pindahKelas() (aksi khusus -> jenis pindah_kelas).
      */
-    private function catatMutasiKelas(Siswa $siswa, ?int $kelasAsalId, int $kelasTujuanId, string $tanggalMutasi, ?string $keterangan): void
-    {
+    private function catatMutasiKelas(
+        Siswa $siswa, ?int $kelasAsalId, int $kelasTujuanId, string $tanggalMutasi,
+        ?string $keterangan, string $jenis = RiwayatKelasSiswa::JENIS_PINDAH_KELAS
+    ): void {
         $tahunAjaranAktif = TahunAjaran::aktif();
         if (! $tahunAjaranAktif) {
             return;
@@ -142,7 +161,7 @@ class SiswaController extends Controller
             'tahun_ajaran_id' => $tahunAjaranGanjil->id,
             'kelas_asal_id' => $kelasAsalId,
             'kelas_id' => $kelasTujuanId,
-            'jenis' => RiwayatKelasSiswa::JENIS_PINDAH_KELAS,
+            'jenis' => $jenis,
             'tanggal_mutasi' => $tanggalMutasi,
             'keterangan' => $keterangan,
             'dicatat_oleh_id' => auth()->id(),

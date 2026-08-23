@@ -9,6 +9,7 @@ use App\Models\JurnalMengajarSlot;
 use App\Models\NotifikasiAlfaTerkirim;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Support\KeanggotaanKelas;
 use App\Support\PeriodeAkademik;
 use App\Support\SesiMengajarGrouper;
 use App\Jobs\KirimNotifikasiAlfaWhatsapp;
@@ -134,7 +135,13 @@ class MengajarController extends Controller
 
         $jadwalAwal = $slotJadwal->first();
         $jadwalAkhir = $slotJadwal->last();
-        $siswas = $jadwalAwal->kelas->siswas()->where('is_active', true)->orderBy('nama')->get();
+
+        // (2026-08-23) — pakai keanggotaan kelas PADA TANGGAL sesi ini,
+        // bukan kelas siswa saat ini. Supaya kalau ada siswa yang sudah
+        // pindah kelas, dia tetap muncul di form ini untuk tanggal SEBELUM
+        // dia pindah (mis. guru baru sempat isi absensi 3 hari kemudian).
+        // Lihat App\Support\KeanggotaanKelas untuk penjelasan lengkap.
+        $siswas = KeanggotaanKelas::anggotaPadaTanggal($jadwalAwal->kelas, $tanggal);
 
         $absensiTersimpan = [];
         if ($jurnal) {
@@ -182,7 +189,11 @@ class MengajarController extends Controller
         $jadwalAwal = $slotJadwal->first();
         $jadwalAkhir = $slotJadwal->last();
 
-        $siswaIdsKelas = $jadwalAwal->kelas->siswas()->where('is_active', true)->pluck('id');
+        // (2026-08-23) — sama seperti di form(): validasi "anggota kelas"
+        // memakai keanggotaan PADA TANGGAL yang diisi, bukan kelas siswa
+        // saat ini, supaya submit untuk tanggal lampau (yang formnya sudah
+        // menampilkan siswa yang saat itu masih di kelas ini) tidak ditolak.
+        $siswaIdsKelas = KeanggotaanKelas::anggotaPadaTanggal($jadwalAwal->kelas, $validated['tanggal'])->pluck('id');
         $siswaIdsAsing = collect(array_keys($validated['absensi']))
             ->map(fn ($id) => (int) $id)
             ->diff($siswaIdsKelas);

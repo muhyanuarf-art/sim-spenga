@@ -30,7 +30,9 @@
             <div class="grid sm:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-semibold text-slate-600 mb-1">Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ old('tanggal', $tanggal) }}" required class="input">
+                    <input type="date" name="tanggal" value="{{ old('tanggal', $tanggal) }}" required class="input"
+                           onchange="location.href = '{{ route('mengajar.form', $ids) }}?tanggal=' + this.value">
+                    <p class="text-xs text-slate-400 mt-1">Ganti tanggal untuk mengisi sesi yang lampau — halaman akan memuat ulang daftar siswa sesuai tanggal itu (mis. siswa yang sudah pindah kelas setelah tanggal ini akan tetap muncul di sini).</p>
                 </div>
             </div>
             <div class="mb-4">

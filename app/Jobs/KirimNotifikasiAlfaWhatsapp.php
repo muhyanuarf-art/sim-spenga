@@ -213,7 +213,7 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
             . "Kami dari SMP Negeri 3 Bumiayu menginformasikan bahwa pada :\n"
         . "Tanggal : {$tanggalIndo}\n"
         . "Nama : *{$siswa->nama}*\n"
-        . "Kehadiran : *ALFA (tidak hadir tanpa keterangan)*"
+        . "Kehadiran : *ALFA (tidak hadir tanpa keterangan)*\n"
         . "{$mapelInfo}\n\n"
         . "Mohon konfirmasi ke wali kelas/pihak sekolah apabila ada keterangan. Terima kasih.\n\n"
         . "_Pesan ini dikirim otomatis oleh sistem sekolah, mohon tidak membalas ke nomor ini._";
