@@ -210,10 +210,13 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
         $mapelInfo = $this->mapel ? " pada mata pelajaran *{$this->mapel}*" . ($this->jamKe ? " (jam ke-{$this->jamKe})" : '') : '';
 
         return "Assalamu'alaikum, {$sapaan}.\n\n"
-            . "Kami dari SMP Negeri 3 Bumiayu menginformasikan bahwa pada tanggal *{$tanggalIndo}*, "
-            . "ananda *{$siswa->nama}* tercatat *ALFA* (tidak hadir tanpa keterangan){$mapelInfo}.\n\n"
-            . "Mohon konfirmasi ke wali kelas/pihak sekolah apabila ada keterangan. Terima kasih.\n\n"
-            . "_Pesan ini dikirim otomatis oleh sistem sekolah, mohon tidak membalas ke nomor ini._";
+            . "Kami dari SMP Negeri 3 Bumiayu menginformasikan bahwa pada :\n"
+        . "Tanggal : {$tanggalIndo}\n"
+        . "Nama : *{$siswa->nama}*\n"
+        . "Kehadiran : *ALFA (tidak hadir tanpa keterangan)*"
+        . "{$mapelInfo}\n\n"
+        . "Mohon konfirmasi ke wali kelas/pihak sekolah apabila ada keterangan. Terima kasih.\n\n"
+        . "_Pesan ini dikirim otomatis oleh sistem sekolah, mohon tidak membalas ke nomor ini._";
     }
 
     /**
