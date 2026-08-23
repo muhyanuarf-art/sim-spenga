@@ -207,7 +207,7 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
         $tanggalIndo = Carbon::parse($this->tanggal)->translatedFormat('d F Y');
         $sapaan = $siswa->nama_ortu ? "Bapak/Ibu {$siswa->nama_ortu}" : 'Bapak/Ibu orang tua/wali';
 
-        $mapelInfo = $this->mapel ? " pada mata pelajaran *{$this->mapel}*" . ($this->jamKe ? " (jam ke-{$this->jamKe})" : '') : '';
+        $mapelInfo = $this->mapel ? "Mata pelajaran : *{$this->mapel}*" . ($this->jamKe ? " (jam ke-{$this->jamKe})" : '') : '';
 
         return "Assalamu'alaikum, {$sapaan}.\n\n"
             . "Kami dari SMP Negeri 3 Bumiayu menginformasikan bahwa pada :\n"
