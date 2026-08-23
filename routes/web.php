@@ -10,6 +10,7 @@ use App\Http\Controllers\BkPembinaanController;
 use App\Http\Controllers\BkPenguranganPoinController;
 use App\Http\Controllers\BkSiswaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EkstrakurikulerController;
 use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
 use App\Http\Controllers\JadwalController;
@@ -123,6 +124,14 @@ Route::middleware('auth')->group(function () {
         Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
             Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
         });
+    });
+
+    // ===== KESISWAAN: master data Kegiatan Ekstrakurikuler =====
+    // Langkah pertama fitur absensi ekskul: Kesiswaan input nama-nama
+    // kegiatan (+ pembina opsional) di sini. Menu anggota/jadwal/absensi
+    // per kegiatan menyusul di atas data ini (belum dibangun di paket ini).
+    Route::middleware('role:kesiswaan,admin')->group(function () {
+        Route::resource('ekstrakurikuler', EkstrakurikulerController::class)->except(['create', 'edit', 'show']);
     });
 
     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====

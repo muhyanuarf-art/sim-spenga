@@ -94,6 +94,12 @@
                 </x-nav-group>
             @endif
 
+            @if($user->role === 'kesiswaan' || $user->role === 'admin')
+                <x-nav-link :href="route('ekstrakurikuler.index')" icon="fa-people-group" :active="request()->routeIs('ekstrakurikuler.*')">
+                    Ekstrakurikuler
+                </x-nav-link>
+            @endif
+
             @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
                 <x-nav-group icon="fa-chalkboard" label="Monitoring Kelas" :active="request()->routeIs('walikelas.*')">
                     <x-nav-sublink :href="route('walikelas.absensi-bulanan')" :active="request()->routeIs('walikelas.absensi-bulanan')">
