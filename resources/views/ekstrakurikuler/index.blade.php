@@ -96,6 +96,9 @@
                         </td>
                         <td class="td-aksi">
                             <div class="action-buttons">
+                                <a href="{{ route('ekstrakurikuler.anggota.index', $e) }}" class="btn-chip"><i class="fa-solid fa-users mr-1.5"></i> Anggota</a>
+                                <a href="{{ route('ekstrakurikuler.absensi.form', $e) }}" class="btn-chip"><i class="fa-solid fa-clipboard-check mr-1.5"></i> Absensi</a>
+                                <a href="{{ route('ekstrakurikuler.rekap', $e) }}" class="btn-chip"><i class="fa-solid fa-chart-column mr-1.5"></i> Rekap</a>
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
                                 <form method="POST" action="{{ route('ekstrakurikuler.destroy', $e) }}" onsubmit="return confirm('Hapus kegiatan ekstrakurikuler ini?')">
                                     @csrf @method('DELETE')

@@ -10,6 +10,9 @@ use App\Http\Controllers\BkPembinaanController;
 use App\Http\Controllers\BkPenguranganPoinController;
 use App\Http\Controllers\BkSiswaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EkskulAbsensiController;
+use App\Http\Controllers\EkskulRekapController;
+use App\Http\Controllers\EkstrakurikulerAnggotaController;
 use App\Http\Controllers\EkstrakurikulerController;
 use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
@@ -127,11 +130,31 @@ Route::middleware('auth')->group(function () {
     });
 
     // ===== KESISWAAN: master data Kegiatan Ekstrakurikuler =====
-    // Langkah pertama fitur absensi ekskul: Kesiswaan input nama-nama
-    // kegiatan (+ pembina opsional) di sini. Menu anggota/jadwal/absensi
-    // per kegiatan menyusul di atas data ini (belum dibangun di paket ini).
+    // Master kegiatan + pembina: HANYA Kesiswaan & Admin yang mengelola.
     Route::middleware('role:kesiswaan,admin')->group(function () {
         Route::resource('ekstrakurikuler', EkstrakurikulerController::class)->except(['create', 'edit', 'show']);
+
+        // Anggota (siswa) per kegiatan — juga khusus Kesiswaan & Admin.
+        Route::prefix('ekstrakurikuler/{ekstrakurikuler}/anggota')->name('ekstrakurikuler.anggota.')->group(function () {
+            Route::get('/', [EkstrakurikulerAnggotaController::class, 'index'])->name('index');
+            Route::post('/', [EkstrakurikulerAnggotaController::class, 'store'])->name('store');
+            Route::delete('/{anggota}', [EkstrakurikulerAnggotaController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+    // ===== ABSENSI EKSTRAKURIKULER =====
+    // Yang boleh MENGISI: guru/guru_bk (HANYA kegiatan yang mereka bina —
+    // dicek lagi di controller, bukan cuma lewat middleware role ini) serta
+    // Kesiswaan/Admin (kegiatan apa pun, mewakili). Lihat
+    // EkskulAbsensiController::otorisasiPengisi().
+    Route::middleware('role:guru,guru_bk,kesiswaan,admin')->group(function () {
+        Route::get('ekstrakurikuler-absensi', [EkskulAbsensiController::class, 'pilihKegiatan'])->name('ekstrakurikuler.absensi.pilih');
+        Route::get('ekstrakurikuler/{ekstrakurikuler}/absensi', [EkskulAbsensiController::class, 'form'])->name('ekstrakurikuler.absensi.form');
+        Route::post('ekstrakurikuler/{ekstrakurikuler}/absensi', [EkskulAbsensiController::class, 'store'])->name('ekstrakurikuler.absensi.store');
+
+        // Rekap bulanan: sama, guru/guru_bk hanya kegiatan yang dibina
+        // (dicek lagi di controller), Kesiswaan/Admin bebas.
+        Route::get('ekstrakurikuler/{ekstrakurikuler}/rekap', [EkskulRekapController::class, 'bulanan'])->name('ekstrakurikuler.rekap');
     });
 
     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====

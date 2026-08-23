@@ -54,6 +54,18 @@
                 </x-nav-group>
             @endif
 
+            {{-- (2026-08-23) — pembina ekskul dari SEKOLAH (guru/guru_bk)
+                 masuk lewat sini untuk isi absensi kegiatan yang mereka
+                 bina; halaman ini hanya menampilkan kegiatan yang mereka
+                 bina (dicek di EkskulAbsensiController). Kesiswaan/Admin
+                 TIDAK perlu link ini — mereka sudah punya tombol
+                 "Absensi"/"Rekap" langsung di menu Ekstrakurikuler/Kesiswaan. --}}
+            @if($user->role === 'guru' || $user->role === 'guru_bk')
+                <x-nav-link :href="route('ekstrakurikuler.absensi.pilih')" icon="fa-people-group" :active="request()->routeIs('ekstrakurikuler.absensi.*') || request()->routeIs('ekstrakurikuler.rekap')">
+                    Absensi Ekskul
+                </x-nav-link>
+            @endif
+
             @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
                 <x-nav-group icon="fa-triangle-exclamation" label="Pelanggaran" :active="request()->routeIs('bk.*')">
                     @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
