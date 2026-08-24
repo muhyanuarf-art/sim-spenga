@@ -112,6 +112,15 @@
                 </x-nav-link>
             @endif
 
+            {{-- (2026-08-24) — Surat dipakai BERSAMA Kesiswaan & BK (1 arsip
+                 yang sama), jadi flat link ini ditampilkan untuk kedua role
+                 itu, bukan cuma salah satu. --}}
+            @if(in_array($user->role, ['kesiswaan', 'guru_bk']))
+                <x-nav-link :href="route('surat.index')" icon="fa-envelope" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
+                    Surat
+                </x-nav-link>
+            @endif
+
             {{-- (2026-08-23) — untuk Admin (yang sidebarnya sudah padat
                  banyak grup), "Ekstrakurikuler" dikelompokkan dalam grup
                  "Kesiswaan" tersendiri (pola sama seperti grup "Kurikulum"
@@ -120,12 +129,16 @@
                  seperti ini — tetap flat seperti di atas, karena sidebar-nya
                  sudah ringkas dan ini yang diminta dipertahankan. --}}
             @if($user->role === 'admin')
-                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*')">
+                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*') || request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
                     <x-nav-sublink :href="route('ekstrakurikuler.index')" :active="request()->routeIs('ekstrakurikuler.*')">
                         Ekstrakurikuler
                     </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index')" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
+                        Surat
+                    </x-nav-sublink>
                 </x-nav-group>
             @endif
+
 
             @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
                 <x-nav-group icon="fa-chalkboard" label="Monitoring Kelas" :active="request()->routeIs('walikelas.*')">

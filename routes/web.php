@@ -18,6 +18,7 @@ use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
+use App\Http\Controllers\JenisSuratController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\RiwayatKelasController;
 use App\Http\Controllers\LaporanGuruController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
+use App\Http\Controllers\SuratController;
 use App\Http\Controllers\TahunAjaranController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WaliKelasController;
@@ -156,6 +158,14 @@ Route::middleware('auth')->group(function () {
         // Rekap bulanan: sama, guru/guru_bk hanya kegiatan yang dibina
         // (dicek lagi di controller), Kesiswaan/Admin bebas.
         Route::get('ekstrakurikuler/{ekstrakurikuler}/rekap', [EkskulRekapController::class, 'bulanan'])->name('ekstrakurikuler.rekap');
+    });
+
+    // ===== SURAT: dibuat & diarsipkan BERSAMA oleh Kesiswaan & BK — 1
+    // arsip yang sama, bukan terpisah per role, supaya keduanya saling
+    // tahu surat yang sudah diinput/dicetak. =====
+    Route::middleware('role:kesiswaan,guru_bk,admin')->group(function () {
+        Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'edit', 'show']);
+        Route::resource('surat', SuratController::class);
     });
 
     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====
