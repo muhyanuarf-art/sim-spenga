@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\PengaturanSekolah;
 use App\Models\Siswa;
+use App\Models\User;
 use Carbon\Carbon;
 
 /**
@@ -14,6 +15,8 @@ use Carbon\Carbon;
  *
  *   {nama_siswa}   {nis}   {nisn}   {kelas}   {nama_ortu}
  *   {tanggal}      {no_surat}       {nama_sekolah}
+ *   {tanggal_surat_dibuat}          {lokasi_ttd}
+ *   {nama_guru_ttd}                 {nip_guru_ttd}
  *
  * Hasil gabungan ini yang DISIMPAN sebagai isi final 1 surat (bukan
  * template mentahnya lagi) — jadi kalau template diedit belakangan,
@@ -30,19 +33,30 @@ class SuratMerge
         '{tanggal}' => 'Tanggal surat (format: 24 Agustus 2026)',
         '{no_surat}' => 'Nomor surat',
         '{nama_sekolah}' => 'Nama sekolah (dari Pengaturan Sekolah)',
+        '{tanggal_surat_dibuat}' => 'Tanggal surat (sama dengan {tanggal}) — untuk baris "Kota, tanggal" di penutup surat',
+        '{lokasi_ttd}' => 'Kota/lokasi tanda tangan (dari Pengaturan Sekolah)',
+        '{nama_guru_ttd}' => 'Nama guru/staf pembuat surat (akun yang sedang login), untuk baris tanda tangan',
+        '{nip_guru_ttd}' => 'NIP guru/staf pembuat surat (akun yang sedang login), untuk baris tanda tangan',
     ];
 
-    public static function isi(string $template, Siswa $siswa, string $tanggal, ?string $noSurat): string
+    public static function isi(string $template, Siswa $siswa, string $tanggal, ?string $noSurat, ?User $guru = null): string
     {
+        $tanggalFormatted = Carbon::parse($tanggal)->translatedFormat('d F Y');
+        $pengaturan = PengaturanSekolah::current();
+
         $pengganti = [
             '{nama_siswa}' => $siswa->nama,
             '{nis}' => $siswa->nis,
             '{nisn}' => $siswa->nisn ?? '-',
             '{kelas}' => $siswa->kelas->nama_kelas ?? '-',
             '{nama_ortu}' => $siswa->nama_ortu ?? '-',
-            '{tanggal}' => Carbon::parse($tanggal)->translatedFormat('d F Y'),
+            '{tanggal}' => $tanggalFormatted,
             '{no_surat}' => $noSurat ?: '-',
-            '{nama_sekolah}' => PengaturanSekolah::current()->nama_sekolah ?? '-',
+            '{nama_sekolah}' => $pengaturan->nama_sekolah ?? '-',
+            '{tanggal_surat_dibuat}' => $tanggalFormatted,
+            '{lokasi_ttd}' => $pengaturan->lokasiTtd(),
+            '{nama_guru_ttd}' => $guru->name ?? '............................',
+            '{nip_guru_ttd}' => $guru->nip ?? '............................',
         ];
 
         return strtr($template, $pengganti);

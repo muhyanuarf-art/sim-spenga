@@ -65,7 +65,7 @@ class SuratController extends Controller
         $tanggal = $request->get('tanggal', now()->toDateString());
         $isiGabungan = null;
         if ($jenisSurat && $siswaTerpilih) {
-            $isiGabungan = SuratMerge::isi($jenisSurat->template_isi ?? '', $siswaTerpilih, $tanggal, $request->get('nomor_surat'));
+            $isiGabungan = SuratMerge::isi($jenisSurat->template_isi ?? '', $siswaTerpilih, $tanggal, $request->get('nomor_surat'), $request->user());
         }
 
         return view('surat.create', compact(
