@@ -17,7 +17,7 @@
     $tanggalDefault = now()->translatedFormat('d F Y');
 @endphp
 
-<div class="flex justify-end mt-8 print:mt-10">
+<div class="cetak-utuh flex justify-end mt-8 print:mt-4">
     <div class="text-sm text-slate-700 text-center w-72">
         <p class="mb-1">
             <input type="text" value="{{ $kotaDefault }}"

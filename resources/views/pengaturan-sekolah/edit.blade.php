@@ -12,14 +12,85 @@
             <span class="italic">"Bumiayu, 16 Agustus 2026 &middot; Wali Kelas 7A &middot; Nama, S.Pd. &middot; NIP. ..."</span>
         </p>
 
-        <form method="POST" action="{{ route('pengaturan-sekolah.update') }}" class="space-y-4">
+        <form method="POST" action="{{ route('pengaturan-sekolah.update') }}" class="space-y-6" enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Sekolah</label>
-                <input type="text" name="nama_sekolah" value="{{ old('nama_sekolah', $pengaturan->nama_sekolah) }}"
-                       placeholder="Contoh: SMP Negeri 1 Bumiayu" class="input">
+            <div class="border-b border-slate-100 pb-6">
+                <p class="font-bold text-slate-700 text-sm mb-1">KOP Surat</p>
+                <p class="text-xs text-slate-400 mb-4">
+                    Muncul di bagian paling atas hasil Cetak/Export PDF di semua laporan (bukan tampil di layar
+                    biasa) — persis seperti kop surat resmi. Baris yang dikosongkan otomatis tidak ditampilkan.
+                </p>
+
+                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Logo Kiri <span class="text-slate-400 font-normal">(opsional)</span></label>
+                        @if($pengaturan->logoKiriUrl())
+                            <div class="flex items-center gap-3 mb-2">
+                                <img src="{{ $pengaturan->logoKiriUrl() }}" class="w-14 h-14 object-contain border border-slate-200 rounded-lg p-1">
+                                <label class="flex items-center gap-1.5 text-xs text-red-500">
+                                    <input type="checkbox" name="hapus_logo_kiri" value="1"> Hapus logo ini
+                                </label>
+                            </div>
+                        @endif
+                        <input type="file" name="logo_kiri" accept="image/*" class="input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Logo Kanan <span class="text-slate-400 font-normal">(opsional)</span></label>
+                        @if($pengaturan->logoKananUrl())
+                            <div class="flex items-center gap-3 mb-2">
+                                <img src="{{ $pengaturan->logoKananUrl() }}" class="w-14 h-14 object-contain border border-slate-200 rounded-lg p-1">
+                                <label class="flex items-center gap-1.5 text-xs text-red-500">
+                                    <input type="checkbox" name="hapus_logo_kanan" value="1"> Hapus logo ini
+                                </label>
+                            </div>
+                        @endif
+                        <input type="file" name="logo_kanan" accept="image/*" class="input">
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Pemerintah Daerah <span class="text-slate-400 font-normal">(opsional)</span></label>
+                        <input type="text" name="pemerintah_daerah" value="{{ old('pemerintah_daerah', $pengaturan->pemerintah_daerah) }}"
+                               placeholder="Contoh: PEMERINTAH KABUPATEN BREBES" class="input">
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Instansi Induk <span class="text-slate-400 font-normal">(opsional)</span></label>
+                            <input type="text" name="instansi_induk" value="{{ old('instansi_induk', $pengaturan->instansi_induk) }}"
+                                   placeholder="Contoh: DINAS PENDIDIKAN PEMUDA DAN OLAHRAGA" class="input">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Unit Kerja <span class="text-slate-400 font-normal">(opsional)</span></label>
+                            <input type="text" name="unit_kerja" value="{{ old('unit_kerja', $pengaturan->unit_kerja) }}"
+                                   placeholder="Contoh: UPT SATUAN PENDIDIKAN FORMAL" class="input">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Sekolah</label>
+                        <input type="text" name="nama_sekolah" value="{{ old('nama_sekolah', $pengaturan->nama_sekolah) }}"
+                               placeholder="Contoh: SMP NEGERI 3 BUMIAYU" class="input">
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Kecamatan <span class="text-slate-400 font-normal">(opsional)</span></label>
+                            <input type="text" name="kecamatan" value="{{ old('kecamatan', $pengaturan->kecamatan) }}"
+                                   placeholder="Contoh: KECAMATAN BUMIAYU" class="input">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">Alamat Sekolah <span class="text-slate-400 font-normal">(opsional)</span></label>
+                            <input type="text" name="alamat_sekolah" value="{{ old('alamat_sekolah', $pengaturan->alamat_sekolah) }}"
+                                   placeholder="Contoh: Jalan Desa Langkap Bumiayu Brebes 52273" class="input">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Email Sekolah <span class="text-slate-400 font-normal">(opsional)</span></label>
+                        <input type="text" name="email_sekolah" value="{{ old('email_sekolah', $pengaturan->email_sekolah) }}"
+                               placeholder="Boleh lebih dari 1, pisahkan dengan &quot; / &quot;" class="input">
+                    </div>
+                </div>
             </div>
 
             <div class="grid sm:grid-cols-2 gap-4">
@@ -41,7 +112,7 @@
                 </label>
                 <input type="text" name="format_lokasi_ttd"
                        value="{{ old('format_lokasi_ttd', $pengaturan->format_lokasi_ttd) }}"
-                       placeholder="Kosongkan untuk memakai Kabupaten/Kota di atas (\"{{ $pengaturan->kabupaten_kota }}\")"
+                       placeholder="Kosongkan untuk memakai Kabupaten/Kota di atas (&quot;{{ $pengaturan->kabupaten_kota }}&quot;)"
                        class="input">
                 <p class="text-xs text-slate-400 mt-1">
                     Isi hanya kalau teks lokasi di baris tanda tangan perlu berbeda dari Kabupaten/Kota di atas

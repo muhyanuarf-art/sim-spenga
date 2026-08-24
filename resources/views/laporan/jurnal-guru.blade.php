@@ -62,6 +62,8 @@
         </div>
     @else
         <div class="print-section" id="print-jurnal-guru">
+        <x-kop-surat />
+
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="card p-5">
                 <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Jumlah Pertemuan</p>
@@ -95,11 +97,12 @@
             <div class="overflow-x-auto -mx-5">
                 <table class="table-clean w-full">
                     <thead>
-                        <tr><th>Tanggal</th><th>Jam</th><th>Kelas</th><th>Materi</th><th>Kegiatan</th><th>H/S/I/A</th></tr>
+                        <tr><th class="w-10">No</th><th>Tanggal</th><th>Jam</th><th>Kelas</th><th>Materi</th><th>Kegiatan</th><th>H/S/I/A</th></tr>
                     </thead>
                     <tbody>
                         @forelse($jurnal as $j)
                         <tr>
+                            <td>{{ $loop->iteration }}</td>
                             <td class="whitespace-nowrap">{{ $j->tanggal->translatedFormat('d M Y') }}</td>
                             <td class="whitespace-nowrap">{{ $j->label_sesi }}</td>
                             <td class="font-semibold">{{ $j->kelas->nama_kelas }}</td>
@@ -113,7 +116,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada jurnal pada periode ini.</td></tr>
+                        <tr><td colspan="7" class="text-center text-slate-400 py-8">Belum ada jurnal pada periode ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

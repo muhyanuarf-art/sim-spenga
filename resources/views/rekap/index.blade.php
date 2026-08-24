@@ -35,6 +35,8 @@
     @endif
 
     <div class="card p-5 print-section" id="print-rekap-guru">
+        <x-kop-surat />
+
         <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p class="font-extrabold text-slate-800 text-lg">Rekapitulasi Jurnal Mengajar</p>
             <button type="button" onclick="cetakBagian('print-rekap-guru')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak Rekap Guru</button>
@@ -48,6 +50,7 @@
             <table class="w-full text-xs border-collapse">
                 <thead>
                     <tr class="bg-slate-50">
+                        <th class="border border-slate-200 px-2 py-2 w-8">No</th>
                         <th class="border border-slate-200 px-2 py-2 sticky left-0 bg-slate-50 text-left min-w-[170px]">Guru</th>
                         @for($t = 1; $t <= $jumlahHari; $t++)
                             <th class="border border-slate-200 px-1 py-2 w-9">{{ $t }}</th>
@@ -60,6 +63,7 @@
                 <tbody>
                     @forelse($rekapGuru as $r)
                     <tr class="hover:bg-slate-50">
+                        <td class="border border-slate-200 px-2 py-1.5 text-center">{{ $loop->iteration }}</td>
                         <td class="border border-slate-200 px-2 py-1.5 sticky left-0 bg-white font-medium whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <x-initial-avatar :nama="$r['guru']->name" />
@@ -89,7 +93,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="{{ $jumlahHari + 4 }}" class="text-center text-slate-400 py-8">Belum ada data guru / jadwal.</td></tr>
+                    <tr><td colspan="{{ $jumlahHari + 5 }}" class="text-center text-slate-400 py-8">Belum ada data guru / jadwal.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -110,16 +114,19 @@
     </div>
 
     <div class="card p-5 print-section" id="print-rekap-kelas">
+        <x-kop-surat />
+
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
             <p class="font-bold text-slate-800">Rekap Per Kelas</p>
             <button type="button" onclick="cetakBagian('print-rekap-kelas')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak Rekap Kelas</button>
         </div>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Kelas</th><th>Siswa</th><th>Jurnal Terisi</th><th>Total Alfa</th></tr></thead>
+                <thead><tr><th class="w-10">No</th><th>Kelas</th><th>Siswa</th><th>Jurnal Terisi</th><th>Total Alfa</th></tr></thead>
                 <tbody>
                     @foreach($rekapKelas as $r)
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td class="font-semibold"><x-kelas-badge :nama="$r['kelas']->nama_kelas" /></td>
                         <td>{{ $r['kelas']->siswas_count }}</td>
                         <td>{{ $r['jumlah_jurnal'] }}</td>

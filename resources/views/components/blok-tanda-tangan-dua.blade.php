@@ -34,7 +34,7 @@
     $nipKiri = $nipKiri ?: $pengaturanSekolahGlobal->nip_kepala_sekolah;
 @endphp
 
-<div class="mt-8 print:mt-10">
+<div class="cetak-utuh mt-8 print:mt-4">
     <p class="text-sm text-slate-700 text-right mb-4">
         <input type="text" value="{{ $kotaDefault }}"
                class="text-right bg-transparent border-b border-dashed border-slate-300 focus:outline-none focus:border-brand-500 w-28 print:border-b-0"

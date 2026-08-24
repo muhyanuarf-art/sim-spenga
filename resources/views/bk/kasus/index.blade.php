@@ -57,6 +57,8 @@
     {{-- 1 tabel ini dipakai untuk tampilan layar SEKALIGUS bagian yang
          dicetak/PDF-kan — tidak ada tabel duplikat. --}}
     <div class="card p-5 print-section" id="print-kasus">
+        <x-kop-surat />
+
         <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p class="font-extrabold text-slate-800 text-lg">Rekap Kasus / Pelanggaran Siswa</p>
             <button type="button" onclick="cetakBagian('print-kasus')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF</button>

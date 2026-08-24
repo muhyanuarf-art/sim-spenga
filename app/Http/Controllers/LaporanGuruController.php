@@ -130,7 +130,7 @@ class LaporanGuruController extends Controller
 
             $rekap = $siswas->map(function ($siswa) use ($absensiRaw, $jumlahHari) {
                 $data = array_fill(1, $jumlahHari, '');
-                $sakit = $izin = $alfa = 0;
+                $hadir = $sakit = $izin = $alfa = 0;
 
                 foreach ($absensiRaw->get($siswa->id, collect()) as $r) {
                     $tgl = (int) $r->tanggal->format('j');
@@ -144,11 +144,13 @@ class LaporanGuruController extends Controller
                     if ($r->status === 'Sakit') $sakit++;
                     if ($r->status === 'Izin') $izin++;
                     if ($r->status === 'Alfa') $alfa++;
+                    if ($r->status === 'Hadir') $hadir++;
                 }
 
                 return [
                     'siswa' => $siswa,
                     'harian' => $data,
+                    'hadir' => $hadir,
                     'sakit' => $sakit,
                     'izin' => $izin,
                     'alfa' => $alfa,

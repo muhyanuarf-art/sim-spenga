@@ -36,17 +36,20 @@
     </div>
 
     <div class="card p-5 print-section" id="print-jurnal-kelas">
+        <x-kop-surat />
+
         <p class="font-extrabold text-slate-800 text-lg mb-1">Jurnal Mengajar Kelas {{ $kelas->nama_kelas }}</p>
         <p class="text-sm text-slate-400 mb-4">Bulan {{ \Carbon\Carbon::create()->month($bulan)->translatedFormat('F') }} {{ $tahun }}</p>
 
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
                 <thead>
-                    <tr><th>Tanggal</th><th>Jam</th><th>Mapel</th><th>Guru</th><th>Materi</th><th>H/S/I/A</th></tr>
+                    <tr><th class="w-10">No</th><th>Tanggal</th><th>Jam</th><th>Mapel</th><th>Guru</th><th>Materi</th><th>H/S/I/A</th></tr>
                 </thead>
                 <tbody>
                     @forelse($jurnal as $j)
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td class="whitespace-nowrap">{{ $j->tanggal->translatedFormat('d M Y') }}</td>
                         <td>{{ $j->label_sesi }}</td>
                         <td class="font-medium">{{ $j->mapel->nama_mapel }}</td>
@@ -60,7 +63,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada jurnal pada periode ini.</td></tr>
+                    <tr><td colspan="7" class="text-center text-slate-400 py-8">Belum ada jurnal pada periode ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>

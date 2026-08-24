@@ -49,6 +49,8 @@
     </div>
 
     <div class="card p-5 print-section" id="print-pembinaan">
+        <x-kop-surat />
+
         <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p class="font-extrabold text-slate-800 text-lg">Rekap Pembinaan Siswa</p>
             <button type="button" onclick="cetakBagian('print-pembinaan')" class="btn-outline no-print"><i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF</button>
@@ -61,10 +63,11 @@
 
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Tahap</th><th>Jenis</th><th>Status</th><th>Petugas</th><th class="th-aksi no-print">Aksi</th></tr></thead>
+                <thead><tr><th class="w-10">No</th><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Tahap</th><th>Jenis</th><th>Status</th><th>Petugas</th><th class="th-aksi no-print">Aksi</th></tr></thead>
                 <tbody>
                     @forelse($data as $p)
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td class="text-slate-500 whitespace-nowrap">{{ $p->tanggal->translatedFormat('d M Y') }}</td>
                         <td class="font-medium"><a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="hover:underline">{{ $p->siswa->nama ?? '-' }}</a></td>
                         <td><x-kelas-badge :nama="$p->siswa->kelas->nama_kelas ?? '-'" /></td>
@@ -79,7 +82,7 @@
                         <td class="td-aksi no-print"><a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye mr-1.5"></i> Detail</a></td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="text-center text-slate-400 py-8">Belum ada pembinaan tercatat.</td></tr>
+                    <tr><td colspan="9" class="text-center text-slate-400 py-8">Belum ada pembinaan tercatat.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -59,6 +59,11 @@ body { -webkit-font-smoothing: antialiased; }
    1 "print-section" (mis. halaman Rekapitulasi: Rekap Guru & Rekap
    Kelas), yang benar-benar tercetak hanya section yang dipilih lewat
    tombol Cetak-nya masing-masing (lihat fungsi cetakBagian() di app.js).
+
+   ".cetak-saja" kebalikan dari ".no-print" — elemen ini SENGAJA
+   disembunyikan di layar biasa dan HANYA muncul saat benar-benar dicetak
+   (dipakai oleh komponen <x-kop-surat />, supaya KOP Surat tidak
+   mengganggu tampilan layar sehari-hari, cuma nongol pas Cetak/PDF).
 */
 @media print {
     aside, header, .no-print { display: none !important; }
@@ -68,4 +73,94 @@ body { -webkit-font-smoothing: antialiased; }
 
     body.print-target-active .print-section { display: none !important; }
     body.print-target-active .print-section.print-target-selected { display: block !important; }
+    .cetak-saja { display: block !important; }
+    /* Permintaan: semua teks abu-abu (dipakai untuk keterangan/label
+       sekunder di seluruh halaman, mis. "Bulan Agustus 2026",
+       placeholder, catatan kecil) dihitamkan PENUH saat dicetak — supaya
+       lebih mudah dibaca guru yang lebih tua, karena abu-abu muda kalau
+       dicetak/di-print bisa jadi kurang kontras & susah dibaca. Ini
+       CUMA berlaku saat print — di layar biasa warnanya tetap abu-abu
+       seperti biasa (desainnya tidak berubah untuk pemakaian sehari-hari
+       di layar).
+       Dicover SEMUA tingkat abu-abu yang dipakai di aplikasi ini
+       (slate-300 sampai slate-900) — supaya konsisten, dijadikan hitam
+       pekat semua walau di layar tingkatannya beda-beda. */
+    .print-target-selected .text-slate-300,
+    .print-target-selected .text-slate-400,
+    .print-target-selected .text-slate-500,
+    .print-target-selected .text-slate-600,
+    .print-target-selected .text-slate-700,
+    .print-target-selected .text-slate-800,
+    .print-target-selected .text-slate-900,
+    .cetak-saja .text-slate-300,
+    .cetak-saja .text-slate-400,
+    .cetak-saja .text-slate-500,
+    .cetak-saja .text-slate-600,
+    .cetak-saja .text-slate-700,
+    .cetak-saja .text-slate-800,
+    .cetak-saja .text-slate-900 {
+        color: #000 !important;
+    }
+
+    /* Permintaan: garis tabel juga dihitamkan penuh saat dicetak (tadinya
+       abu-abu terang), supaya kotak-kotak tabel lebih jelas terlihat.
+       Ada 2 gaya tabel di aplikasi ini — dua-duanya perlu dicover:
+       1. Tabel "grid" (rekap absensi dsb.) — border lewat class Tailwind
+          border-slate-100/200/300 di tiap <th>/<td>.
+       2. Tabel ".table-clean" (daftar biasa) — border-bottom lewat CSS
+          custom di atas, bukan class Tailwind. */
+    .print-target-selected .border-slate-100,
+    .print-target-selected .border-slate-200,
+    .print-target-selected .border-slate-300,
+    .cetak-saja .border-slate-100,
+    .cetak-saja .border-slate-200,
+    .cetak-saja .border-slate-300 {
+        border-color: #000 !important;
+    }
+    .print-target-selected .table-clean th,
+    .print-target-selected .table-clean td,
+    .cetak-saja .table-clean th,
+    .cetak-saja .table-clean td {
+        border-bottom-color: #000 !important;
+    }
+
+    /* Permintaan: kalau isi laporan + blok tanda tangan SEBENARNYA hampir
+       muat 1 halaman (cuma kelebihan sedikit karena jarak/padding), lebih
+       baik dipadatkan supaya beneran jadi 1 halaman — daripada tanda
+       tangannya "kebuang" sendirian ke halaman ke-2 gara-gara selisih
+       tipis. Ini memadatkan jarak/padding SAAT PRINT SAJA (tampilan di
+       layar tidak berubah): kartu & sel tabel jadi sedikit lebih rapat,
+       plus jarak sebelum blok tanda tangan dikurangi (lihat perubahan
+       print:mt-10 -> print:mt-4 di komponen blok-tanda-tangan).
+       CATATAN JUJUR: ini MEMPERBESAR PELUANG muat 1 halaman untuk kasus
+       yang memang cuma kelebihan tipis, TAPI bukan jaminan mutlak untuk
+       semua ukuran data — kalau isinya benar-benar panjang (mis. kelas
+       40 siswa x 31 hari), tetap akan otomatis lanjut ke halaman
+       berikutnya seperti seharusnya (itu memang benar, sesuai aturan
+       yang Anda sebutkan). */
+    .print-target-selected { padding: 0.75rem !important; }
+    .print-target-selected table.text-xs th,
+    .print-target-selected table.text-xs td {
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+    }
+    .print-target-selected .table-clean th,
+    .print-target-selected .table-clean td {
+        padding-top: 0.4rem !important;
+        padding-bottom: 0.4rem !important;
+    }
+}
+.cetak-saja { display: none; }
+
+/* Permintaan: blok tanda tangan (kota/tanggal + "Mengetahui" + jabatan +
+   nama + NIP) kadang terpotong tanggung di antara 2 halaman saat dicetak
+   — separuh di halaman 1, separuh lagi di halaman 2, jadi susah dibaca.
+   ".cetak-utuh" memberi tahu browser supaya blok ini SELALU dianggap 1
+   kesatuan yang tidak boleh dipotong: kalau tidak muat sisa halaman
+   sekarang, seluruh bloknya dipindah ke halaman berikutnya, bukan
+   dipotong di tengah. Aman dipakai di luar konteks cetak juga (properti
+   ini otomatis tidak berpengaruh apa-apa di layar biasa). */
+.cetak-utuh {
+    page-break-inside: avoid;
+    break-inside: avoid;
 }

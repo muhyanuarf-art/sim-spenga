@@ -71,7 +71,7 @@ class WaliKelasController extends Controller
         $rekap = $siswas->map(function ($siswa) use ($absensiRaw, $jumlahHari) {
             $data = array_fill(1, $jumlahHari, '');
             $keterangan = array_fill(1, $jumlahHari, '');
-            $sakit = $izin = $alfa = 0;
+            $hadir = $sakit = $izin = $alfa = 0;
 
             $records = $absensiRaw->get($siswa->id, collect());
 
@@ -97,12 +97,14 @@ class WaliKelasController extends Controller
                 if ($final->status === 'Sakit') $sakit++;
                 if ($final->status === 'Izin') $izin++;
                 if ($final->status === 'Alfa') $alfa++;
+                if ($final->status === 'Hadir') $hadir++;
             }
 
             return [
                 'siswa' => $siswa,
                 'harian' => $data,
                 'keterangan' => $keterangan,
+                'hadir' => $hadir,
                 'sakit' => $sakit,
                 'izin' => $izin,
                 'alfa' => $alfa,

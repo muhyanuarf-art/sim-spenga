@@ -27,6 +27,8 @@
     </div>
 
     <div class="card p-5 print-section" id="print-rekap-ekskul">
+        <x-kop-surat />
+
         <div class="flex items-center justify-between mb-4">
             <div>
                 <p class="font-extrabold text-slate-800 text-lg">Rekap Absensi Ekstrakurikuler — {{ $ekstrakurikuler->nama_ekstrakurikuler }}</p>
@@ -45,6 +47,7 @@
                         @for($t = 1; $t <= $jumlahHari; $t++)
                             <th class="border border-slate-200 px-1 py-2 w-6">{{ $t }}</th>
                         @endfor
+                        <th class="border border-slate-200 px-2 py-2 bg-emerald-50">H</th>
                         <th class="border border-slate-200 px-2 py-2 bg-amber-50">S</th>
                         <th class="border border-slate-200 px-2 py-2 bg-blue-50">I</th>
                         <th class="border border-slate-200 px-2 py-2 bg-red-50">A</th>
@@ -73,13 +76,14 @@
                                 {{ $kode }}
                             </td>
                         @endfor
+                        <td class="border border-slate-200 text-center font-bold bg-emerald-50/50">{{ $r['hadir'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-amber-50/50">{{ $r['sakit'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-blue-50/50">{{ $r['izin'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-red-50/50">{{ $r['alfa'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-slate-100">{{ $r['jumlah'] }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="{{ $jumlahHari + 7 }}" class="text-center text-slate-400 py-8">Tidak ada data pembina untuk kegiatan ini.</td></tr>
+                    <tr><td colspan="{{ $jumlahHari + 8 }}" class="text-center text-slate-400 py-8">Tidak ada data pembina untuk kegiatan ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -97,6 +101,7 @@
                         @for($t = 1; $t <= $jumlahHari; $t++)
                             <th class="border border-slate-200 px-1 py-2 w-6">{{ $t }}</th>
                         @endfor
+                        <th class="border border-slate-200 px-2 py-2 bg-emerald-50">H</th>
                         <th class="border border-slate-200 px-2 py-2 bg-amber-50">S</th>
                         <th class="border border-slate-200 px-2 py-2 bg-blue-50">I</th>
                         <th class="border border-slate-200 px-2 py-2 bg-red-50">A</th>
@@ -120,13 +125,14 @@
                                 {{ $kode }}
                             </td>
                         @endfor
+                        <td class="border border-slate-200 text-center font-bold bg-emerald-50/50">{{ $r['hadir'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-amber-50/50">{{ $r['sakit'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-blue-50/50">{{ $r['izin'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-red-50/50">{{ $r['alfa'] }}</td>
                         <td class="border border-slate-200 text-center font-bold bg-slate-100">{{ $r['jumlah'] }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="{{ $jumlahHari + 8 }}" class="text-center text-slate-400 py-8">Tidak ada data siswa untuk kegiatan ini.</td></tr>
+                    <tr><td colspan="{{ $jumlahHari + 9 }}" class="text-center text-slate-400 py-8">Tidak ada data siswa untuk kegiatan ini.</td></tr>
                     @endforelse
                 </tbody>
             </table>

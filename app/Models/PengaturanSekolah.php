@@ -10,6 +10,14 @@ class PengaturanSekolah extends Model
 
     protected $fillable = [
         'nama_sekolah',
+        'pemerintah_daerah',
+        'instansi_induk',
+        'unit_kerja',
+        'kecamatan',
+        'alamat_sekolah',
+        'email_sekolah',
+        'logo_kiri_path',
+        'logo_kanan_path',
         'kabupaten_kota',
         'provinsi',
         'nama_kepala_sekolah',
@@ -43,5 +51,15 @@ class PengaturanSekolah extends Model
     public function lokasiTtd(): string
     {
         return $this->format_lokasi_ttd ?: ($this->kabupaten_kota ?: '-');
+    }
+
+    public function logoKiriUrl(): ?string
+    {
+        return $this->logo_kiri_path ? asset('storage/' . $this->logo_kiri_path) : null;
+    }
+
+    public function logoKananUrl(): ?string
+    {
+        return $this->logo_kanan_path ? asset('storage/' . $this->logo_kanan_path) : null;
     }
 }

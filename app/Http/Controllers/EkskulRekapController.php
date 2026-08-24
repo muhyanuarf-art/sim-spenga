@@ -62,7 +62,7 @@ class EkskulRekapController extends Controller
 
         return $siswas->map(function ($siswa) use ($absensiRaw, $jumlahHari) {
             $data = array_fill(1, $jumlahHari, '');
-            $sakit = $izin = $alfa = 0;
+            $hadir = $sakit = $izin = $alfa = 0;
 
             foreach ($absensiRaw->get($siswa->id, collect()) as $r) {
                 $tgl = (int) $r->absensiEkskul->tanggal->format('j');
@@ -72,6 +72,7 @@ class EkskulRekapController extends Controller
                 if ($r->status === 'Sakit') $sakit++;
                 if ($r->status === 'Izin') $izin++;
                 if ($r->status === 'Alfa') $alfa++;
+                if ($r->status === 'Hadir') $hadir++;
             }
 
             return [
@@ -79,7 +80,7 @@ class EkskulRekapController extends Controller
                 'nis' => $siswa->nis,
                 'kelas' => $siswa->kelas->nama_kelas ?? '-',
                 'harian' => $data,
-                'sakit' => $sakit, 'izin' => $izin, 'alfa' => $alfa,
+                'hadir' => $hadir, 'sakit' => $sakit, 'izin' => $izin, 'alfa' => $alfa,
                 'jumlah' => $sakit + $izin + $alfa,
             ];
         });
@@ -115,7 +116,7 @@ class EkskulRekapController extends Controller
 
         return $pembinas->map(function ($pembina) use ($absensiRaw, $jumlahHari) {
             $data = array_fill(1, $jumlahHari, '');
-            $sakit = $izin = $alfa = 0;
+            $hadir = $sakit = $izin = $alfa = 0;
 
             foreach ($absensiRaw->get($pembina->id, collect()) as $r) {
                 $tgl = (int) $r->absensiEkskul->tanggal->format('j');
@@ -125,13 +126,14 @@ class EkskulRekapController extends Controller
                 if ($r->status === 'Sakit') $sakit++;
                 if ($r->status === 'Izin') $izin++;
                 if ($r->status === 'Alfa') $alfa++;
+                if ($r->status === 'Hadir') $hadir++;
             }
 
             return [
                 'nama' => $pembina->namaTampil(),
                 'jenis' => $pembina->isEksternal() ? 'Luar Sekolah' : 'Sekolah',
                 'harian' => $data,
-                'sakit' => $sakit, 'izin' => $izin, 'alfa' => $alfa,
+                'hadir' => $hadir, 'sakit' => $sakit, 'izin' => $izin, 'alfa' => $alfa,
                 'jumlah' => $sakit + $izin + $alfa,
             ];
         });
