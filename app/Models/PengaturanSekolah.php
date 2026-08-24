@@ -15,6 +15,7 @@ class PengaturanSekolah extends Model
         'unit_kerja',
         'kecamatan',
         'alamat_sekolah',
+        'website_sekolah',
         'email_sekolah',
         'logo_kiri_path',
         'logo_kanan_path',

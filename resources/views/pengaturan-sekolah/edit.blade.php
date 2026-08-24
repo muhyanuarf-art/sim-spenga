@@ -86,6 +86,11 @@
                         </div>
                     </div>
                     <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Website Sekolah <span class="text-slate-400 font-normal">(opsional)</span></label>
+                        <input type="text" name="website_sekolah" value="{{ old('website_sekolah', $pengaturan->website_sekolah) }}"
+                               placeholder="Contoh: www.smpn3bumiayu.sch.id" class="input">
+                    </div>
+                    <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">Email Sekolah <span class="text-slate-400 font-normal">(opsional)</span></label>
                         <input type="text" name="email_sekolah" value="{{ old('email_sekolah', $pengaturan->email_sekolah) }}"
                                placeholder="Boleh lebih dari 1, pisahkan dengan &quot; / &quot;" class="input">

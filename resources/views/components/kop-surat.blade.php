@@ -46,8 +46,18 @@
                 @if($pengaturan->alamat_sekolah)
                     <p class="text-xs text-slate-600">{{ $pengaturan->alamat_sekolah }}</p>
                 @endif
-                @if($pengaturan->email_sekolah)
-                    <p class="text-xs text-slate-600">Email : {{ $pengaturan->email_sekolah }}</p>
+                @if($pengaturan->website_sekolah || $pengaturan->email_sekolah)
+                    <p class="text-xs text-slate-600">
+                        @if($pengaturan->website_sekolah)
+                            Website : {{ $pengaturan->website_sekolah }}
+                        @endif
+                        @if($pengaturan->website_sekolah && $pengaturan->email_sekolah)
+                            &nbsp;
+                        @endif
+                        @if($pengaturan->email_sekolah)
+                            Email : {{ $pengaturan->email_sekolah }}
+                        @endif
+                    </p>
                 @endif
             </div>
             <div class="w-20 shrink-0 text-center">

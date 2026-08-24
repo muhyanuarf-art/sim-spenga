@@ -69,8 +69,13 @@ body { -webkit-font-smoothing: antialiased; }
     aside, header, .no-print { display: none !important; }
     body { background: #fff !important; }
     main { padding: 0 !important; }
-    .card { box-shadow: none !important; border: 1px solid #cbd5e1 !important; }
-
+    /* Permintaan: kartu (kotak putih dengan garis pinggir & bayangan)
+       terlihat kurang formal kalau ikut tercetak — jadi dihilangkan
+       semua "kotak"-nya saat print (tanpa garis pinggir, tanpa bayangan,
+       tanpa sudut membulat), supaya isinya tampil polos menyatu dengan
+       halaman, seperti dokumen resmi biasa. Di layar biasa tidak
+       berubah, kartu tetap tampil seperti biasa. */
+    .card { box-shadow: none !important; border: none !important; border-radius: 0 !important; background: transparent !important; }
     body.print-target-active .print-section { display: none !important; }
     body.print-target-active .print-section.print-target-selected { display: block !important; }
     .cetak-saja { display: block !important; }
@@ -139,6 +144,22 @@ body { -webkit-font-smoothing: antialiased; }
        berikutnya seperti seharusnya (itu memang benar, sesuai aturan
        yang Anda sebutkan). */
     .print-target-selected { padding: 0.75rem !important; }
+
+    /* PERBAIKAN — akibat padding kartu di atas dikecilkan untuk print,
+       tabel yang pakai teknik "bleed" (margin negatif -mx-5/-mx-6, dipakai
+       supaya tabel bisa selebar penuh kartu tanpa terpotong padding)
+       jadi MELEBIHI padding baru yang lebih kecil itu — akibatnya tabel
+       "nyembul" keluar dari area cetak dan garis tepi kiri/kanannya
+       kepotong oleh batas halaman. Margin negatif ini dinetralkan
+       (dijadikan 0) khusus saat print, supaya tabel tetap penuh di
+       dalam area cetak dan semua garis tepinya kelihatan utuh. */
+    .print-target-selected [class*="-mx-5"],
+    .print-target-selected [class*="-mx-6"],
+    .cetak-saja [class*="-mx-5"],
+    .cetak-saja [class*="-mx-6"] {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
     .print-target-selected table.text-xs th,
     .print-target-selected table.text-xs td {
         padding-top: 0.2rem !important;
@@ -148,6 +169,19 @@ body { -webkit-font-smoothing: antialiased; }
     .print-target-selected .table-clean td {
         padding-top: 0.4rem !important;
         padding-bottom: 0.4rem !important;
+    }
+
+    /* Permintaan: sudut membulat (rounded-lg/xl/2xl/full/dst, termasuk
+       sudut bawaan .card di atas) terlihat kurang formal kalau ikut
+       tercetak — jadi disegikan penuh (border-radius: 0) khusus saat
+       print. Dipasang lewat wildcard [class*="rounded"] supaya otomatis
+       mengcover SEMUA elemen yang pakai class rounded apa pun (badge,
+       tombol, kartu, kotak input, dst.) tanpa perlu daftar manual satu-
+       satu — termasuk yang mungkin ditambahkan di kemudian hari. Di
+       layar biasa tidak berubah, sudut tetap membulat seperti biasa. */
+    .print-target-selected [class*="rounded"],
+    .cetak-saja [class*="rounded"] {
+        border-radius: 0 !important;
     }
 }
 .cetak-saja { display: none; }

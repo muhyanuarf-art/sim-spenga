@@ -34,6 +34,7 @@ class PengaturanSekolahController extends Controller
             'unit_kerja' => ['nullable', 'string', 'max:150'],
             'kecamatan' => ['nullable', 'string', 'max:100'],
             'alamat_sekolah' => ['nullable', 'string', 'max:255'],
+            'website_sekolah' => ['nullable', 'string', 'max:255'],
             'email_sekolah' => ['nullable', 'string', 'max:255'],
             'kabupaten_kota' => ['required', 'string', 'max:100'],
             'provinsi' => ['required', 'string', 'max:100'],
