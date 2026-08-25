@@ -113,13 +113,57 @@
             @endif
 
             {{-- (2026-08-24) — Surat dipakai BERSAMA Kesiswaan & BK (1 arsip
-                 yang sama), jadi flat link ini ditampilkan untuk kedua role
-                 itu, bukan cuma salah satu. --}}
+                 yang sama). (2026-08-25) — direstruktur jadi grup dropdown
+                 "Manajemen Surat" (Dashboard/Surat Masuk/Surat Keluar/
+                 Draft/Disposisi/Arsip/Template Surat/Jenis Surat) sesuai
+                 struktur menu yang diminta. Surat Masuk/Keluar/Draft/Arsip
+                 semuanya arahnya ke surat.index dengan filter arah/status
+                 beda-beda (lihat SuratController::index()) — bukan halaman
+                 terpisah, supaya tidak duplikasi logika tabel & pencarian.
+                 "Template Surat" & "Jenis Surat" SAAT INI menuju halaman
+                 yang SAMA (jenis-surat.index) — di skema ini 1 Jenis Surat
+                 = 1 template (kolom template_isi di jenis_surats), belum
+                 dipisah jadi tabel template tersendiri yang bisa banyak
+                 template per jenis. Kalau nanti perlu itu, perlu tahap
+                 baru (tabel surat_templates terpisah). --}}
             @if(in_array($user->role, ['kesiswaan', 'guru_bk']))
-                <x-nav-link :href="route('surat.index')" icon="fa-envelope" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
-                    Surat
+                <x-nav-group icon="fa-envelope" label="Manajemen Surat" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*') || request()->routeIs('disposisi.*')">
+                    <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
+                        Dashboard
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['arah' => 'masuk'])" :active="request()->routeIs('surat.index') && request('arah') === 'masuk'">
+                        Surat Masuk
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['arah' => 'keluar'])" :active="request()->routeIs('surat.index') && request('arah') === 'keluar'">
+                        Surat Keluar
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['status' => 'draft'])" :active="request()->routeIs('surat.index') && request('status') === 'draft'">
+                        Draft
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('disposisi.index')" :active="request()->routeIs('disposisi.*')">
+                        Disposisi
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['status' => 'diarsipkan'])" :active="request()->routeIs('surat.index') && request('status') === 'diarsipkan'">
+                        Arsip
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
+                        Template Surat
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
+                        Jenis Surat
+                    </x-nav-sublink>
+                </x-nav-group>
+            @endif
+
+            {{-- (2026-08-25) — Disposisi Masuk untuk role yang BUKAN
+                 pengelola surat (Kesiswaan/BK/Admin sudah punya "Disposisi"
+                 di dalam grup "Manajemen Surat" / "Kesiswaan" di atas). --}}
+            @if(in_array($user->role, ['guru', 'kurikulum', 'kepala_sekolah']))
+                <x-nav-link :href="route('disposisi.index')" icon="fa-share-from-square" :active="request()->routeIs('disposisi.*')">
+                    Disposisi Masuk
                 </x-nav-link>
             @endif
+
 
             {{-- (2026-08-23) — untuk Admin (yang sidebarnya sudah padat
                  banyak grup), "Ekstrakurikuler" dikelompokkan dalam grup
@@ -129,12 +173,30 @@
                  seperti ini — tetap flat seperti di atas, karena sidebar-nya
                  sudah ringkas dan ini yang diminta dipertahankan. --}}
             @if($user->role === 'admin')
-                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*') || request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
+                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*') || request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*') || request()->routeIs('disposisi.*')">
                     <x-nav-sublink :href="route('ekstrakurikuler.index')" :active="request()->routeIs('ekstrakurikuler.*')">
                         Ekstrakurikuler
                     </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index')" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
-                        Surat
+                    <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
+                        Surat — Dashboard
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['arah' => 'masuk'])" :active="request()->routeIs('surat.index') && request('arah') === 'masuk'">
+                        Surat Masuk
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['arah' => 'keluar'])" :active="request()->routeIs('surat.index') && request('arah') === 'keluar'">
+                        Surat Keluar
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['status' => 'draft'])" :active="request()->routeIs('surat.index') && request('status') === 'draft'">
+                        Draft
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('disposisi.index')" :active="request()->routeIs('disposisi.*')">
+                        Disposisi
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('surat.index', ['status' => 'diarsipkan'])" :active="request()->routeIs('surat.index') && request('status') === 'diarsipkan'">
+                        Arsip
+                    </x-nav-sublink>
+                    <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
+                        Jenis/Template Surat
                     </x-nav-sublink>
                 </x-nav-group>
             @endif

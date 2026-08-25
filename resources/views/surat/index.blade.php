@@ -1,18 +1,22 @@
 @extends('layouts.app')
-@section('title', 'Daftar Surat')
+@section('title', $judul)
 
 @section('content')
 <div class="space-y-6">
     <div class="flex justify-between items-center flex-wrap gap-3">
-        <p class="text-sm text-slate-500">Arsip surat — dibuat oleh Kesiswaan maupun BK, semua tercatat di sini supaya keduanya saling tahu.</p>
+        <div>
+            <p class="text-lg font-extrabold text-slate-800">{{ $judul }}</p>
+            <p class="text-sm text-slate-500">Arsip surat — dibuat oleh Kesiswaan maupun BK, semua tercatat di sini supaya keduanya saling tahu.</p>
+        </div>
         <div class="flex gap-2">
-            <a href="{{ route('jenis-surat.index') }}" class="btn-outline"><i class="fa-solid fa-gear mr-1.5"></i> Kelola Jenis Surat</a>
             <a href="{{ route('surat.create') }}" class="btn-primary">+ Buat Surat</a>
         </div>
     </div>
 
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap gap-2">
+            <input type="hidden" name="arah" value="{{ request('arah') }}">
+            <input type="hidden" name="status" value="{{ request('status') }}">
             <input type="text" name="cari" value="{{ request('cari') }}" placeholder="Cari nama / NIS siswa..." class="input flex-1 min-w-[200px]">
             <select name="jenis_surat_id" class="input" onchange="this.form.submit()">
                 <option value="">Semua Jenis Surat</option>

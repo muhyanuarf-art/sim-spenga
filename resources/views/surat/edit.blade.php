@@ -18,14 +18,23 @@
 
         <div class="grid sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Surat</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Surat <span class="text-slate-400 font-normal">(otomatis saat dibuat, bisa dikoreksi di sini bila perlu)</span></label>
                 <input type="text" name="nomor_surat" value="{{ old('nomor_surat', $surat->nomor_surat) }}" class="input">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat Dibuat</label>
                 <input type="date" name="tanggal" value="{{ old('tanggal', $surat->tanggal->toDateString()) }}" required class="input">
             </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Acara/Pemanggilan</label>
+                <input type="date" name="tanggal_acara" value="{{ old('tanggal_acara', optional($surat->tanggal_acara)->toDateString()) }}" class="input">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Acara</label>
+                <input type="time" name="waktu_acara" value="{{ old('waktu_acara', $surat->waktu_acara) }}" class="input">
+            </div>
         </div>
+        <p class="text-xs text-slate-400 -mt-2">Perubahan tanggal/waktu di sini TIDAK otomatis mengubah teks di kotak Isi Surat di bawah — kalau perlu, sesuaikan juga teksnya secara manual.</p>
 
         <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat</label>

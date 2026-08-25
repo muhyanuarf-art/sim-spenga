@@ -10,6 +10,7 @@ use App\Http\Controllers\BkPembinaanController;
 use App\Http\Controllers\BkPenguranganPoinController;
 use App\Http\Controllers\BkSiswaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DisposisiSuratController;
 use App\Http\Controllers\EkskulAbsensiController;
 use App\Http\Controllers\EkskulRekapController;
 use App\Http\Controllers\EkstrakurikulerAnggotaController;
@@ -30,7 +31,9 @@ use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
+use App\Http\Controllers\SuratAttachmentController;
 use App\Http\Controllers\SuratController;
+use App\Http\Controllers\SuratDashboardController;
 use App\Http\Controllers\TahunAjaranController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WaliKelasController;
@@ -164,8 +167,26 @@ Route::middleware('auth')->group(function () {
     // arsip yang sama, bukan terpisah per role, supaya keduanya saling
     // tahu surat yang sudah diinput/dicetak. =====
     Route::middleware('role:kesiswaan,guru_bk,admin')->group(function () {
+        Route::get('surat-dashboard', [SuratDashboardController::class, 'index'])->name('surat.dashboard');
         Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'edit', 'show']);
-        Route::resource('surat', SuratController::class);
+        Route::resource('surat', SuratController::class)->except(['show']);
+        Route::post('surat/{surat}/disposisi', [DisposisiSuratController::class, 'store'])->name('surat.disposisi.store');
+        Route::post('surat/{surat}/lampiran', [SuratAttachmentController::class, 'store'])->name('surat.lampiran.store');
+        Route::delete('lampiran/{lampiran}', [SuratAttachmentController::class, 'destroy'])->name('surat.lampiran.destroy');
+    });
+
+    // ===== DISPOSISI: penerima bisa siapa saja (Kepsek, Kurikulum, Wali
+    // Kelas/Guru, dst) — bukan cuma Kesiswaan/BK/Admin. `surat.show` juga
+    // di sini (bukan di grup atas) — supaya penerima disposisi yang BUKAN
+    // Kesiswaan/BK/Admin tetap bisa buka surat yang didisposisikan ke
+    // mereka. (2026-08-25) — bug tahap 3: link "Lihat Surat" di halaman
+    // Disposisi Masuk sempat 403 untuk role di luar 3 itu karena
+    // surat.show masih ikut grup atas; sudah dipindah ke sini. =====
+    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
+        Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
+        Route::get('disposisi', [DisposisiSuratController::class, 'index'])->name('disposisi.index');
+        Route::patch('disposisi/{disposisi}/baca', [DisposisiSuratController::class, 'baca'])->name('disposisi.baca');
+        Route::patch('disposisi/{disposisi}/tindak-lanjut', [DisposisiSuratController::class, 'tindakLanjut'])->name('disposisi.tindak-lanjut');
     });
 
     // ===== LAPORAN: jurnal mengajar & absensi guru per mata pelajaran =====

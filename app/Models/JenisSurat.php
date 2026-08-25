@@ -10,7 +10,12 @@ class JenisSurat extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nama_jenis', 'template_isi'];
+    protected $fillable = ['nama_jenis', 'kode_jenis', 'kategori', 'template_isi', 'is_aktif'];
+
+    protected function casts(): array
+    {
+        return ['is_aktif' => 'boolean'];
+    }
 
     public function surats(): HasMany
     {

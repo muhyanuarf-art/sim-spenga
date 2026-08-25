@@ -25,8 +25,10 @@ class JenisSuratController extends Controller
     {
         $validated = $request->validate([
             'nama_jenis' => ['required', 'string', 'max:150'],
+            'kode_jenis' => ['nullable', 'string', 'max:10'],
             'template_isi' => ['nullable', 'string', 'max:5000'],
         ]);
+        $validated['kode_jenis'] = $validated['kode_jenis'] ? strtoupper($validated['kode_jenis']) : null;
 
         JenisSurat::create($validated);
 
@@ -37,8 +39,10 @@ class JenisSuratController extends Controller
     {
         $validated = $request->validate([
             'nama_jenis' => ['required', 'string', 'max:150'],
+            'kode_jenis' => ['nullable', 'string', 'max:10'],
             'template_isi' => ['nullable', 'string', 'max:5000'],
         ]);
+        $validated['kode_jenis'] = $validated['kode_jenis'] ? strtoupper($validated['kode_jenis']) : null;
 
         $jenisSurat->update($validated);
 

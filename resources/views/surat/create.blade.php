@@ -57,37 +57,61 @@
     @endif
 
     @if($jenisSurat && $siswaTerpilih)
-    <form method="POST" action="{{ route('surat.store') }}" class="card p-5 space-y-4">
-        @csrf
-        <input type="hidden" name="jenis_surat_id" value="{{ $jenisSurat->id }}">
-        <input type="hidden" name="siswa_id" value="{{ $siswaTerpilih->id }}">
-
+    <div class="card p-5 space-y-4">
         <p class="font-bold text-slate-800 text-sm">3. Lengkapi &amp; Simpan</p>
 
-        <div class="grid sm:grid-cols-2 gap-4">
+        {{-- Form terpisah, khusus tanggal & jam — auto-reload begitu diklik,
+             supaya Nomor Surat & Isi Surat di bawah otomatis ikut update.
+             Sengaja pakai <input type="date"/"time"> (bukan teks bebas)
+             supaya guru cukup KETUK kalender/jam, tidak perlu mengetik. --}}
+        <form method="GET" class="grid sm:grid-cols-3 gap-4">
+            <input type="hidden" name="jenis_surat_id" value="{{ $jenisSurat->id }}">
+            <input type="hidden" name="siswa_id" value="{{ $siswaTerpilih->id }}">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Surat <span class="text-slate-400 font-normal">(opsional)</span></label>
-                <input type="text" name="nomor_surat" value="{{ old('nomor_surat') }}" class="input">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat Dibuat</label>
+                <input type="date" name="tanggal" value="{{ $tanggal }}" required class="input" onchange="this.form.submit()">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal</label>
-                <input type="date" name="tanggal" value="{{ old('tanggal', $tanggal) }}" required class="input"
-                       onchange="location.href = '{{ route('surat.create', ['jenis_surat_id' => $jenisSurat->id, 'siswa_id' => $siswaTerpilih->id]) }}&tanggal=' + this.value">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Acara/Pemanggilan</label>
+                <input type="date" name="tanggal_acara" value="{{ $tanggalAcara }}" class="input" onchange="this.form.submit()">
             </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Acara</label>
+                <input type="time" name="waktu_acara" value="{{ $waktuAcara }}" class="input" onchange="this.form.submit()">
+            </div>
+        </form>
+        <p class="text-xs text-slate-400 -mt-2">
+            <i class="fa-solid fa-circle-info mr-1"></i>
+            Cukup ketuk ikon kalender/jam di atas untuk memilih — tidak perlu mengetik. Mengubah salah satunya otomatis memperbarui Isi Surat di bawah.
+        </p>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
+            <span class="text-slate-500">Nomor Surat</span> :
+            <span class="font-semibold text-slate-700">{{ $nomorPreview ?? '-' }}</span>
+            <span class="text-slate-400"> (otomatis, tidak perlu diketik)</span>
         </div>
 
-        <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat <span class="text-slate-400 font-normal">(otomatis digabung dari template, boleh diedit)</span></label>
-            <textarea name="isi" rows="10" required class="input font-mono text-sm">{{ old('isi', $isiGabungan) }}</textarea>
-        </div>
+        <form method="POST" action="{{ route('surat.store') }}" class="space-y-4">
+            @csrf
+            <input type="hidden" name="jenis_surat_id" value="{{ $jenisSurat->id }}">
+            <input type="hidden" name="siswa_id" value="{{ $siswaTerpilih->id }}">
+            <input type="hidden" name="tanggal" value="{{ $tanggal }}">
+            <input type="hidden" name="tanggal_acara" value="{{ $tanggalAcara }}">
+            <input type="hidden" name="waktu_acara" value="{{ $waktuAcara }}">
 
-        <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan <span class="text-slate-400 font-normal">(opsional, internal — tidak ikut tercetak)</span></label>
-            <input type="text" name="keterangan" value="{{ old('keterangan') }}" class="input">
-        </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat <span class="text-slate-400 font-normal">(otomatis digabung dari template, boleh diedit)</span></label>
+                <textarea name="isi" rows="10" required class="input font-mono text-sm">{{ old('isi', $isiGabungan) }}</textarea>
+            </div>
 
-        <button type="submit" class="btn-primary h-[38px]">Simpan Surat</button>
-    </form>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan <span class="text-slate-400 font-normal">(opsional, internal — tidak ikut tercetak)</span></label>
+                <input type="text" name="keterangan" value="{{ old('keterangan') }}" class="input">
+            </div>
+
+            <button type="submit" class="btn-primary h-[38px]">Simpan Surat</button>
+        </form>
+    </div>
     @endif
 </div>
 @endsection
