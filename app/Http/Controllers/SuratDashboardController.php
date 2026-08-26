@@ -12,12 +12,14 @@ class SuratDashboardController extends Controller
     {
         $bulanIni = now()->startOfMonth();
 
+        // (2026-08-26) — "Surat Masuk" dihapus: tidak ada alur di aplikasi
+        // ini yang pernah membuat surat dengan arah='masuk' (semua surat
+        // dibuat sekolah = keluar), jadi fitur itu selalu kosong/mati.
+        // Kolom `arah` di tabel tetap ada (tidak dihapus, harmless), cuma
+        // filter/menu/kartu "Surat Masuk" yang dibuang dari UI.
         $ringkasan = [
-            'masuk' => Surat::where('arah', 'masuk')->count(),
-            'masuk_menunggu_disposisi' => DisposisiSurat::whereHas('surat', fn ($q) => $q->where('arah', 'masuk'))
-                ->where('status', 'menunggu')->count(),
-            'keluar' => Surat::where('arah', 'keluar')->count(),
-            'keluar_bulan_ini' => Surat::where('arah', 'keluar')->where('created_at', '>=', $bulanIni)->count(),
+            'keluar' => Surat::count(),
+            'keluar_bulan_ini' => Surat::where('created_at', '>=', $bulanIni)->count(),
             'disposisi_aktif' => DisposisiSurat::whereIn('status', ['dibaca', 'diproses'])->count(),
             'selesai' => Surat::where('status', 'selesai')->count(),
             'selesai_bulan_ini' => Surat::where('status', 'selesai')->where('updated_at', '>=', $bulanIni)->count(),
@@ -30,10 +32,7 @@ class SuratDashboardController extends Controller
             $bulan = now()->subMonths($i);
             return [
                 'label' => $bulan->translatedFormat('M Y'),
-                'masuk' => Surat::where('arah', 'masuk')
-                    ->whereYear('created_at', $bulan->year)->whereMonth('created_at', $bulan->month)->count(),
-                'keluar' => Surat::where('arah', 'keluar')
-                    ->whereYear('created_at', $bulan->year)->whereMonth('created_at', $bulan->month)->count(),
+                'keluar' => Surat::whereYear('created_at', $bulan->year)->whereMonth('created_at', $bulan->month)->count(),
                 'disposisi_aktif' => DisposisiSurat::whereYear('created_at', $bulan->year)
                     ->whereMonth('created_at', $bulan->month)->count(),
             ];
@@ -42,8 +41,7 @@ class SuratDashboardController extends Controller
         $disposisiTerbaru = DisposisiSurat::with(['surat.jenisSurat', 'dariUser', 'kepadaUser'])
             ->orderByDesc('created_at')->limit(4)->get();
 
-        $suratMasukTerbaru = Surat::with(['jenisSurat', 'disposisiTerbaru'])
-            ->where('arah', 'masuk')
+        $suratTerbaru = Surat::with(['jenisSurat', 'siswa', 'disposisiTerbaru'])
             ->orderByDesc('tanggal')->limit(5)->get();
 
         $pengingat = [
@@ -55,6 +53,6 @@ class SuratDashboardController extends Controller
             'draft' => Surat::where('status', 'draft')->count(),
         ];
 
-        return view('surat.dashboard', compact('ringkasan', 'statistik', 'disposisiTerbaru', 'suratMasukTerbaru', 'pengingat'));
+        return view('surat.dashboard', compact('ringkasan', 'statistik', 'disposisiTerbaru', 'suratTerbaru', 'pengingat'));
     }
 }

@@ -21,6 +21,13 @@ class DashboardController extends Controller
         $user = $request->user();
         $tahunAjaran = TahunAjaran::aktif();
 
+        // TU (Tata Usaha): satu-satunya cakupan kerjanya Manajemen Surat —
+        // tidak ada data siswa/kelas/absensi yang relevan untuk dashboard
+        // umum, jadi langsung diarahkan ke Dashboard Surat.
+        if ($user->role === 'tu') {
+            return redirect()->route('surat.dashboard');
+        }
+
         // Admin & Kepala Sekolah: ringkasan sekolah menyeluruh
         if ($user->role === 'admin' || $user->role === 'kepala_sekolah') {
             $totalSiswa = Siswa::where('is_active', true)->count();

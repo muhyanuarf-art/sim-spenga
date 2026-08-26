@@ -114,11 +114,14 @@
 
             {{-- (2026-08-24) — Surat dipakai BERSAMA Kesiswaan & BK (1 arsip
                  yang sama). (2026-08-25) — direstruktur jadi grup dropdown
-                 "Manajemen Surat" (Dashboard/Surat Masuk/Surat Keluar/
-                 Draft/Disposisi/Arsip/Jenis Surat) sesuai struktur menu
-                 yang diminta. Surat Masuk/Keluar/Draft/Arsip semuanya
-                 arahnya ke surat.index dengan filter arah/status beda-beda
-                 (lihat SuratController::index()) — bukan halaman terpisah,
+                 "Manajemen Surat" (Dashboard/Surat Keluar/Draft/Disposisi/
+                 Arsip/Jenis Surat) sesuai struktur menu yang diminta.
+                 (2026-08-26) — "Surat Masuk" DIHAPUS: tidak ada alur yang
+                 pernah membuat surat arah='masuk' (semua surat dibuat
+                 sekolah = keluar), jadi menu itu selalu kosong/mati.
+                 Surat Keluar/Draft/Arsip semuanya arahnya ke surat.index
+                 dengan filter arah/status beda-beda (lihat
+                 SuratController::index()) — bukan halaman terpisah,
                  supaya tidak duplikasi logika tabel & pencarian.
                  "Template Surat" DIHAPUS sebagai menu terpisah (sebelumnya
                  duplikat, sama-sama menuju jenis-surat.index) — di skema
@@ -127,13 +130,10 @@
                  tersendiri yang bisa banyak template per jenis. Kalau
                  nanti perlu itu, perlu tahap baru (tabel surat_templates
                  terpisah + menu sendiri lagi). --}}
-            @if(in_array($user->role, ['kesiswaan', 'guru_bk']))
+            @if(in_array($user->role, ['kesiswaan', 'guru_bk', 'tu']))
                 <x-nav-group icon="fa-envelope" label="Manajemen Surat" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*') || request()->routeIs('disposisi.*')">
                     <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
                         Dashboard
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['arah' => 'masuk'])" :active="request()->routeIs('surat.index') && request('arah') === 'masuk'">
-                        Surat Masuk
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.index', ['arah' => 'keluar'])" :active="request()->routeIs('surat.index') && request('arah') === 'keluar'">
                         Surat Keluar
@@ -177,9 +177,6 @@
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
                         Surat — Dashboard
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['arah' => 'masuk'])" :active="request()->routeIs('surat.index') && request('arah') === 'masuk'">
-                        Surat Masuk
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.index', ['arah' => 'keluar'])" :active="request()->routeIs('surat.index') && request('arah') === 'keluar'">
                         Surat Keluar

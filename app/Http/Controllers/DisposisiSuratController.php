@@ -85,7 +85,7 @@ class DisposisiSuratController extends Controller
     public static function calonPenerima()
     {
         return User::where('is_active', true)
-            ->whereIn('role', ['guru', 'guru_bk', 'kesiswaan', 'kurikulum', 'kepala_sekolah', 'admin'])
+            ->whereIn('role', ['guru', 'guru_bk', 'kesiswaan', 'tu', 'kurikulum', 'kepala_sekolah', 'admin'])
             ->orderBy('name')->get();
     }
 }

@@ -43,6 +43,7 @@ class User extends Authenticatable
     public function isGuru(): bool { return $this->role === 'guru'; }
     public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
     public function isKesiswaan(): bool { return $this->role === 'kesiswaan'; }
+    public function isTu(): bool { return $this->role === 'tu'; }
     /**
      * STEP 5 Bagian 10 & 23 — "wali kelas" berarti wali kelas untuk TAHUN
      * AJARAN AKTIF (lihat kelasWali()).
@@ -138,6 +139,7 @@ class User extends Authenticatable
             'kurikulum' => 'Kurikulum',
             'guru_bk' => 'Guru BK',
             'kesiswaan' => 'Kesiswaan',
+            'tu' => 'Tata Usaha',
             'guru' => $this->isWaliKelas() ? 'Guru / Wali Kelas' : 'Guru Mapel',
             default => ucfirst($this->role),
         };

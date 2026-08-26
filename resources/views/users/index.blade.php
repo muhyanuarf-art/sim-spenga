@@ -14,6 +14,7 @@
                 <option value="guru" {{ request('role')=='guru'?'selected':'' }}>Guru</option>
                 <option value="guru_bk" {{ request('role')=='guru_bk'?'selected':'' }}>Guru BK</option>
                 <option value="kesiswaan" {{ request('role')=='kesiswaan'?'selected':'' }}>Kesiswaan</option>
+                <option value="tu" {{ request('role')=='tu'?'selected':'' }}>Tata Usaha</option>
             </select>
             <button class="btn-outline">Cari</button>
         </form>
@@ -32,6 +33,7 @@
                 <option value="guru">Guru</option>
                 <option value="guru_bk">Guru BK</option>
                 <option value="kesiswaan">Kesiswaan</option>
+                <option value="tu">Tata Usaha</option>
                 <option value="kurikulum">Kurikulum</option>
                 <option value="kepala_sekolah">Kepala Sekolah</option>
                 <option value="admin">Admin</option>
@@ -80,6 +82,7 @@
                                     <option value="guru" {{ $u->role === 'guru' ? 'selected' : '' }}>Guru</option>
                                     <option value="guru_bk" {{ $u->role === 'guru_bk' ? 'selected' : '' }}>Guru BK</option>
                                     <option value="kesiswaan" {{ $u->role === 'kesiswaan' ? 'selected' : '' }}>Kesiswaan</option>
+                                    <option value="tu" {{ $u->role === 'tu' ? 'selected' : '' }}>Tata Usaha</option>
                                     <option value="kurikulum" {{ $u->role === 'kurikulum' ? 'selected' : '' }}>Kurikulum</option>
                                     <option value="kepala_sekolah" {{ $u->role === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
                                     <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>Admin</option>
