@@ -15,12 +15,15 @@ class Surat extends Model
         'jenis_surat_id', 'siswa_id', 'tahun_ajaran_id', 'arah', 'status',
         'sifat', 'asal_surat', 'tujuan_surat', 'nomor_surat', 'nomor_urut',
         'tanggal', 'tanggal_diterima', 'tanggal_acara', 'waktu_acara',
-        'isi', 'keterangan', 'dibuat_oleh_id',
+        'isi', 'data_formulir', 'keterangan', 'dibuat_oleh_id',
     ];
 
     protected function casts(): array
     {
-        return ['tanggal' => 'date', 'tanggal_diterima' => 'date', 'tanggal_acara' => 'date'];
+        return [
+            'tanggal' => 'date', 'tanggal_diterima' => 'date', 'tanggal_acara' => 'date',
+            'data_formulir' => 'array',
+        ];
     }
 
     public function jenisSurat(): BelongsTo

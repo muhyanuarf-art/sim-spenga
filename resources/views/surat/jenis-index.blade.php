@@ -4,9 +4,11 @@
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">
     <div class="flex justify-between items-center flex-wrap gap-3">
-        <p class="text-sm text-slate-500">Master jenis surat, dipakai bersama Kesiswaan &amp; BK saat membuat surat baru.</p>
+        <p class="text-sm text-slate-500">Master jenis surat BK. 3 jenis (Izin Meninggalkan Pelajaran, Keterangan Terlambat, Pernyataan Pelanggaran) pakai form baku — cuma nama &amp; status aktifnya yang bisa diubah di sini. Surat Panggilan Orang Tua/Wali pakai template bebas seperti biasa.</p>
         <div class="flex gap-2">
-            <a href="{{ route('surat.index') }}" class="btn-outline">&larr; Daftar Surat</a>
+            @if(auth()->user()->role === 'admin')
+                <a href="{{ route('surat.index') }}" class="btn-outline">&larr; Daftar Surat</a>
+            @endif
             <button @click="showForm = !showForm" class="btn-primary">+ Tambah Jenis Surat</button>
         </div>
     </div>
@@ -26,10 +28,6 @@
         <form method="POST" action="{{ route('jenis-surat.store') }}" class="space-y-3">
             @csrf
             <input type="text" name="nama_jenis" placeholder="Nama Jenis Surat, contoh: Surat Panggilan Orang Tua" required class="input">
-            <div>
-                <input type="text" name="kode_jenis" maxlength="10" placeholder="Kode untuk Nomor Surat, contoh: SP" class="input uppercase">
-                <p class="text-xs text-slate-400 mt-1">Dipakai membentuk Nomor Surat otomatis (mis. 003/SP/VIII/2026). Kosongkan untuk dibuat otomatis dari inisial nama jenis surat.</p>
-            </div>
             <textarea name="template_isi" rows="5" placeholder="Template isi surat (opsional, bisa juga diisi manual tiap kali buat surat)..." class="input"></textarea>
             <button type="submit" class="btn-primary h-[38px]">Simpan</button>
         </form>
@@ -41,9 +39,17 @@
             <div x-show="!editing">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="font-bold text-slate-800">{{ $j->nama_jenis }}
-                            <span class="ml-1 px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 text-[11px] font-mono align-middle">{{ $j->kode_jenis ?: \App\Support\NomorSurat::kodeJenis($j) . ' (otomatis)' }}</span>
-                        </p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="font-bold text-slate-800">{{ $j->nama_jenis }}</p>
+                            @if($j->tipe_formulir === \App\Models\JenisSurat::TIPE_BEBAS)
+                                <span class="badge bg-blue-50 text-blue-700">Template Bebas</span>
+                            @else
+                                <span class="badge bg-violet-50 text-violet-700">Form Baku</span>
+                            @endif
+                            @if(!$j->is_aktif)
+                                <span class="badge bg-slate-100 text-slate-400">Nonaktif</span>
+                            @endif
+                        </div>
                         <p class="text-xs text-slate-400 mt-0.5">{{ $j->surats_count }} surat sudah dibuat dengan jenis ini</p>
                         @if($j->template_isi)
                             <p class="text-sm text-slate-500 mt-2 whitespace-pre-line line-clamp-3">{{ $j->template_isi }}</p>
@@ -71,11 +77,12 @@
                 <form method="POST" action="{{ route('jenis-surat.update', $j) }}" class="space-y-3">
                     @csrf @method('PUT')
                     <input type="text" name="nama_jenis" value="{{ $j->nama_jenis }}" required class="input">
-                    <div>
-                        <input type="text" name="kode_jenis" value="{{ $j->kode_jenis }}" maxlength="10" placeholder="Kode untuk Nomor Surat, contoh: SP" class="input uppercase">
-                        <p class="text-xs text-slate-400 mt-1">Dipakai membentuk Nomor Surat otomatis. Kosongkan untuk dibuat otomatis dari inisial nama jenis surat.</p>
-                    </div>
-                    <textarea name="template_isi" rows="5" class="input">{{ $j->template_isi }}</textarea>
+                    @if($j->tipe_formulir === \App\Models\JenisSurat::TIPE_BEBAS)
+                        <textarea name="template_isi" rows="5" class="input">{{ $j->template_isi }}</textarea>
+                    @endif
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="is_aktif" value="1" @checked($j->is_aktif)> Aktif (bisa dipilih saat Guru BK membuat surat baru)
+                    </label>
                     <div class="flex gap-2">
                         <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                         <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>

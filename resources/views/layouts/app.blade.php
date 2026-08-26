@@ -112,83 +112,61 @@
                 </x-nav-link>
             @endif
 
-            {{-- (2026-08-24) — Surat dipakai BERSAMA Kesiswaan & BK (1 arsip
-                 yang sama). (2026-08-25) — direstruktur jadi grup dropdown
-                 "Manajemen Surat" (Dashboard/Surat Keluar/Draft/Disposisi/
-                 Arsip/Jenis Surat) sesuai struktur menu yang diminta.
-                 (2026-08-26) — "Surat Masuk" DIHAPUS: tidak ada alur yang
-                 pernah membuat surat arah='masuk' (semua surat dibuat
-                 sekolah = keluar), jadi menu itu selalu kosong/mati.
-                 Surat Keluar/Draft/Arsip semuanya arahnya ke surat.index
-                 dengan filter arah/status beda-beda (lihat
-                 SuratController::index()) — bukan halaman terpisah,
-                 supaya tidak duplikasi logika tabel & pencarian.
-                 "Template Surat" DIHAPUS sebagai menu terpisah (sebelumnya
-                 duplikat, sama-sama menuju jenis-surat.index) — di skema
-                 ini 1 Jenis Surat = 1 template (kolom template_isi di
-                 jenis_surats), belum dipisah jadi tabel template
-                 tersendiri yang bisa banyak template per jenis. Kalau
-                 nanti perlu itu, perlu tahap baru (tabel surat_templates
-                 terpisah + menu sendiri lagi). --}}
-            @if(in_array($user->role, ['kesiswaan', 'guru_bk', 'tu']))
-                <x-nav-group icon="fa-envelope" label="Manajemen Surat" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*') || request()->routeIs('disposisi.*')">
+            {{-- (2026-08-26) — ROMBAK TOTAL: Surat sekarang KHUSUS keperluan
+                 BK. Hanya Guru BK yang kelola penuh (Dashboard/Buat/Draft/
+                 Arsip). Kesiswaan/Kurikulum/Kepala Sekolah cuma baca (link
+                 flat "Surat" di bawah). TU cuma kelola master "Jenis
+                 Surat" (grup terpisah lagi di bawahnya). Disposisi/
+                 Lampiran DIHILANGKAN dari menu — tidak ada di spesifikasi
+                 baru (tabelnya tetap ada di database, tidak dipakai lagi). --}}
+            @if($user->role === 'guru_bk')
+                <x-nav-group icon="fa-envelope" label="Manajemen Surat" :active="request()->routeIs('surat.*')">
                     <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
                         Dashboard
                     </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['arah' => 'keluar'])" :active="request()->routeIs('surat.index') && request('arah') === 'keluar'">
-                        Surat Keluar
+                    <x-nav-sublink :href="route('surat.create')" :active="request()->routeIs('surat.create') || request()->routeIs('surat.store')">
+                        + Buat Surat
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.index', ['status' => 'draft'])" :active="request()->routeIs('surat.index') && request('status') === 'draft'">
                         Draft
                     </x-nav-sublink>
-                    <x-nav-sublink :href="route('disposisi.index')" :active="request()->routeIs('disposisi.*')">
-                        Disposisi
-                    </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.index', ['status' => 'diarsipkan'])" :active="request()->routeIs('surat.index') && request('status') === 'diarsipkan'">
                         Arsip
                     </x-nav-sublink>
-                    <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
-                        Jenis Surat
+                    <x-nav-sublink :href="route('surat.index')" :active="request()->routeIs('surat.index') && !request('status')">
+                        Semua Surat
                     </x-nav-sublink>
                 </x-nav-group>
             @endif
 
-            {{-- (2026-08-25) — Disposisi Masuk untuk role yang BUKAN
-                 pengelola surat (Kesiswaan/BK/Admin sudah punya "Disposisi"
-                 di dalam grup "Manajemen Surat" / "Kesiswaan" di atas). --}}
-            @if(in_array($user->role, ['guru', 'kurikulum', 'kepala_sekolah']))
-                <x-nav-link :href="route('disposisi.index')" icon="fa-share-from-square" :active="request()->routeIs('disposisi.*')">
-                    Disposisi Masuk
+            {{-- Baca saja — TIDAK bisa membuat/mengedit surat, cuma tahu
+                 surat sudah ada & bisa dibuka/dicetak. --}}
+            @if(in_array($user->role, ['kesiswaan', 'kurikulum', 'kepala_sekolah']))
+                <x-nav-link :href="route('surat.index')" icon="fa-envelope" :active="request()->routeIs('surat.*')">
+                    Surat (BK)
                 </x-nav-link>
             @endif
 
+            {{-- TU: cuma kelola master Jenis Surat, TIDAK melihat arsip surat individual. --}}
+            @if($user->role === 'tu')
+                <x-nav-link :href="route('jenis-surat.index')" icon="fa-envelope" :active="request()->routeIs('jenis-surat.*')">
+                    Jenis Surat
+                </x-nav-link>
+            @endif
 
-            {{-- (2026-08-23) — untuk Admin (yang sidebarnya sudah padat
-                 banyak grup), "Ekstrakurikuler" dikelompokkan dalam grup
-                 "Kesiswaan" tersendiri (pola sama seperti grup "Kurikulum"
-                 di bawah), supaya rapi & gampang ditambah menu kesiswaan
-                 lain nanti. Untuk role Kesiswaan sendiri TIDAK dikelompokkan
-                 seperti ini — tetap flat seperti di atas, karena sidebar-nya
-                 sudah ringkas dan ini yang diminta dipertahankan. --}}
             @if($user->role === 'admin')
-                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*') || request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*') || request()->routeIs('disposisi.*')">
+                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*') || request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
                     <x-nav-sublink :href="route('ekstrakurikuler.index')" :active="request()->routeIs('ekstrakurikuler.*')">
                         Ekstrakurikuler
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
                         Surat — Dashboard
                     </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['arah' => 'keluar'])" :active="request()->routeIs('surat.index') && request('arah') === 'keluar'">
-                        Surat Keluar
+                    <x-nav-sublink :href="route('surat.create')" :active="request()->routeIs('surat.create') || request()->routeIs('surat.store')">
+                        Surat — Buat Baru
                     </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['status' => 'draft'])" :active="request()->routeIs('surat.index') && request('status') === 'draft'">
-                        Draft
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('disposisi.index')" :active="request()->routeIs('disposisi.*')">
-                        Disposisi
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['status' => 'diarsipkan'])" :active="request()->routeIs('surat.index') && request('status') === 'diarsipkan'">
-                        Arsip
+                    <x-nav-sublink :href="route('surat.index')" :active="request()->routeIs('surat.index')">
+                        Surat — Semua
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
                         Jenis Surat

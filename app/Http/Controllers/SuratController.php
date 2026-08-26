@@ -5,21 +5,25 @@ namespace App\Http\Controllers;
 use App\Models\JenisSurat;
 use App\Models\Siswa;
 use App\Models\Surat;
-use App\Models\SuratActivity;
 use App\Models\TahunAjaran;
-use App\Support\NomorSurat;
+use App\Support\NomorSuratBk;
 use App\Support\SuratMerge;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
- * Surat — dibuat & dilihat BERSAMA oleh Kesiswaan dan BK (1 arsip yang
- * sama, bukan terpisah per role), sesuai arahan: "kesiswaan dan BK
- * saling bisa membuat dan mencetak surat serta mengetahui surat yang
- * diinput".
+ * (2026-08-26) — ROMBAK TOTAL: modul Surat sekarang KHUSUS untuk
+ * keperluan BK (permintaan eksplisit + contoh format terlampir).
  *
- * (2026-08-25) — nomor surat OTOMATIS (lihat App\Support\NomorSurat) dan
- * dukungan tanggal/waktu acara terpisah dari tanggal surat diterbitkan.
+ * - Hanya Guru BK yang boleh create/edit/delete (dicek di sini DAN di
+ *   middleware routes/web.php — dua lapis, konsisten dengan pola app ini).
+ *   Kesiswaan/Kurikulum/Kepala Sekolah cuma index()/show() (baca saja).
+ * - Nomor surat format baru: 422/{nomor urut MANUAL}/BK/{bulan romawi}/
+ *   {tahun} — lihat App\Support\NomorSuratBk. TIDAK ada lagi
+ *   auto-increment; guru BK WAJIB isi nomor urutnya sendiri.
+ * - 3 dari 4 jenis surat (lihat JenisSurat::TIPE_*) pakai FORM
+ *   TERSTRUKTUR (field tetap sesuai contoh kertas BK yang sudah ada),
+ *   bukan template bebas — datanya di kolom `data_formulir` (json).
+ *   Surat Panggilan Orang Tua/Wali TETAP pakai template bebas (`isi`).
  */
 class SuratController extends Controller
 {
@@ -36,44 +40,36 @@ class SuratController extends Controller
         if ($request->filled('jenis_surat_id')) {
             $query->where('jenis_surat_id', $request->jenis_surat_id);
         }
-        // (2026-08-25) — filter arah (masuk/keluar) & status (draft/
-        // diarsipkan/dst), dipakai submenu "Surat Masuk", "Surat Keluar",
-        // "Draft", "Arsip" di sidebar (lihat resources/views/layouts/app.blade.php).
-        if ($request->filled('arah')) {
-            $query->where('arah', $request->arah);
-        }
+        // Dipakai submenu "Draft"/"Arsip" di sidebar (guru_bk).
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
         $surat = $query->orderByDesc('tanggal')->orderByDesc('id')->paginate(20)->withQueryString();
-        $jenisSuratList = JenisSurat::orderBy('nama_jenis')->get();
+        $jenisSuratList = JenisSurat::where('is_aktif', true)->orderBy('nama_jenis')->get();
 
-        // Judul halaman menyesuaikan filter aktif, supaya jelas submenu
-        // mana yang sedang dibuka (Surat Masuk/Keluar/Draft/Arsip/Semua).
-        $judul = match (true) {
-            $request->get('arah') === 'masuk' => 'Surat Masuk',
-            $request->get('arah') === 'keluar' => 'Surat Keluar',
-            $request->get('status') === 'draft' => 'Draft',
-            $request->get('status') === 'diarsipkan' => 'Arsip',
-            default => 'Daftar Surat',
+        $judul = match ($request->get('status')) {
+            'draft' => 'Draft',
+            'diarsipkan' => 'Arsip',
+            default => 'Daftar Surat (BK)',
         };
 
         return view('surat.index', compact('surat', 'jenisSuratList', 'judul'));
     }
 
     /**
-     * Form buat surat baru — alur 3 langkah lewat query string (GET,
-     * reload halaman tiap langkah, pola sama seperti form Isi Absensi):
-     * 1. Pilih Jenis Surat.
+     * Form buat surat baru — 3 langkah lewat query string (GET, reload
+     * tiap langkah, pola sama seperti form Isi Absensi):
+     * 1. Pilih Jenis Surat (menentukan form yang muncul di langkah 3).
      * 2. Cari & pilih Siswa.
-     * 3. Tanggal surat + tanggal/waktu acara (opsional) — begitu semua
-     *    terisi, Nomor Surat & isi surat otomatis dipratinjaukan
-     *    (nomor final baru dikunci saat Simpan, lihat store()).
+     * 3. Form sesuai jenisnya — 3 jenis BK pakai field tetap, Surat
+     *    Panggilan tetap pakai template bebas seperti sebelumnya.
      */
     public function create(Request $request)
     {
-        $jenisSuratList = JenisSurat::orderBy('nama_jenis')->get();
+        $this->pastikanGuruBk($request);
+
+        $jenisSuratList = JenisSurat::where('is_aktif', true)->orderBy('nama_jenis')->get();
         $jenisSurat = $jenisSuratList->firstWhere('id', (int) $request->get('jenis_surat_id'));
 
         $siswaTerpilih = null;
@@ -92,69 +88,109 @@ class SuratController extends Controller
         $tanggal = $request->get('tanggal', now()->toDateString());
         $tanggalAcara = $request->get('tanggal_acara', '');
         $waktuAcara = $request->get('waktu_acara', '');
+        $nomorPratinjau = NomorSuratBk::pratinjau($tanggal);
 
         $isiGabungan = null;
-        $nomorPreview = null;
+        $pelanggaranKeBerikutnya = null;
         if ($jenisSurat && $siswaTerpilih) {
-            $nomorPreview = NomorSurat::berikutnya($jenisSurat, $tanggal)['nomor_surat'];
-            $isiGabungan = SuratMerge::isi(
-                $jenisSurat->template_isi ?? '', $siswaTerpilih, $tanggal, $nomorPreview, $tanggalAcara, $waktuAcara
-            );
+            if ($jenisSurat->tipe_formulir === JenisSurat::TIPE_BEBAS) {
+                $isiGabungan = SuratMerge::isi(
+                    $jenisSurat->template_isi ?? '', $siswaTerpilih, $tanggal, $nomorPratinjau, $tanggalAcara, $waktuAcara
+                );
+            } elseif ($jenisSurat->tipe_formulir === JenisSurat::TIPE_PERNYATAAN_PELANGGARAN) {
+                // Nomor urut pelanggaran BERIKUTNYA untuk siswa ini —
+                // dihitung otomatis (boleh diedit manual di form kalau perlu).
+                $pelanggaranKeBerikutnya = Surat::whereHas('jenisSurat', fn ($q) => $q->where('tipe_formulir', JenisSurat::TIPE_PERNYATAAN_PELANGGARAN))
+                    ->where('siswa_id', $siswaTerpilih->id)->count() + 1;
+            }
         }
 
         return view('surat.create', compact(
             'jenisSuratList', 'jenisSurat', 'siswaTerpilih', 'hasilCari',
-            'tanggal', 'tanggalAcara', 'waktuAcara', 'isiGabungan', 'nomorPreview'
+            'tanggal', 'tanggalAcara', 'waktuAcara', 'isiGabungan', 'nomorPratinjau', 'pelanggaranKeBerikutnya'
         ));
     }
 
     public function store(Request $request)
     {
+        $this->pastikanGuruBk($request);
+
         $validated = $request->validate([
             'jenis_surat_id' => ['required', 'exists:jenis_surats,id'],
             'siswa_id' => ['required', 'exists:siswas,id'],
             'tanggal' => ['required', 'date'],
-            'tanggal_acara' => ['nullable', 'date'],
-            'waktu_acara' => ['nullable', 'date_format:H:i'],
-            'isi' => ['required', 'string'],
+            'nomor_urut' => ['required', 'string', 'max:50'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $jenisSurat = JenisSurat::findOrFail($validated['jenis_surat_id']);
+        $siswa = Siswa::with('kelas')->findOrFail($validated['siswa_id']);
 
-        $surat = DB::transaction(function () use ($validated, $jenisSurat, $request) {
-            // finalisasi() pakai row lock — aman dari 2 surat dapat nomor
-            // sama kalau disimpan nyaris bersamaan. WAJIB di dalam transaksi.
-            $nomor = NomorSurat::finalisasi($jenisSurat, $validated['tanggal']);
+        $isi = null;
+        $dataFormulir = null;
 
-            $surat = Surat::create([
-                ...$validated,
-                'nomor_surat' => $nomor['nomor_surat'],
-                'nomor_urut' => $nomor['nomor_urut'],
-                'dibuat_oleh_id' => $request->user()->id,
-                'arah' => 'keluar',
-                'status' => 'selesai',
-                'tahun_ajaran_id' => TahunAjaran::aktif()?->id,
+        if ($jenisSurat->tipe_formulir === JenisSurat::TIPE_BEBAS) {
+            $tambahan = $request->validate([
+                'tanggal_acara' => ['nullable', 'date'],
+                'waktu_acara' => ['nullable', 'date_format:H:i'],
+                'isi' => ['required', 'string'],
             ]);
-            $surat->siswas()->syncWithoutDetaching([$validated['siswa_id']]);
-            SuratActivity::catat($surat, 'Surat dibuat', "Nomor {$nomor['nomor_surat']}, untuk {$surat->siswa->nama}");
+            $isi = $tambahan['isi'];
+            $validated = [...$validated, ...$tambahan];
+        } elseif ($jenisSurat->tipe_formulir === JenisSurat::TIPE_IZIN_MENINGGALKAN_PELAJARAN) {
+            $f = $request->validate([
+                'alamat' => ['nullable', 'string', 'max:255'],
+                'jam_ke' => ['nullable', 'string', 'max:50'],
+                'keperluan' => ['required', 'string', 'max:500'],
+                'keterangan_lain' => ['nullable', 'string', 'max:500'],
+            ]);
+            $dataFormulir = ['nama' => $siswa->nama, 'kelas' => $siswa->kelas->nama_kelas ?? '-', ...$f];
+        } elseif ($jenisSurat->tipe_formulir === JenisSurat::TIPE_KETERANGAN_TERLAMBAT) {
+            $f = $request->validate([
+                'alamat' => ['nullable', 'string', 'max:255'],
+                'terlambat' => ['required', 'string', 'max:100'],
+                'alasan_terlambat' => ['required', 'string', 'max:500'],
+            ]);
+            $dataFormulir = ['nama' => $siswa->nama, 'kelas' => $siswa->kelas->nama_kelas ?? '-', ...$f];
+        } elseif ($jenisSurat->tipe_formulir === JenisSurat::TIPE_PERNYATAAN_PELANGGARAN) {
+            $f = $request->validate([
+                'pelanggaran_ke' => ['required', 'integer', 'min:1'],
+                'pelanggaran' => ['required', 'string', 'max:1000'],
+            ]);
+            $dataFormulir = ['nama' => $siswa->nama, 'kelas' => $siswa->kelas->nama_kelas ?? '-', ...$f];
+        }
 
-            return $surat;
-        });
+        $surat = Surat::create([
+            'jenis_surat_id' => $jenisSurat->id,
+            'siswa_id' => $siswa->id,
+            'tahun_ajaran_id' => TahunAjaran::aktif()?->id,
+            'arah' => 'keluar',
+            'status' => 'selesai',
+            'nomor_surat' => NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']),
+            'nomor_urut' => $validated['nomor_urut'],
+            'tanggal' => $validated['tanggal'],
+            'tanggal_acara' => $validated['tanggal_acara'] ?? null,
+            'waktu_acara' => $validated['waktu_acara'] ?? null,
+            'isi' => $isi,
+            'data_formulir' => $dataFormulir,
+            'keterangan' => $validated['keterangan'] ?? null,
+            'dibuat_oleh_id' => $request->user()->id,
+        ]);
+        $surat->siswas()->syncWithoutDetaching([$siswa->id]);
 
         return redirect()->route('surat.show', $surat)->with('success', "Surat {$surat->nomor_surat} berhasil dibuat.");
     }
 
     public function show(Surat $surat)
     {
-        $surat->load(['jenisSurat', 'siswa.kelas', 'dibuatOleh', 'disposisi.dariUser', 'disposisi.kepadaUser', 'attachments.user', 'activities.user']);
-        $calonPenerima = \App\Http\Controllers\DisposisiSuratController::calonPenerima();
+        $surat->load(['jenisSurat', 'siswa.kelas', 'dibuatOleh']);
 
-        return view('surat.show', compact('surat', 'calonPenerima'));
+        return view('surat.show', compact('surat'));
     }
 
-    public function edit(Surat $surat)
+    public function edit(Request $request, Surat $surat)
     {
+        $this->pastikanGuruBk($request);
         $surat->load(['jenisSurat', 'siswa.kelas']);
 
         return view('surat.edit', compact('surat'));
@@ -162,27 +198,56 @@ class SuratController extends Controller
 
     public function update(Request $request, Surat $surat)
     {
+        $this->pastikanGuruBk($request);
+
         $validated = $request->validate([
             'tanggal' => ['required', 'date'],
-            'tanggal_acara' => ['nullable', 'date'],
-            'waktu_acara' => ['nullable', 'date_format:H:i'],
-            'isi' => ['required', 'string'],
+            'nomor_urut' => ['required', 'string', 'max:50'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
-        // nomor_surat SENGAJA tidak divalidasi/diterima dari form lagi —
-        // sudah otomatis & final sejak dibuat (lihat NomorSurat::finalisasi()
-        // di store()), supaya tidak bisa diubah manual jadi tidak konsisten.
+        $validated['nomor_surat'] = NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']);
+
+        if ($surat->jenisSurat->tipe_formulir === JenisSurat::TIPE_BEBAS) {
+            $validated = [...$validated, ...$request->validate([
+                'tanggal_acara' => ['nullable', 'date'],
+                'waktu_acara' => ['nullable', 'date_format:H:i'],
+                'isi' => ['required', 'string'],
+            ])];
+        } else {
+            $skemaPerTipe = [
+                JenisSurat::TIPE_IZIN_MENINGGALKAN_PELAJARAN => ['alamat' => 'nullable|string|max:255', 'jam_ke' => 'nullable|string|max:50', 'keperluan' => 'required|string|max:500', 'keterangan_lain' => 'nullable|string|max:500'],
+                JenisSurat::TIPE_KETERANGAN_TERLAMBAT => ['alamat' => 'nullable|string|max:255', 'terlambat' => 'required|string|max:100', 'alasan_terlambat' => 'required|string|max:500'],
+                JenisSurat::TIPE_PERNYATAAN_PELANGGARAN => ['pelanggaran_ke' => 'required|integer|min:1', 'pelanggaran' => 'required|string|max:1000'],
+            ];
+            $f = $request->validate($skemaPerTipe[$surat->jenisSurat->tipe_formulir]);
+            $validated['data_formulir'] = [
+                'nama' => $surat->data_formulir['nama'] ?? $surat->siswa->nama,
+                'kelas' => $surat->data_formulir['kelas'] ?? ($surat->siswa->kelas->nama_kelas ?? '-'),
+                ...$f,
+            ];
+        }
 
         $surat->update($validated);
-        SuratActivity::catat($surat, 'Surat diperbarui');
 
         return redirect()->route('surat.show', $surat)->with('success', 'Surat berhasil diperbarui.');
     }
 
-    public function destroy(Surat $surat)
+    public function destroy(Request $request, Surat $surat)
     {
+        $this->pastikanGuruBk($request);
         $surat->delete();
 
         return redirect()->route('surat.index')->with('success', 'Surat berhasil dihapus.');
+    }
+
+    /**
+     * Lapis kedua (route middleware sudah membatasi juga) — jaga-jaga
+     * kalau ada yang memanggil method ini lewat jalur lain. Admin selalu
+     * lolos (konsisten dengan App\Http\Middleware\EnsureRole).
+     */
+    private function pastikanGuruBk(Request $request): void
+    {
+        $role = $request->user()->role;
+        abort_if(!in_array($role, ['guru_bk', 'admin']), 403, 'Hanya Guru BK yang bisa mengelola surat.');
     }
 }

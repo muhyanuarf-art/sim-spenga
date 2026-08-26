@@ -60,35 +60,28 @@
     <div class="card p-5 space-y-4">
         <p class="font-bold text-slate-800 text-sm">3. Lengkapi &amp; Simpan</p>
 
-        {{-- Form terpisah, khusus tanggal & jam — auto-reload begitu diklik,
-             supaya Nomor Surat & Isi Surat di bawah otomatis ikut update.
-             Sengaja pakai <input type="date"/"time"> (bukan teks bebas)
-             supaya guru cukup KETUK kalender/jam, tidak perlu mengetik. --}}
-        <form method="GET" class="grid sm:grid-cols-3 gap-4">
+        {{-- Tanggal — auto-reload begitu diklik, supaya Nomor Surat di
+             bawah (pratinjau saja, bagian nomor urutnya belum terisi)
+             otomatis ikut update bulan-romawi/tahunnya. --}}
+        <form method="GET" class="grid sm:grid-cols-2 gap-4">
             <input type="hidden" name="jenis_surat_id" value="{{ $jenisSurat->id }}">
             <input type="hidden" name="siswa_id" value="{{ $siswaTerpilih->id }}">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat Dibuat</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat</label>
                 <input type="date" name="tanggal" value="{{ $tanggal }}" required class="input" onchange="this.form.submit()">
             </div>
+            @if($jenisSurat->tipe_formulir === \App\Models\JenisSurat::TIPE_BEBAS)
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Acara/Pemanggilan</label>
                 <input type="date" name="tanggal_acara" value="{{ $tanggalAcara }}" class="input" onchange="this.form.submit()">
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Acara</label>
-                <input type="time" name="waktu_acara" value="{{ $waktuAcara }}" class="input" onchange="this.form.submit()">
-            </div>
+            @endif
         </form>
-        <p class="text-xs text-slate-400 -mt-2">
-            <i class="fa-solid fa-circle-info mr-1"></i>
-            Cukup ketuk ikon kalender/jam di atas untuk memilih — tidak perlu mengetik. Mengubah salah satunya otomatis memperbarui Isi Surat di bawah.
-        </p>
 
         <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
             <span class="text-slate-500">Nomor Surat</span> :
-            <span class="font-semibold text-slate-700">{{ $nomorPreview ?? '-' }}</span>
-            <span class="text-slate-400"> (otomatis, tidak perlu diketik)</span>
+            <span class="font-semibold text-slate-700">{{ $nomorPratinjau }}</span>
+            <span class="text-slate-400"> — bagian tengah diisi manual di bawah (wajib)</span>
         </div>
 
         <form method="POST" action="{{ route('surat.store') }}" class="space-y-4">
@@ -96,13 +89,74 @@
             <input type="hidden" name="jenis_surat_id" value="{{ $jenisSurat->id }}">
             <input type="hidden" name="siswa_id" value="{{ $siswaTerpilih->id }}">
             <input type="hidden" name="tanggal" value="{{ $tanggal }}">
-            <input type="hidden" name="tanggal_acara" value="{{ $tanggalAcara }}">
-            <input type="hidden" name="waktu_acara" value="{{ $waktuAcara }}">
+            @if($jenisSurat->tipe_formulir === \App\Models\JenisSurat::TIPE_BEBAS)
+                <input type="hidden" name="tanggal_acara" value="{{ $tanggalAcara }}">
+            @endif
 
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat <span class="text-slate-400 font-normal">(otomatis digabung dari template, boleh diedit)</span></label>
-                <textarea name="isi" rows="10" required class="input font-mono text-sm">{{ old('isi', $isiGabungan) }}</textarea>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Urut Surat <span class="text-red-500">*</span></label>
+                <input type="text" name="nomor_urut" value="{{ old('nomor_urut') }}" required placeholder="Contoh: 15" class="input sm:w-48">
+                <p class="text-xs text-slate-400 mt-1">Diisi manual sesuai buku agenda surat — bagian "422/<b>...</b>/BK/{{ \Carbon\Carbon::parse($tanggal)->translatedFormat('m') }}/..." di atas.</p>
             </div>
+
+            @if($jenisSurat->tipe_formulir === \App\Models\JenisSurat::TIPE_BEBAS)
+                {{-- Surat Panggilan Orang Tua/Wali — template bebas seperti sebelumnya. --}}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Acara</label>
+                    <input type="time" name="waktu_acara" value="{{ old('waktu_acara', $waktuAcara) }}" class="input sm:w-48">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat <span class="text-slate-400 font-normal">(otomatis digabung dari template, boleh diedit)</span></label>
+                    <textarea name="isi" rows="10" required class="input font-mono text-sm">{{ old('isi', $isiGabungan) }}</textarea>
+                </div>
+
+            @elseif($jenisSurat->tipe_formulir === \App\Models\JenisSurat::TIPE_IZIN_MENINGGALKAN_PELAJARAN)
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Alamat</label>
+                        <input type="text" name="alamat" value="{{ old('alamat') }}" class="input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Diberi Ijin Meninggalkan Pelajaran Mulai Jam Ke</label>
+                        <input type="text" name="jam_ke" value="{{ old('jam_ke') }}" placeholder="Contoh: 5" class="input">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Keperluan <span class="text-red-500">*</span></label>
+                    <textarea name="keperluan" rows="2" required class="input">{{ old('keperluan') }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan Lain <span class="text-slate-400 font-normal">(opsional)</span></label>
+                    <textarea name="keterangan_lain" rows="2" class="input">{{ old('keterangan_lain') }}</textarea>
+                </div>
+
+            @elseif($jenisSurat->tipe_formulir === \App\Models\JenisSurat::TIPE_KETERANGAN_TERLAMBAT)
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Alamat</label>
+                        <input type="text" name="alamat" value="{{ old('alamat') }}" class="input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Terlambat <span class="text-red-500">*</span></label>
+                        <input type="text" name="terlambat" value="{{ old('terlambat') }}" placeholder="Contoh: 30 menit / jam ke-1" required class="input">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Alasan Terlambat <span class="text-red-500">*</span></label>
+                    <textarea name="alasan_terlambat" rows="2" required class="input">{{ old('alasan_terlambat') }}</textarea>
+                </div>
+
+            @elseif($jenisSurat->tipe_formulir === \App\Models\JenisSurat::TIPE_PERNYATAAN_PELANGGARAN)
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Pelanggaran Ke <span class="text-red-500">*</span></label>
+                    <input type="number" name="pelanggaran_ke" value="{{ old('pelanggaran_ke', $pelanggaranKeBerikutnya) }}" min="1" required class="input sm:w-32">
+                    <p class="text-xs text-slate-400 mt-1">Otomatis dihitung dari riwayat surat pelanggaran siswa ini sebelumnya — boleh diubah kalau perlu.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Pelanggaran Disiplin Sekolah Berupa <span class="text-red-500">*</span></label>
+                    <textarea name="pelanggaran" rows="3" required class="input">{{ old('pelanggaran') }}</textarea>
+                </div>
+            @endif
 
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan <span class="text-slate-400 font-normal">(opsional, internal — tidak ikut tercetak)</span></label>

@@ -43,6 +43,7 @@ class JenisSuratController extends Controller
             'template_isi' => ['nullable', 'string', 'max:5000'],
         ]);
         $validated['kode_jenis'] = $validated['kode_jenis'] ? strtoupper($validated['kode_jenis']) : null;
+        $validated['is_aktif'] = $request->boolean('is_aktif');
 
         $jenisSurat->update($validated);
 

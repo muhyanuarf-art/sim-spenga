@@ -2,6 +2,10 @@
 @section('title', 'Edit Surat')
 
 @section('content')
+@php
+    $tipe = $surat->jenisSurat->tipe_formulir ?? 'bebas';
+    $f = $surat->data_formulir ?? [];
+@endphp
 <div class="max-w-3xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
         <p class="text-lg font-extrabold text-slate-800">Edit Surat — {{ $surat->siswa->nama ?? '-' }}</p>
@@ -18,29 +22,78 @@
 
         <div class="grid sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Surat</label>
-                <div class="input bg-slate-50 text-slate-500 flex items-center">{{ $surat->nomor_surat ?: '-' }}</div>
-                <p class="text-xs text-slate-400 mt-1">Otomatis, tidak bisa diedit manual.</p>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Urut Surat</label>
+                <input type="text" name="nomor_urut" value="{{ old('nomor_urut', $surat->nomor_urut) }}" required class="input">
+                <p class="text-xs text-slate-400 mt-1">Nomor lengkap saat ini: <b>{{ $surat->nomor_surat }}</b></p>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat Dibuat</label>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat</label>
                 <input type="date" name="tanggal" value="{{ old('tanggal', $surat->tanggal->toDateString()) }}" required class="input">
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Acara/Pemanggilan</label>
-                <input type="date" name="tanggal_acara" value="{{ old('tanggal_acara', optional($surat->tanggal_acara)->toDateString()) }}" class="input">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Acara</label>
-                <input type="time" name="waktu_acara" value="{{ old('waktu_acara', $surat->waktu_acara) }}" class="input">
-            </div>
         </div>
-        <p class="text-xs text-slate-400 -mt-2">Perubahan tanggal/waktu di sini TIDAK otomatis mengubah teks di kotak Isi Surat di bawah — kalau perlu, sesuaikan juga teksnya secara manual.</p>
 
-        <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat</label>
-            <textarea name="isi" rows="10" required class="input font-mono text-sm">{{ old('isi', $surat->isi) }}</textarea>
-        </div>
+        @if($tipe === 'bebas')
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Acara/Pemanggilan</label>
+                    <input type="date" name="tanggal_acara" value="{{ old('tanggal_acara', optional($surat->tanggal_acara)->toDateString()) }}" class="input">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Waktu Acara</label>
+                    <input type="time" name="waktu_acara" value="{{ old('waktu_acara', $surat->waktu_acara) }}" class="input">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat</label>
+                <textarea name="isi" rows="10" required class="input font-mono text-sm">{{ old('isi', $surat->isi) }}</textarea>
+            </div>
+
+        @elseif($tipe === 'izin_meninggalkan_pelajaran')
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Alamat</label>
+                    <input type="text" name="alamat" value="{{ old('alamat', $f['alamat'] ?? '') }}" class="input">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Diberi Ijin Meninggalkan Pelajaran Mulai Jam Ke</label>
+                    <input type="text" name="jam_ke" value="{{ old('jam_ke', $f['jam_ke'] ?? '') }}" class="input">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Keperluan</label>
+                <textarea name="keperluan" rows="2" required class="input">{{ old('keperluan', $f['keperluan'] ?? '') }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan Lain</label>
+                <textarea name="keterangan_lain" rows="2" class="input">{{ old('keterangan_lain', $f['keterangan_lain'] ?? '') }}</textarea>
+            </div>
+
+        @elseif($tipe === 'keterangan_terlambat')
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Alamat</label>
+                    <input type="text" name="alamat" value="{{ old('alamat', $f['alamat'] ?? '') }}" class="input">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Terlambat</label>
+                    <input type="text" name="terlambat" value="{{ old('terlambat', $f['terlambat'] ?? '') }}" required class="input">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Alasan Terlambat</label>
+                <textarea name="alasan_terlambat" rows="2" required class="input">{{ old('alasan_terlambat', $f['alasan_terlambat'] ?? '') }}</textarea>
+            </div>
+
+        @elseif($tipe === 'pernyataan_pelanggaran')
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Pelanggaran Ke</label>
+                <input type="number" name="pelanggaran_ke" value="{{ old('pelanggaran_ke', $f['pelanggaran_ke'] ?? 1) }}" min="1" required class="input sm:w-32">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Pelanggaran Disiplin Sekolah Berupa</label>
+                <textarea name="pelanggaran" rows="3" required class="input">{{ old('pelanggaran', $f['pelanggaran'] ?? '') }}</textarea>
+            </div>
+        @endif
 
         <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Keterangan <span class="text-slate-400 font-normal">(opsional, internal)</span></label>

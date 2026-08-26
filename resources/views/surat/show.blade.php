@@ -2,19 +2,20 @@
 @section('title', 'Surat — ' . ($surat->siswa->nama ?? '-'))
 
 @section('content')
+@php
+    $bisaKelola = in_array(auth()->user()->role, ['guru_bk', 'admin']);
+    $tipe = $surat->jenisSurat->tipe_formulir ?? 'bebas';
+    $f = $surat->data_formulir ?? [];
+@endphp
 <div class="space-y-6">
     <div class="card p-5 no-print flex flex-wrap items-center justify-between gap-3">
-        @if(in_array(auth()->user()->role, ['kesiswaan', 'guru_bk', 'admin']))
-            <a href="{{ route('surat.index') }}" class="btn-outline">&larr; Kembali ke Daftar Surat</a>
-        @else
-            <a href="{{ route('disposisi.index') }}" class="btn-outline">&larr; Kembali ke Disposisi Masuk</a>
-        @endif
+        <a href="{{ route('surat.index') }}" class="btn-outline">&larr; Kembali ke Daftar Surat</a>
         <div class="flex gap-2">
-            @if(in_array(auth()->user()->role, ['kesiswaan', 'guru_bk', 'admin']))
+            @if($bisaKelola)
                 <a href="{{ route('surat.edit', $surat) }}" class="btn-outline"><i class="fa-solid fa-pen mr-1.5"></i> Edit</a>
             @endif
             <button type="button" onclick="cetakBagian('print-surat')" class="btn-primary"><i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF</button>
-            @if(in_array(auth()->user()->role, ['kesiswaan', 'guru_bk', 'admin']))
+            @if($bisaKelola)
                 <form method="POST" action="{{ route('surat.destroy', $surat) }}" onsubmit="return confirm('Hapus surat ini?')">
                     @csrf @method('DELETE')
                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
@@ -26,27 +27,110 @@
     <div class="card p-8 print-section max-w-3xl mx-auto" id="print-surat">
         <x-kop-surat />
 
-        <div class="flex justify-between items-start mb-6 text-sm">
-            <div>
-                <p><span class="text-slate-500">Nomor</span> : {{ $surat->nomor_surat ?: '-' }}</p>
-                <p><span class="text-slate-500">Perihal</span> : {{ $surat->jenisSurat->nama_jenis ?? '-' }}</p>
+        @if($tipe === 'bebas')
+            {{-- Surat Panggilan Orang Tua/Wali — format bebas seperti sebelumnya. --}}
+            <div class="flex justify-between items-start mb-6 text-sm">
+                <div>
+                    <p><span class="text-slate-500">Nomor</span> : {{ $surat->nomor_surat ?: '-' }}</p>
+                    <p><span class="text-slate-500">Perihal</span> : {{ $surat->jenisSurat->nama_jenis ?? '-' }}</p>
+                </div>
+                <p>{{ $surat->tanggal->translatedFormat('d F Y') }}</p>
             </div>
-            <p>{{ $surat->tanggal->translatedFormat('d F Y') }}</p>
-        </div>
+            <div class="mb-6 text-sm">
+                <p>Kepada Yth.</p>
+                <p class="font-semibold">Orang Tua/Wali dari {{ $surat->siswa->nama ?? '-' }}</p>
+                <p class="text-slate-500">Kelas {{ $surat->siswa->kelas->nama_kelas ?? '-' }}</p>
+            </div>
+            <div class="text-sm leading-relaxed whitespace-pre-line mb-4">{{ $surat->isi }}</div>
 
-        <div class="mb-6 text-sm">
-            <p>Kepada Yth.</p>
-            <p class="font-semibold">Orang Tua/Wali dari {{ $surat->siswa->nama ?? '-' }}</p>
-            <p class="text-slate-500">Kelas {{ $surat->siswa->kelas->nama_kelas ?? '-' }}</p>
-        </div>
+            {{-- (2026-08-26) — tanda tangan ditambah jadi 2: Kepala Sekolah
+                 (kiri) + Guru BK pembuat surat (kanan), sesuai instruksi. --}}
+            <x-blok-tanda-tangan-dua
+                jabatan-kanan="Guru BK"
+                :nama-kanan="$surat->dibuatOleh->name ?? null"
+                :nip-kanan="$surat->dibuatOleh->nip ?? null"
+            />
 
-        <div class="text-sm leading-relaxed whitespace-pre-line mb-4">{{ $surat->isi }}</div>
+        @elseif($tipe === 'izin_meninggalkan_pelajaran')
+            <p class="text-center font-bold underline mb-6">SURAT IJIN MENINGGALKAN PELAJARAN</p>
+            <table class="text-sm w-full mb-6">
+                <tr><td class="w-48 py-1 align-top">Nama</td><td class="w-4 align-top">:</td><td class="align-top">{{ $f['nama'] ?? $surat->siswa->nama }}</td></tr>
+                <tr><td class="py-1 align-top">Kelas</td><td class="align-top">:</td><td class="align-top">{{ $f['kelas'] ?? $surat->siswa->kelas->nama_kelas ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Alamat</td><td class="align-top">:</td><td class="align-top">{{ $f['alamat'] ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Diberi ijin meninggalkan pelajaran mulai jam ke</td><td class="align-top">:</td><td class="align-top">{{ $f['jam_ke'] ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Keperluan</td><td class="align-top">:</td><td class="align-top">{{ $f['keperluan'] ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Keterangan lain</td><td class="align-top">:</td><td class="align-top">{{ $f['keterangan_lain'] ?? '-' }}</td></tr>
+            </table>
+            <p class="text-right text-sm mb-6">{{ $surat->tanggal->translatedFormat('d F Y') }} &middot; No. {{ $surat->nomor_surat }}</p>
+            <div class="cetak-utuh flex justify-between gap-6">
+                <div class="text-sm text-center w-56">
+                    <p>Mengetahui</p>
+                    <p>Guru Mata Pelajaran</p>
+                    <div class="h-16"></div>
+                    <p>............................</p>
+                </div>
+                <div class="text-sm text-center w-56">
+                    <p>{{ $pengaturanSekolahGlobal->lokasiTtd() }},</p>
+                    <p>Koordinator/Staf BK</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline underline-offset-2">{{ $surat->dibuatOleh->name ?? '-' }}</p>
+                    <p>NIP. {{ $surat->dibuatOleh->nip ?: '............................' }}</p>
+                </div>
+            </div>
 
-        <x-blok-tanda-tangan
-            :jabatan="$surat->dibuatOleh->roleLabel() ?? '-'"
-            :nama="$surat->dibuatOleh->name ?? null"
-            :nip="$surat->dibuatOleh->nip ?? null"
-        />
+        @elseif($tipe === 'keterangan_terlambat')
+            <p class="text-center font-bold underline mb-6">SURAT KETERANGAN TERLAMBAT</p>
+            <p class="text-sm mb-4">Yang bertanda tangan di bawah ini Koordinator/Staf BK menerangkan bahwa :</p>
+            <table class="text-sm w-full mb-4">
+                <tr><td class="w-48 py-1 align-top">Nama</td><td class="w-4 align-top">:</td><td class="align-top">{{ $f['nama'] ?? $surat->siswa->nama }}</td></tr>
+                <tr><td class="py-1 align-top">Kelas</td><td class="align-top">:</td><td class="align-top">{{ $f['kelas'] ?? $surat->siswa->kelas->nama_kelas ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Alamat</td><td class="align-top">:</td><td class="align-top">{{ $f['alamat'] ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Terlambat</td><td class="align-top">:</td><td class="align-top">{{ $f['terlambat'] ?? '-' }}</td></tr>
+                <tr><td class="py-1 align-top">Alasan terlambat</td><td class="align-top">:</td><td class="align-top">{{ $f['alasan_terlambat'] ?? '-' }}</td></tr>
+            </table>
+            <p class="text-sm mb-2">Mohon dengan hormat kepada Bapak/Ibu Guru yang mengajar di ruang tersebut agar siswa yang bersangkutan dapat menerima pelajaran yang Bapak/Ibu ampu.</p>
+            <p class="text-sm mb-6">Atas perhatiannya kami sampaikan terima kasih.</p>
+            <p class="text-right text-sm mb-6">{{ $surat->tanggal->translatedFormat('d F Y') }} &middot; No. {{ $surat->nomor_surat }}</p>
+            <div class="cetak-utuh flex justify-between gap-6">
+                <div class="text-sm text-center w-56">
+                    <p>Mengetahui</p>
+                    <p>Guru Mata Pelajaran</p>
+                    <div class="h-16"></div>
+                    <p>............................</p>
+                </div>
+                <div class="text-sm text-center w-56">
+                    <p>{{ $pengaturanSekolahGlobal->lokasiTtd() }},</p>
+                    <p>Koordinator/Staf BK</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline underline-offset-2">{{ $surat->dibuatOleh->name ?? '-' }}</p>
+                    <p>NIP. {{ $surat->dibuatOleh->nip ?: '............................' }}</p>
+                </div>
+            </div>
+
+        @elseif($tipe === 'pernyataan_pelanggaran')
+            <p class="text-center font-bold underline mb-1">SURAT PERNYATAAN PELANGGARAN SISWA</p>
+            <p class="text-center text-sm mb-6">PELANGGARAN KE : {{ $f['pelanggaran_ke'] ?? '-' }}</p>
+            <p class="text-sm mb-2">Yang bertanda tangan di bawah ini, Saya :</p>
+            <p class="text-sm mb-4">Nama / Kelas : {{ $f['nama'] ?? $surat->siswa->nama }} / {{ $f['kelas'] ?? $surat->siswa->kelas->nama_kelas ?? '-' }}</p>
+            <p class="text-sm mb-2">Pada hari ini, {{ $surat->tanggal->translatedFormat('l') }}, tanggal {{ $surat->tanggal->translatedFormat('d F Y') }}, Saya telah melakukan pelanggaran disiplin sekolah berupa :</p>
+            <p class="text-sm mb-6 pl-4">{{ $f['pelanggaran'] ?? '-' }}</p>
+            <p class="text-sm mb-6">Apabila saya melakukan/mengulangi lagi sampai 3 kali pelanggaran, saya bersedia diberikan sanksi disiplin sesuai dengan peraturan yang berlaku di sekolah ini.</p>
+            <div class="cetak-utuh flex justify-between gap-6">
+                <div class="text-sm text-center w-56">
+                    <p>Mengetahui</p>
+                    <p>Koordinator/Staf BK</p>
+                    <div class="h-16"></div>
+                    <p class="font-bold underline underline-offset-2">{{ $surat->dibuatOleh->name ?? '-' }}</p>
+                    <p>NIP. {{ $surat->dibuatOleh->nip ?: '............................' }}</p>
+                </div>
+                <div class="text-sm text-center w-56">
+                    <p>&nbsp;</p>
+                    <p>Yang membuat pernyataan</p>
+                    <div class="h-16"></div>
+                    <p>............................</p>
+                </div>
+            </div>
+        @endif
     </div>
 
     @if($surat->keterangan)
@@ -55,113 +139,5 @@
             <p class="text-sm text-slate-600">{{ $surat->keterangan }}</p>
         </div>
     @endif
-
-    <div class="card p-5 no-print">
-        <p class="font-bold text-slate-800 mb-3 text-sm">Lampiran</p>
-        <div class="space-y-2 mb-3">
-            @forelse($surat->attachments as $a)
-                <div class="flex items-center justify-between border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                    <a href="{{ $a->url() }}" target="_blank" class="text-brand-600 font-medium truncate">
-                        <i class="fa-solid fa-paperclip mr-1.5"></i>{{ $a->nama_file }}
-                    </a>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <span class="text-xs text-slate-400">{{ $a->ukuranReadable() }} &middot; {{ $a->user->name ?? '-' }}</span>
-                        @if(in_array(auth()->user()->role, ['kesiswaan', 'guru_bk', 'admin']))
-                        <form method="POST" action="{{ route('surat.lampiran.destroy', $a) }}" onsubmit="return confirm('Hapus lampiran ini?')">
-                            @csrf @method('DELETE')
-                            <button class="text-red-500"><i class="fa-solid fa-trash"></i></button>
-                        </form>
-                        @endif
-                    </div>
-                </div>
-            @empty
-                <p class="text-xs text-slate-400">Belum ada lampiran.</p>
-            @endforelse
-        </div>
-
-        @if(in_array(auth()->user()->role, ['kesiswaan', 'guru_bk', 'admin']))
-        <form method="POST" action="{{ route('surat.lampiran.store', $surat) }}" enctype="multipart/form-data" class="flex gap-2">
-            @csrf
-            <input type="file" name="file" required class="input flex-1" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
-            <button type="submit" class="btn-outline shrink-0">Unggah</button>
-        </form>
-        <p class="text-xs text-slate-400 mt-1">JPG/PNG/PDF/DOC/DOCX, maks 5MB.</p>
-        @endif
-    </div>
-
-    @if(in_array(auth()->user()->role, ['kesiswaan', 'guru_bk', 'admin']))
-    <div class="card p-5 no-print">
-        <p class="font-bold text-slate-800 mb-3 text-sm">Kirim Disposisi</p>
-        <form method="POST" action="{{ route('surat.disposisi.store', $surat) }}" class="grid sm:grid-cols-3 gap-3 items-end">
-            @csrf
-            <div class="sm:col-span-1">
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Kepada</label>
-                <select name="kepada_user_id" required class="input">
-                    <option value="">— Pilih penerima —</option>
-                    @foreach($calonPenerima as $u)
-                        <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->roleLabel() }})</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="sm:col-span-1">
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Waktu <span class="text-slate-400 font-normal">(opsional)</span></label>
-                <input type="date" name="batas_waktu" class="input">
-            </div>
-            <div class="sm:col-span-1">
-                <button type="submit" class="btn-primary h-[38px] w-full">Kirim Disposisi</button>
-            </div>
-            <div class="sm:col-span-3">
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Instruksi <span class="text-slate-400 font-normal">(opsional)</span></label>
-                <input type="text" name="instruksi" placeholder="Contoh: Mohon ditindaklanjuti dan dilaporkan kembali." class="input">
-            </div>
-        </form>
-    </div>
-    @endif
-
-    <div class="card p-5 no-print">
-        <p class="font-bold text-slate-800 mb-3 text-sm">Riwayat Disposisi</p>
-        <div class="space-y-2">
-            @forelse($surat->disposisi as $d)
-                <div class="border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                    <div class="flex items-center justify-between flex-wrap gap-2">
-                        <p><span class="font-semibold">{{ $d->dariUser->name ?? '-' }}</span> &rarr; <span class="font-semibold">{{ $d->kepadaUser->name ?? '-' }}</span></p>
-                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold
-                            @if($d->status === 'menunggu') bg-slate-100 text-slate-500
-                            @elseif($d->status === 'dibaca') bg-blue-50 text-blue-700
-                            @elseif($d->status === 'diproses') bg-amber-50 text-amber-700
-                            @elseif($d->status === 'selesai') bg-emerald-50 text-emerald-700
-                            @else bg-red-50 text-red-700
-                            @endif">
-                            {{ ucfirst($d->status) }}
-                        </span>
-                    </div>
-                    @if($d->instruksi)<p class="text-slate-600 mt-1">{{ $d->instruksi }}</p>@endif
-                    @if($d->batas_waktu)<p class="text-xs text-slate-400 mt-0.5">Batas waktu: {{ $d->batas_waktu->translatedFormat('d M Y') }}</p>@endif
-                    @if($d->catatan_penyelesaian)<p class="text-xs text-slate-500 mt-1 italic">Catatan: {{ $d->catatan_penyelesaian }}</p>@endif
-                    <p class="text-xs text-slate-400 mt-1">{{ $d->created_at->translatedFormat('d M Y, H:i') }}</p>
-                </div>
-            @empty
-                <p class="text-xs text-slate-400">Belum ada disposisi untuk surat ini.</p>
-            @endforelse
-        </div>
-    </div>
-
-    <div class="card p-5 no-print">
-        <p class="font-bold text-slate-800 mb-3 text-sm">Riwayat Aktivitas</p>
-        <div class="space-y-3">
-            @forelse($surat->activities as $act)
-                <div class="flex gap-3 text-sm">
-                    <div class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5 shrink-0"></div>
-                    <div>
-                        <p><span class="font-semibold">{{ $act->aktivitas }}</span> — {{ $act->user->name ?? 'Sistem' }}</p>
-                        @if($act->keterangan)<p class="text-slate-500">{{ $act->keterangan }}</p>@endif
-                        <p class="text-xs text-slate-400">{{ $act->created_at->translatedFormat('d M Y, H:i') }}</p>
-                    </div>
-                </div>
-            @empty
-                <p class="text-xs text-slate-400">Belum ada riwayat aktivitas.</p>
-            @endforelse
-        </div>
-    </div>
 </div>
 @endsection

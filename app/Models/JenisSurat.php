@@ -10,7 +10,12 @@ class JenisSurat extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nama_jenis', 'kode_jenis', 'kategori', 'template_isi', 'is_aktif'];
+    protected $fillable = ['nama_jenis', 'kode_jenis', 'kategori', 'tipe_formulir', 'template_isi', 'is_aktif'];
+
+    public const TIPE_BEBAS = 'bebas';
+    public const TIPE_IZIN_MENINGGALKAN_PELAJARAN = 'izin_meninggalkan_pelajaran';
+    public const TIPE_KETERANGAN_TERLAMBAT = 'keterangan_terlambat';
+    public const TIPE_PERNYATAAN_PELANGGARAN = 'pernyataan_pelanggaran';
 
     protected function casts(): array
     {

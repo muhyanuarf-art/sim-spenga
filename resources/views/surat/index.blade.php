@@ -6,16 +6,17 @@
     <div class="flex justify-between items-center flex-wrap gap-3">
         <div>
             <p class="text-lg font-extrabold text-slate-800">{{ $judul }}</p>
-            <p class="text-sm text-slate-500">Arsip surat — dibuat oleh Kesiswaan maupun BK, semua tercatat di sini supaya keduanya saling tahu.</p>
+            <p class="text-sm text-slate-500">Surat resmi BK — dibuat oleh Guru BK, bisa dilihat/dicetak oleh Kesiswaan, Kurikulum, dan Kepala Sekolah.</p>
         </div>
+        @if(in_array(auth()->user()->role, ['guru_bk', 'admin']))
         <div class="flex gap-2">
             <a href="{{ route('surat.create') }}" class="btn-primary">+ Buat Surat</a>
         </div>
+        @endif
     </div>
 
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap gap-2">
-            <input type="hidden" name="arah" value="{{ request('arah') }}">
             <input type="hidden" name="status" value="{{ request('status') }}">
             <input type="text" name="cari" value="{{ request('cari') }}" placeholder="Cari nama / NIS siswa..." class="input flex-1 min-w-[200px]">
             <select name="jenis_surat_id" class="input" onchange="this.form.submit()">

@@ -10,7 +10,7 @@ use App\Models\Siswa;
 use App\Models\Surat;
 use App\Models\TahunAjaran;
 use App\Support\BkAccessScope;
-use App\Support\NomorSurat;
+use App\Support\NomorSuratBk;
 use App\Support\RentangBulan;
 use App\Support\SuratMerge;
 use Illuminate\Http\Request;
@@ -104,10 +104,10 @@ class BkPemanggilanController extends Controller
         $suratPanggilanList = collect();
         $jenisSuratPanggilan = null;
         $isiSuratPreview = null;
-        $nomorPreview = null;
         $tanggal = $request->get('tanggal', now()->toDateString());
         $tanggalAcara = $request->get('tanggal_acara', '');
         $waktuAcara = $request->get('waktu_acara', '');
+        $nomorPratinjau = NomorSuratBk::pratinjau($tanggal);
 
         if ($siswaTerpilih) {
             $kasusAktifTerbuka = KasusSiswa::aktif()->where('siswa_id', $siswaTerpilih->id)
@@ -124,16 +124,15 @@ class BkPemanggilanController extends Controller
                     ->where('jenis_surat_id', $jenisSuratPanggilan->id)
                     ->orderByDesc('tanggal')->get();
 
-                $nomorPreview = NomorSurat::berikutnya($jenisSuratPanggilan, $tanggal)['nomor_surat'];
                 $isiSuratPreview = SuratMerge::isi(
-                    $jenisSuratPanggilan->template_isi ?? '', $siswaTerpilih, $tanggal, $nomorPreview, $tanggalAcara, $waktuAcara
+                    $jenisSuratPanggilan->template_isi ?? '', $siswaTerpilih, $tanggal, $nomorPratinjau, $tanggalAcara, $waktuAcara
                 );
             }
         }
 
         return view('bk.pemanggilan.create', compact(
             'siswaTerpilih', 'hasilCari', 'kasusAktifTerbuka', 'jenisSuratPanggilan',
-            'suratPanggilanList', 'tanggal', 'tanggalAcara', 'waktuAcara', 'isiSuratPreview', 'nomorPreview'
+            'suratPanggilanList', 'tanggal', 'tanggalAcara', 'waktuAcara', 'isiSuratPreview', 'nomorPratinjau'
         ));
     }
 
@@ -155,6 +154,7 @@ class BkPemanggilanController extends Controller
             'pilihan_surat' => ['required', 'in:tidak_ada,pakai_yang_sudah_ada,buat_baru'],
             'surat_id' => ['nullable', 'required_if:pilihan_surat,pakai_yang_sudah_ada', 'exists:surats,id'],
             'jenis_surat_id' => ['nullable', 'required_if:pilihan_surat,buat_baru', 'exists:jenis_surats,id'],
+            'nomor_urut' => ['nullable', 'required_if:pilihan_surat,buat_baru', 'string', 'max:50'],
             'tanggal_acara' => ['nullable', 'date'],
             'waktu_acara' => ['nullable', 'date_format:H:i'],
             'isi_surat' => ['nullable', 'string', 'required_if:pilihan_surat,buat_baru'],
@@ -174,7 +174,7 @@ class BkPemanggilanController extends Controller
                 $alasan = \Illuminate\Support\Str::limit($surat->isi, 500);
             } elseif ($validated['pilihan_surat'] === 'buat_baru') {
                 $jenisSurat = JenisSurat::findOrFail($validated['jenis_surat_id']);
-                $nomor = NomorSurat::finalisasi($jenisSurat, $validated['tanggal']);
+                $nomorSurat = NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']);
 
                 $surat = Surat::create([
                     'jenis_surat_id' => $jenisSurat->id,
@@ -182,8 +182,8 @@ class BkPemanggilanController extends Controller
                     'tahun_ajaran_id' => $tahunAjaran->id,
                     'arah' => 'keluar',
                     'status' => 'selesai',
-                    'nomor_surat' => $nomor['nomor_surat'],
-                    'nomor_urut' => $nomor['nomor_urut'],
+                    'nomor_surat' => $nomorSurat,
+                    'nomor_urut' => $validated['nomor_urut'],
                     'tanggal' => $validated['tanggal'],
                     'tanggal_acara' => $validated['tanggal_acara'] ?? null,
                     'waktu_acara' => $validated['waktu_acara'] ?? null,

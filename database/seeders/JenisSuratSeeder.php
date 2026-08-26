@@ -7,6 +7,16 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
+ * (2026-08-26) — CATATAN: modul Surat sekarang KHUSUS BK (lihat migrasi
+ * 2026_08_26_000004). Jenis-jenis di bawah ini (Surat Keterangan Aktif,
+ * dst — bukan untuk BK) SUDAH DINONAKTIFKAN oleh migrasi itu. Seeder ini
+ * aman tetap ada/dijalankan (firstOrCreate tidak menimpa baris yang
+ * sudah ada, jadi tidak akan "menghidupkan" lagi jenis yang sudah
+ * dinonaktifkan) — tapi sudah TIDAK RELEVAN untuk alur kerja saat ini.
+ * Jenis surat BK yang sekarang aktif dibuat langsung oleh migrasi di atas.
+ */
+
+/**
  * Master Jenis Surat + template siap pakai — supaya Kesiswaan/BK tidak
  * perlu menulis surat dari nol (risiko typo/salah format). Semua
  * template pakai placeholder yang otomatis diisi sistem — lihat

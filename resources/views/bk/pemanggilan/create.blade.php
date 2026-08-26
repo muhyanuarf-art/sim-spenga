@@ -108,10 +108,10 @@
                                onchange="location.href = '{{ route('bk.pemanggilan.create', ['siswa_id' => $siswaTerpilih->id]) }}&tanggal_acara={{ $tanggalAcara }}&waktu_acara=' + this.value">
                     </div>
                 </div>
-                <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                    <span class="text-slate-500">Nomor Surat</span> :
-                    <span class="font-semibold text-slate-700">{{ $nomorPreview ?? '-' }}</span>
-                    <span class="text-slate-400"> (otomatis)</span>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Urut Surat <span class="text-red-500">*</span></label>
+                    <input type="text" name="nomor_urut" value="{{ old('nomor_urut') }}" placeholder="Contoh: 15" class="input sm:w-48">
+                    <p class="text-xs text-slate-400 mt-1">Nomor lengkap: <b>{{ $nomorPratinjau }}</b> — bagian tengah diisi manual sesuai buku agenda surat.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Isi Surat <span class="text-slate-400 font-normal">(otomatis dari template, boleh diedit)</span></label>
