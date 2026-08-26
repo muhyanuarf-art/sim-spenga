@@ -92,6 +92,9 @@ Route::middleware('auth')->group(function () {
         // 'periode-aktif' hanya dipasang di aksi TULIS transaksi (bukan di
         // sub-grup jenis-pelanggaran/master data, dan bukan di rute GET).
         Route::middleware('role:guru_bk,admin')->group(function () {
+            Route::get('pemanggilan/create', [BkPemanggilanController::class, 'create'])->name('pemanggilan.create');
+            Route::get('pemanggilan/{pemanggilan}/hasil', [BkPemanggilanController::class, 'editHasil'])->name('pemanggilan.hasil.edit');
+
             Route::middleware('periode-aktif')->group(function () {
                 Route::post('kasus/{kasus}/batalkan', [BkKasusController::class, 'batalkan'])->name('kasus.batalkan');
                 Route::patch('kasus/{kasus}/status', [BkKasusController::class, 'updateStatus'])->name('kasus.update-status');
@@ -104,6 +107,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('pengurangan/{pengurangan}/batalkan', [BkPenguranganPoinController::class, 'batalkan'])->name('pengurangan.batalkan');
 
                 Route::post('pemanggilan', [BkPemanggilanController::class, 'store'])->name('pemanggilan.store');
+                Route::put('pemanggilan/{pemanggilan}/hasil', [BkPemanggilanController::class, 'updateHasil'])->name('pemanggilan.hasil.update');
             });
 
             Route::prefix('jenis-pelanggaran')->name('jenis-pelanggaran.')->group(function () {

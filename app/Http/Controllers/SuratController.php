@@ -163,13 +163,15 @@ class SuratController extends Controller
     public function update(Request $request, Surat $surat)
     {
         $validated = $request->validate([
-            'nomor_surat' => ['nullable', 'string', 'max:100'],
             'tanggal' => ['required', 'date'],
             'tanggal_acara' => ['nullable', 'date'],
             'waktu_acara' => ['nullable', 'date_format:H:i'],
             'isi' => ['required', 'string'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
+        // nomor_surat SENGAJA tidak divalidasi/diterima dari form lagi —
+        // sudah otomatis & final sejak dibuat (lihat NomorSurat::finalisasi()
+        // di store()), supaya tidak bisa diubah manual jadi tidak konsisten.
 
         $surat->update($validated);
         SuratActivity::catat($surat, 'Surat diperbarui');

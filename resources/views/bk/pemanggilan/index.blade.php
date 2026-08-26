@@ -3,7 +3,10 @@
 
 @section('content')
 <div class="space-y-6">
-    <p class="text-sm text-slate-400 no-print">Riwayat pemanggilan orang tua/wali. Untuk mencatat pemanggilan baru, buka profil siswa terkait.</p>
+    <div class="flex items-center justify-between flex-wrap gap-3 no-print">
+        <p class="text-sm text-slate-400">Riwayat pemanggilan orang tua/wali.</p>
+        <a href="{{ route('bk.pemanggilan.create') }}" class="btn-primary">+ Catat Pemanggilan</a>
+    </div>
 
     <div class="card p-5 no-print">
         <form method="GET" class="flex flex-wrap items-end gap-3">
@@ -11,6 +14,7 @@
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Kehadiran</label>
                 <select name="status" class="input" onchange="this.form.submit()">
                     <option value="">Semua Status</option>
+                    <option value="Menunggu Pertemuan" {{ request('status') == 'Menunggu Pertemuan' ? 'selected' : '' }}>Menunggu Pertemuan</option>
                     @foreach(['Hadir','Tidak Hadir'] as $s)
                         <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
                     @endforeach
@@ -63,7 +67,7 @@
 
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th class="w-10">No</th><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Alasan</th><th>Kehadiran</th><th>Petugas</th></tr></thead>
+                <thead><tr><th class="w-10">No</th><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Alasan</th><th>Status</th><th>Surat Panggilan</th><th>Petugas</th><th class="th-aksi no-print">Aksi</th></tr></thead>
                 <tbody>
                     @forelse($data as $p)
                     <tr>
@@ -73,14 +77,32 @@
                         <td><x-kelas-badge :nama="$p->siswa->kelas->nama_kelas ?? '-'" /></td>
                         <td class="text-slate-500">{{ \Illuminate\Support\Str::limit($p->alasan, 60) }}</td>
                         <td>
-                            <span class="badge {{ $p->ortu_hadir ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                {{ $p->ortu_hadir ? 'Hadir' : 'Tidak Hadir' }}
-                            </span>
+                            @if(!$p->sudahAdaHasil())
+                                <span class="badge bg-slate-100 text-slate-500"><i class="fa-solid fa-hourglass-half mr-1"></i> Menunggu Pertemuan</span>
+                            @else
+                                <span class="badge {{ $p->ortu_hadir ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                    {{ $p->ortu_hadir ? 'Hadir' : 'Tidak Hadir' }}
+                                </span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap">
+                            @if($p->surat)
+                                <a href="{{ route('surat.show', $p->surat) }}" target="_blank" class="text-brand-600 hover:underline text-xs">
+                                    <i class="fa-solid fa-envelope mr-1"></i>{{ $p->surat->nomor_surat ?: '(belum ada nomor)' }}
+                                </a>
+                            @else
+                                <span class="text-slate-400 text-xs">-</span>
+                            @endif
                         </td>
                         <td class="text-slate-500">{{ $p->petugas->name ?? '-' }}</td>
+                        <td class="td-aksi no-print">
+                            @if(!$p->sudahAdaHasil())
+                                <a href="{{ route('bk.pemanggilan.hasil.edit', $p) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Isi Hasil</a>
+                            @endif
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-slate-400 py-8">Belum ada pemanggilan orang tua tercatat.</td></tr>
+                    <tr><td colspan="9" class="text-center text-slate-400 py-8">Belum ada pemanggilan orang tua tercatat.</td></tr>
                     @endforelse
                 </tbody>
             </table>

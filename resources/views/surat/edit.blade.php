@@ -18,8 +18,9 @@
 
         <div class="grid sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Surat <span class="text-slate-400 font-normal">(otomatis saat dibuat, bisa dikoreksi di sini bila perlu)</span></label>
-                <input type="text" name="nomor_surat" value="{{ old('nomor_surat', $surat->nomor_surat) }}" class="input">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nomor Surat</label>
+                <div class="input bg-slate-50 text-slate-500 flex items-center">{{ $surat->nomor_surat ?: '-' }}</div>
+                <p class="text-xs text-slate-400 mt-1">Otomatis, tidak bisa diedit manual.</p>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Surat Dibuat</label>

@@ -32,6 +32,18 @@ class KasusSiswa extends Model
     public function dibatalkanOleh(): BelongsTo { return $this->belongsTo(User::class, 'dibatalkan_oleh_id'); }
     public function tahunAjaran(): BelongsTo { return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id'); }
     public function pembinaan(): HasMany { return $this->hasMany(PembinaanSiswa::class, 'kasus_siswa_id'); }
+
+    /**
+     * Pembinaan PALING BARU untuk kasus ini saja (1 baris) — dipakai untuk
+     * kolom "Tahap" di tabel Kasus Terbaru (Dashboard BK). Pakai
+     * `latestOfMany()`, BUKAN `pembinaan()->limit(1)` di eager-load closure
+     * — itu jebakan Eloquent yang cuma membatasi TOTAL baris gabungan semua
+     * kasus, bukan per kasus (sudah pernah kejadian di dashboard Surat).
+     */
+    public function pembinaanTerbaru(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PembinaanSiswa::class, 'kasus_siswa_id')->latestOfMany();
+    }
     public function pemanggilan(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'kasus_siswa_id'); }
 
     public function scopeAktif($query)

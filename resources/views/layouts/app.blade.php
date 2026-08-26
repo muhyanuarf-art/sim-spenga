@@ -115,17 +115,18 @@
             {{-- (2026-08-24) — Surat dipakai BERSAMA Kesiswaan & BK (1 arsip
                  yang sama). (2026-08-25) — direstruktur jadi grup dropdown
                  "Manajemen Surat" (Dashboard/Surat Masuk/Surat Keluar/
-                 Draft/Disposisi/Arsip/Template Surat/Jenis Surat) sesuai
-                 struktur menu yang diminta. Surat Masuk/Keluar/Draft/Arsip
-                 semuanya arahnya ke surat.index dengan filter arah/status
-                 beda-beda (lihat SuratController::index()) — bukan halaman
-                 terpisah, supaya tidak duplikasi logika tabel & pencarian.
-                 "Template Surat" & "Jenis Surat" SAAT INI menuju halaman
-                 yang SAMA (jenis-surat.index) — di skema ini 1 Jenis Surat
-                 = 1 template (kolom template_isi di jenis_surats), belum
-                 dipisah jadi tabel template tersendiri yang bisa banyak
-                 template per jenis. Kalau nanti perlu itu, perlu tahap
-                 baru (tabel surat_templates terpisah). --}}
+                 Draft/Disposisi/Arsip/Jenis Surat) sesuai struktur menu
+                 yang diminta. Surat Masuk/Keluar/Draft/Arsip semuanya
+                 arahnya ke surat.index dengan filter arah/status beda-beda
+                 (lihat SuratController::index()) — bukan halaman terpisah,
+                 supaya tidak duplikasi logika tabel & pencarian.
+                 "Template Surat" DIHAPUS sebagai menu terpisah (sebelumnya
+                 duplikat, sama-sama menuju jenis-surat.index) — di skema
+                 ini 1 Jenis Surat = 1 template (kolom template_isi di
+                 jenis_surats), belum dipisah jadi tabel template
+                 tersendiri yang bisa banyak template per jenis. Kalau
+                 nanti perlu itu, perlu tahap baru (tabel surat_templates
+                 terpisah + menu sendiri lagi). --}}
             @if(in_array($user->role, ['kesiswaan', 'guru_bk']))
                 <x-nav-group icon="fa-envelope" label="Manajemen Surat" :active="request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*') || request()->routeIs('disposisi.*')">
                     <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
@@ -145,9 +146,6 @@
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('surat.index', ['status' => 'diarsipkan'])" :active="request()->routeIs('surat.index') && request('status') === 'diarsipkan'">
                         Arsip
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
-                        Template Surat
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
                         Jenis Surat
@@ -196,7 +194,7 @@
                         Arsip
                     </x-nav-sublink>
                     <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
-                        Jenis/Template Surat
+                        Jenis Surat
                     </x-nav-sublink>
                 </x-nav-group>
             @endif

@@ -30,7 +30,7 @@
             @if($bisaKelolaPoin)
                 <button @click="modal = 'pembinaan'" class="btn-outline">+ Catat Pembinaan</button>
                 <button @click="modal = 'pengurangan'" class="btn-outline">+ Kurangi Poin</button>
-                <button @click="modal = 'pemanggilan'" class="btn-outline">+ Panggil Ortu</button>
+                <a href="{{ route('bk.pemanggilan.create', ['siswa_id' => $siswa->id]) }}" class="btn-outline">+ Panggil Ortu</a>
             @endif
         </div>
     </div>
@@ -198,15 +198,30 @@
                     @else
                         <p class="font-semibold text-slate-800">
                             Pemanggilan Orang Tua
-                            <span class="badge {{ $d->ortu_hadir ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }} ml-1">
-                                {{ $d->ortu_hadir ? 'Hadir' : 'Tidak Hadir' }}
-                            </span>
+                            @if(!$d->sudahAdaHasil())
+                                <span class="badge bg-slate-100 text-slate-500 ml-1"><i class="fa-solid fa-hourglass-half mr-1"></i> Menunggu Pertemuan</span>
+                            @else
+                                <span class="badge {{ $d->ortu_hadir ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }} ml-1">
+                                    {{ $d->ortu_hadir ? 'Hadir' : 'Tidak Hadir' }}
+                                </span>
+                            @endif
                         </p>
                         <p class="text-sm text-slate-500">{{ $d->alasan }}</p>
                         @if($d->hasil_pertemuan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pertemuan }}</p>@endif
-                        @if($d->bukti_file_url)
+                        @if($d->kesepakatan)<p class="text-sm text-slate-500 italic">Kesepakatan: {{ $d->kesepakatan }}</p>@endif
+                        @if($d->surat)
+                            <a href="{{ route('surat.show', $d->surat) }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
+                                <i class="fa-solid fa-envelope mr-1.5"></i> Lihat Surat Panggilan ({{ $d->surat->nomor_surat ?: 'belum ada nomor' }})
+                            </a>
+                        @elseif($d->bukti_file_url)
+                            {{-- Data lama sebelum integrasi Surat (2026-08-26) — tetap ditampilkan, tidak dihapus. --}}
                             <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
                                 <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
+                            </a>
+                        @endif
+                        @if(!$d->sudahAdaHasil())
+                            <a href="{{ route('bk.pemanggilan.hasil.edit', $d) }}" class="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 mt-2">
+                                <i class="fa-solid fa-pen mr-1"></i> Isi Hasil Pertemuan
                             </a>
                         @endif
                     @endif
@@ -392,57 +407,6 @@
         </div>
     </div>
 
-    {{-- ===== MODAL: Pemanggilan Orang Tua ===== --}}
-    <div x-show="modal === 'pemanggilan'" x-cloak class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @keydown.escape.window="modal=null">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" @click.outside="modal=null" x-data="{ hadir: '1' }">
-            <p class="font-bold text-lg text-slate-800 mb-4">Catat Pemanggilan Orang Tua — {{ $siswa->nama }}</p>
-            <form method="POST" action="{{ route('bk.pemanggilan.store') }}" enctype="multipart/form-data" class="space-y-3">
-                @csrf
-                <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Terkait Kasus (opsional)</label>
-                    <select name="kasus_siswa_id" class="input">
-                        <option value="">-- Tidak terkait kasus tertentu --</option>
-                        @foreach($kasusAktifTerbuka as $k)
-                            <option value="{{ $k->id }}">{{ $k->tanggal_kejadian->format('d/m/Y') }} — {{ $k->nama_pelanggaran }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ now()->toDateString() }}" required class="input">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Alasan Pemanggilan</label>
-                    <textarea name="alasan" required rows="2" class="input"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Orang Tua/Wali Hadir?</label>
-                    <select name="ortu_hadir" x-model="hadir" required class="input">
-                        <option value="1">Ya, hadir</option>
-                        <option value="0">Tidak hadir</option>
-                    </select>
-                </div>
-                <div x-show="hadir === '1'">
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Pertemuan</label>
-                    <textarea name="hasil_pertemuan" rows="2" class="input"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Upload Bukti — Foto/PDF (opsional)</label>
-                    <input type="file" name="bukti_file" accept=".jpg,.jpeg,.png,.pdf" class="input">
-                    <p class="text-xs text-slate-400 mt-1">Format JPG/PNG/PDF, maksimal 5MB. Boleh dikosongkan.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Kesepakatan (opsional)</label>
-                    <textarea name="kesepakatan" rows="2" class="input"></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="modal=null" class="btn-outline">Batal</button>
-                    <button type="submit" class="btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
     @endif
 </div>
 @endsection

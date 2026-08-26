@@ -75,7 +75,7 @@ class BkSiswaController extends Controller
             ->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
         $pengurangan = PenguranganPoinSiswa::with(['petugas', 'dibatalkanOleh'])
             ->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
-        $pemanggilan = PemanggilanOrangTua::with('petugas')
+        $pemanggilan = PemanggilanOrangTua::with(['petugas', 'surat'])
             ->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
 
         // Riwayat diurutkan KRONOLOGIS dari yang PALING AWAL ke yang PALING
@@ -100,6 +100,11 @@ class BkSiswaController extends Controller
 
         $jenisList = JenisPelanggaran::where('is_active', true)->orderBy('kategori')->orderBy('nama')->get();
         $kasusAktifTerbuka = $kasus->whereNull('dibatalkan_at')->whereNotIn('status', ['Selesai'])->values();
+
+        // (2026-08-26) — pencatatan Pemanggilan Orang Tua (+ pemilihan/
+        // pembuatan Surat Panggilan) dipindah jadi halaman tersendiri
+        // (bk.pemanggilan.create) supaya sederhana & tidak menumpuk di
+        // halaman detail siswa ini — lihat BkPemanggilanController.
 
         return view('bk.siswa.show', compact(
             'siswa', 'ringkasan', 'timeline', 'jenisList', 'kasusAktifTerbuka'

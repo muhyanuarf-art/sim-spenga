@@ -88,10 +88,55 @@ class BkDashboardController extends Controller
             ->sortByDesc('poin_aktif')->values();
         $siswaMembaik = $susunDaftar($siswaMembaikIds)->values();
 
+        // (2026-08-26) — pembanding "bulan lalu" untuk kartu ringkasan.
+        // HANYA "Total Kasus Bulan Ini" yang punya pembanding SUNGGUHAN
+        // (dihitung dari tanggal_kejadian, sama-sama apple-to-apple).
+        // 3 kartu lainnya (Siswa Kasus Aktif, Sedang Pembinaan, Perlu
+        // Pemanggilan) adalah ANGKA KONDISI SAAT INI (status sekarang),
+        // BUKAN kejadian bertanggal — sistem ini tidak menyimpan snapshot
+        // harian/bulanan dari status-status itu, jadi "dari X bulan lalu"
+        // untuk ketiganya TIDAK BISA dihitung akurat. Dilihat lagi di
+        // view: ketiganya sengaja TIDAK diberi badge persentase naik/turun
+        // supaya tidak menampilkan angka yang terlihat presisi padahal
+        // sebenarnya perkiraan/tidak valid.
+        [$awalBulanLalu, $akhirBulanLalu] = RentangBulan::dari(
+            (int) now()->subMonthNoOverflow()->year, (int) now()->subMonthNoOverflow()->month
+        );
+        $totalKasusBulanLalu = KasusSiswa::aktif()
+            ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+            ->whereBetween('tanggal_kejadian', [$awalBulanLalu, $akhirBulanLalu])
+            ->count();
+
+        $kasusTerbaru = KasusSiswa::aktif()
+            ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+            ->with(['siswa.kelas', 'jenisPelanggaran', 'pembinaanTerbaru'])
+            ->orderByDesc('tanggal_kejadian')->orderByDesc('id')
+            ->limit(5)->get();
+
+        // Tren 6 bulan — "Aktif" di sini = dari kasus yang TERJADI pada
+        // bulan itu (berdasar tanggal_kejadian), berapa yang STATUSNYA
+        // SEKARANG belum Selesai. Beda dari kartu "Siswa Kasus Aktif" di
+        // atas (yang scope-nya semua kasus aktif, bukan cuma bulan itu).
+        $statistikTren = collect(range(5, 0))->map(function ($i) use ($kelasIds) {
+            $bulan = now()->subMonths($i);
+            [$awal, $akhir] = RentangBulan::dari((int) $bulan->year, (int) $bulan->month);
+            $q = KasusSiswa::aktif()
+                ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->whereBetween('tanggal_kejadian', [$awal, $akhir]);
+            $total = (clone $q)->count();
+            $selesai = (clone $q)->where('status', 'Selesai')->count();
+            return [
+                'label' => $bulan->translatedFormat('M Y'),
+                'total' => $total,
+                'aktif' => $total - $selesai,
+                'selesai' => $selesai,
+            ];
+        })->values();
+
         return view('bk.dashboard', compact(
-            'totalKasusBulanIni', 'siswaKasusAktifIds', 'sebaranTahap',
+            'totalKasusBulanIni', 'totalKasusBulanLalu', 'siswaKasusAktifIds', 'sebaranTahap',
             'siswaPoinTertinggi', 'siswaKasusBelumSelesai', 'siswaDalamPembinaan',
-            'butuhPemanggilanOrtu', 'siswaMembaik'
+            'butuhPemanggilanOrtu', 'siswaMembaik', 'kasusTerbaru', 'statistikTren'
         ));
     }
 }
