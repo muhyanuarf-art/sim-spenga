@@ -1,60 +1,78 @@
 @extends('layouts.app')
-@section('title', 'Dashboard Guru BK')
+@section('title', 'Dashboard')
+@section('deskripsi', 'Pantauan kehadiran & penanganan kasus di kelas binaan Anda, ' . now()->translatedFormat('l d F Y') . '.')
 
 @section('content')
 <div class="space-y-6">
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 via-violet-600 to-indigo-500 text-white px-5 py-4 shadow-lg shadow-violet-500/20">
-        <div class="relative z-10">
-            <p class="font-bold flex items-center gap-2"><i class="fa-solid fa-compass mr-1.5"></i> Dashboard Guru BK</p>
-            <p class="text-sm text-white/80">
-                Memantau kehadiran siswa di {{ $kelasBk->count() }} kelas yang di-mapping-kan kepada Anda.
-            </p>
-        </div>
-        <div class="absolute -right-6 -bottom-10 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
-    </div>
 
     @if($kelasBk->isEmpty())
-        <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm">
-            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Anda belum di-mapping ke kelas manapun. Hubungi Kurikulum/Admin untuk diatur lewat menu
-            <b>Mapping Guru BK</b>.
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+            <span class="flex-1">
+                Anda belum dipetakan ke kelas mana pun, sehingga data monitoring belum bisa ditampilkan.
+                Hubungi Kurikulum/Admin untuk mengaturnya lewat menu <b>Pemetaan Guru BK</b>.
+            </span>
         </div>
     @else
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            @foreach($rekapPerKelasBk as $r)
-            <a href="{{ route('walikelas.absensi-bulanan', $r['kelas']) }}"
-               class="relative overflow-hidden rounded-2xl border p-4 transition block
-                    {{ $r['alfa_hari_ini'] > 0 ? 'border-rose-200 bg-gradient-to-br from-rose-50 to-white hover:shadow-md' : 'border-emerald-100 bg-gradient-to-br from-emerald-50 to-white hover:shadow-md' }}">
-                <p class="font-bold text-slate-800">Kelas {{ $r['kelas']->nama_kelas }}</p>
-                <p class="text-xs text-slate-400 mb-2">{{ $r['total_siswa'] }} siswa</p>
-                @if($r['alfa_hari_ini'] > 0)
-                    <span class="badge bg-rose-100 text-rose-700"><i class="fa-solid fa-flag mr-1.5"></i> {{ $r['alfa_hari_ini'] }} Alfa hari ini</span>
-                @else
-                    <span class="badge bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check mr-1.5"></i> Aman hari ini</span>
-                @endif
-            </a>
-            @endforeach
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <x-stat-card color="indigo" icon="fa-school" label="Kelas Binaan" :value="$kelasBk->count()"
+                         :hint="$totalSiswaBinaan.' siswa'" />
+            <x-stat-card :color="$siswaAlfaHariIni->count() > 0 ? 'rose' : 'emerald'" icon="fa-flag"
+                         label="Alfa Hari Ini" :value="$siswaAlfaHariIni->count()" suffix="siswa" />
+            <x-stat-card color="amber" icon="fa-triangle-exclamation" label="Kasus Bulan Ini" :value="$kasusBulanIni"
+                         :hint="now()->translatedFormat('F Y')" :href="route('bk.kasus.index')" />
+            <x-stat-card color="violet" icon="fa-hand-holding-heart" label="Sedang Dibina" :value="$siswaDalamPembinaan"
+                         suffix="siswa" :href="route('bk.pembinaan.index')" />
         </div>
 
-        <x-alfa-widget :data="$siswaAlfaHariIni" title="Siswa Alfa Hari Ini — Kelas Mapping Anda" />
-
-        <div class="card p-5">
-            <p class="font-bold text-slate-800 mb-1">Menu Monitoring</p>
-            <p class="text-sm text-slate-400 mb-4">Pantau lebih detail per kelas lewat menu berikut (bisa ganti kelas di dalamnya).</p>
-            <div class="grid sm:grid-cols-3 gap-3">
-                <a href="{{ route('walikelas.absensi-bulanan') }}" class="card p-4 hover:shadow-md hover:border-violet-200 transition group">
-                    <div class="w-9 h-9 rounded-xl bg-violet-500 text-white flex items-center justify-center text-lg mb-2 shadow-lg shadow-violet-500/30"><i class="fa-solid fa-calendar-days"></i></div>
-                    <p class="font-semibold text-slate-800 group-hover:text-violet-600 text-sm">Rekap Absensi Bulanan</p>
-                </a>
-                <a href="{{ route('walikelas.jurnal-kelas') }}" class="card p-4 hover:shadow-md hover:border-sky-200 transition group">
-                    <div class="w-9 h-9 rounded-xl bg-sky-500 text-white flex items-center justify-center text-lg mb-2 shadow-lg shadow-sky-500/30"><i class="fa-solid fa-book"></i></div>
-                    <p class="font-semibold text-slate-800 group-hover:text-sky-600 text-sm">Jurnal Kelas</p>
-                </a>
-                <a href="{{ route('notifikasi-wa.index') }}" class="card p-4 hover:shadow-md hover:border-emerald-200 transition group">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-lg mb-2 shadow-lg shadow-emerald-500/30"><i class="fa-solid fa-mobile-screen"></i></div>
-                    <p class="font-semibold text-slate-800 group-hover:text-emerald-600 text-sm">Status WhatsApp Ortu</p>
-                </a>
+        @if($pemanggilanMenunggu > 0)
+            <div class="alert alert-info">
+                <i class="fa-solid fa-bell mt-0.5"></i>
+                <span class="flex-1">
+                    Ada <b>{{ $pemanggilanMenunggu }}</b> pemanggilan orang tua yang menunggu hasil pertemuan.
+                    <a href="{{ route('bk.pemanggilan.index') }}" class="font-bold underline">Buka daftarnya</a>.
+                </span>
             </div>
-        </div>
+        @endif
+
+        <x-panel judul="Kondisi Kehadiran Kelas Binaan" ikon="fa-list-check"
+                 deskripsi="Klik kelas untuk melihat rekap absensi bulanannya.">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                @foreach($rekapPerKelasBk as $r)
+                <a href="{{ route('walikelas.absensi-bulanan', $r['kelas']) }}"
+                   class="rounded-xl border p-4 block transition hover:shadow-md
+                        {{ $r['alfa_hari_ini'] > 0 ? 'border-rose-200 bg-rose-50/60 hover:border-rose-300' : 'border-slate-200 bg-white hover:border-emerald-300' }}">
+                    <p class="font-bold text-slate-800">Kelas {{ $r['kelas']->nama_kelas }}</p>
+                    <p class="text-xs text-slate-400 mb-2">{{ $r['total_siswa'] }} siswa</p>
+                    @if($r['alfa_hari_ini'] > 0)
+                        <span class="badge bg-rose-100 text-rose-700"><i class="fa-solid fa-flag mr-1.5"></i> {{ $r['alfa_hari_ini'] }} Alfa</span>
+                    @else
+                        <span class="badge bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check mr-1.5"></i> Aman</span>
+                    @endif
+                </a>
+                @endforeach
+            </div>
+        </x-panel>
+
+        <x-alfa-widget :data="$siswaAlfaHariIni" title="Siswa Alfa Hari Ini — Kelas Binaan Anda" />
     @endif
+
+    <div>
+        <p class="section-title mb-3">Aksi Cepat</p>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <x-aksi-cepat :href="route('bk.kasus.create')" icon="fa-plus" color="rose"
+                          label="Catat Kasus Baru" deskripsi="Laporkan pelanggaran siswa." />
+            <x-aksi-cepat :href="route('bk.dashboard')" icon="fa-chart-pie" color="violet"
+                          label="Ringkasan Pelanggaran" deskripsi="Sebaran tahap & siswa perlu perhatian." />
+            <x-aksi-cepat :href="route('bk.pemanggilan.index')" icon="fa-users" color="amber"
+                          label="Pemanggilan Orang Tua" deskripsi="Agenda & hasil pertemuan." />
+            <x-aksi-cepat :href="route('surat.create')" icon="fa-envelope-open-text" color="brand"
+                          label="Buat Surat" deskripsi="Surat BK dengan penomoran otomatis." />
+            <x-aksi-cepat :href="route('bk.siswa.index')" icon="fa-user-shield" color="indigo"
+                          label="Profil Poin Siswa" deskripsi="Rekam jejak perilaku tiap siswa." />
+            <x-aksi-cepat :href="route('walikelas.absensi-bulanan')" icon="fa-calendar-check" color="sky"
+                          label="Rekap Absensi Kelas" deskripsi="Rekap kehadiran bulanan per kelas." />
+        </div>
+    </div>
 </div>
 @endsection

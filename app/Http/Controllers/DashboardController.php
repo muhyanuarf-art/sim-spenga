@@ -3,11 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\AbsensiSiswa;
+use App\Models\Ekstrakurikuler;
 use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
-use App\Models\Kelas;
+use App\Models\JenisSurat;
 use App\Models\JurnalMengajar;
+use App\Models\KasusSiswa;
+use App\Models\Kelas;
+use App\Models\PemanggilanOrangTua;
+use App\Models\PembinaanSiswa;
 use App\Models\Siswa;
+use App\Models\Surat;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Services\OnboardingChecklistService;
@@ -21,239 +27,299 @@ class DashboardController extends Controller
         $user = $request->user();
         $tahunAjaran = TahunAjaran::aktif();
 
-        // TU (Tata Usaha): satu-satunya cakupan kerjanya Manajemen Surat —
-        // tidak ada data siswa/kelas/absensi yang relevan untuk dashboard
-        // umum, jadi langsung diarahkan ke Dashboard Surat.
-        if ($user->role === 'tu') {
-            return redirect()->route('surat.dashboard');
-        }
+        return match ($user->role) {
+            'tu' => $this->dashboardTu(),
+            'admin', 'kepala_sekolah' => $this->dashboardSekolah($user, $tahunAjaran),
+            'kurikulum' => $this->dashboardKurikulum($user, $tahunAjaran),
+            'kesiswaan' => $this->dashboardKesiswaan($tahunAjaran),
+            'guru_bk' => $this->dashboardGuruBk($user, $tahunAjaran),
+            default => $this->dashboardGuru($user, $tahunAjaran),
+        };
+    }
 
-        // Admin & Kepala Sekolah: ringkasan sekolah menyeluruh
-        if ($user->role === 'admin' || $user->role === 'kepala_sekolah') {
-            $totalSiswa = Siswa::where('is_active', true)->count();
-            $totalSiswaLaki = Siswa::where('is_active', true)->where('jenis_kelamin', 'L')->count();
-            $totalSiswaPerempuan = Siswa::where('is_active', true)->where('jenis_kelamin', 'P')->count();
+    /**
+     * TU (Tata Usaha).
+     *
+     * PERBAIKAN BUG: sebelumnya role ini di-redirect ke route
+     * 'surat.dashboard' yang middleware-nya `role:guru_bk,admin` — artinya
+     * setiap TU yang login LANGSUNG mendapat halaman 403 dan sama sekali
+     * tidak bisa memakai aplikasi. Sekarang TU punya dashboard sendiri
+     * yang hanya berisi cakupan kerjanya: master Jenis Surat.
+     */
+    private function dashboardTu()
+    {
+        $totalJenis = JenisSurat::count();
+        $totalJenisAktif = JenisSurat::where('is_aktif', true)->count();
+        $jenisTerbaru = JenisSurat::orderByDesc('id')->limit(8)->get();
 
-            $totalGuru = User::where('role', 'guru')->count();
-            $totalGuruAktif = User::where('role', 'guru')->where('is_active', true)->count();
-            $totalGuruTidakAktif = $totalGuru - $totalGuruAktif;
+        // Jumlah pemakaian tiap jenis surat — 1 query GROUP BY, bukan
+        // 1 query per jenis.
+        $pemakaian = Surat::selectRaw('jenis_surat_id, COUNT(*) as jumlah')
+            ->groupBy('jenis_surat_id')->pluck('jumlah', 'jenis_surat_id');
 
-            // STEP 5 Bagian 23 — hitungan kelas default TAHUN AJARAN AKTIF.
-            $totalKelas = Kelas::aktif()->count();
-            $totalKelasTidakAktif = $tahunAjaran
-                ? Kelas::untukTahunAjaran($tahunAjaran)->where('status', '!=', Kelas::STATUS_AKTIF)->count()
-                : 0;
+        return view('dashboard.tu', compact('totalJenis', 'totalJenisAktif', 'jenisTerbaru', 'pemakaian'));
+    }
 
-            // PERBAIKAN PERFORMA — sebelumnya absensi hari ini di-fetch DUA KALI
-            // terpisah (1x di sini untuk rekap status, 1x lagi lewat
-            // AbsensiSiswa::siswaAlfaHariIni() untuk daftar Alfa), padahal
-            // sumber datanya sama persis (seluruh absensi hari ini). Sekarang
-            // eager-load-nya digabung jadi satu query, lalu dipakai ulang
-            // untuk kedua keperluan lewat AbsensiSiswa::alfaDariRecordsPerSiswa().
-            $absensiHariIniRaw = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
-                ->with(['siswa', 'kelas', 'jurnal.mapel', 'jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
-                ->get()
-                ->groupBy('siswa_id');
+    /** Admin & Kepala Sekolah: ringkasan sekolah menyeluruh. */
+    private function dashboardSekolah(User $user, ?TahunAjaran $tahunAjaran)
+    {
+        $totalSiswa = Siswa::where('is_active', true)->count();
+        $totalSiswaLaki = Siswa::where('is_active', true)->where('jenis_kelamin', 'L')->count();
+        $totalSiswaPerempuan = Siswa::where('is_active', true)->where('jenis_kelamin', 'P')->count();
 
-            // Rekap dihitung dari status FINAL per siswa per hari (jam paling
-            // akhir), bukan dari mentah semua record mapel, supaya 1 siswa
-            // tidak terhitung berkali-kali kalau diabsen lebih dari 1 mapel.
-            $rekapHariIni = $absensiHariIniRaw
-                ->map(fn ($recordsSiswa) => AbsensiSiswa::finalPerHari($recordsSiswa)->first())
-                ->groupBy('status')
-                ->map->count();
+        $totalGuru = User::where('role', 'guru')->count();
+        $totalGuruAktif = User::where('role', 'guru')->where('is_active', true)->count();
+        $totalGuruTidakAktif = $totalGuru - $totalGuruAktif;
 
-            $siswaAlfaHariIni = AbsensiSiswa::alfaDariRecordsPerSiswa($absensiHariIniRaw);
+        $totalKelas = Kelas::aktif()->count();
+        $totalKelasTidakAktif = $tahunAjaran
+            ? Kelas::untukTahunAjaran($tahunAjaran)->where('status', '!=', Kelas::STATUS_AKTIF)->count()
+            : 0;
 
-            $jurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
-            $jadwalHariIni = $tahunAjaran
-                ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
-                : 0;
+        // Satu query dipakai untuk dua keperluan: rekap status absensi hari
+        // ini sekaligus daftar siswa Alfa.
+        $absensiHariIniRaw = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
+            ->with(['siswa', 'kelas', 'jurnal.mapel', 'jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
+            ->get()
+            ->groupBy('siswa_id');
 
-            // PERBAIKAN PERFORMA (N+1) — sebelumnya query "sudah diabsen hari
-            // ini?" dijalankan SATU PER SATU per kelas di dalam map() (1 query
-            // × jumlah kelas). Sekarang dihitung sekaligus lewat 1 query
-            // GROUP BY, dan Wali Kelas di-eager-load (->with('waliKelas'))
-            // supaya tidak lazy-load 1 query per kelas juga.
-            $kelasSudahDiabsenIds = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
-                ->distinct()->pluck('kelas_id')->flip();
+        // Rekap dihitung dari status FINAL per siswa per hari (jam paling
+        // akhir), supaya 1 siswa tidak terhitung berkali-kali.
+        $rekapHariIni = $absensiHariIniRaw
+            ->map(fn ($recordsSiswa) => AbsensiSiswa::finalPerHari($recordsSiswa)->first())
+            ->groupBy('status')
+            ->map->count();
 
-            // (2026-08-26) — dashboard yang direvisi butuh JUMLAH siswa yang
-            // sudah terabsen (bukan cuma ya/tidak) untuk kolom "Terisi" +
-            // persentase — 1 query GROUP BY tambahan, dipakai bareng untuk
-            // semua kelas (bukan 1 query per kelas).
-            $terisiPerKelas = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
-                ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
-                ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
+        $siswaAlfaHariIni = AbsensiSiswa::alfaDariRecordsPerSiswa($absensiHariIniRaw);
 
-            $rekapPerKelas = Kelas::aktif()->with('waliKelas')
-                ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
-                ->orderBy('nama_kelas')
-                ->get()
-                ->map(function ($kelas) use ($kelasSudahDiabsenIds, $terisiPerKelas) {
-                    $terisi = (int) ($terisiPerKelas[$kelas->id] ?? 0);
-                    return [
-                        'kelas' => $kelas->nama_kelas,
-                        'wali_kelas' => $kelas->waliKelas->name ?? '-',
-                        'jumlah_siswa' => $kelas->siswas_count,
-                        'terisi' => $terisi,
-                        'persentase' => $kelas->siswas_count > 0 ? (int) round($terisi / $kelas->siswas_count * 100) : 0,
-                        'sudah_diabsen' => $kelasSudahDiabsenIds->has($kelas->id),
-                    ];
-                });
+        $jurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
+        $jadwalHariIni = $tahunAjaran
+            ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
+            : 0;
+        $persenJurnal = $jadwalHariIni > 0 ? (int) round($jurnalHariIni / $jadwalHariIni * 100) : 0;
 
-            // (2026-08-26) — statistik kehadiran 7 hari terakhir untuk
-            // grafik. Dihitung dari BARIS MENTAH absensi_siswas per hari
-            // (bukan status FINAL per siswa seperti $rekapHariIni di atas)
-            // — jadi kalau 1 siswa diabsen beberapa mapel dalam sehari
-            // dengan status beda-beda, semuanya ikut terhitung di sini.
-            // Cukup akurat untuk tren visual, tapi angkanya BISA sedikit
-            // beda dari kartu ringkasan hari ini yang pakai status final.
-            $statistikMingguan = collect(range(6, 0))->map(function ($i) {
-                $tanggal = now()->subDays($i);
-                $perStatus = AbsensiSiswa::whereDate('tanggal', $tanggal->toDateString())
-                    ->selectRaw('status, COUNT(*) as jumlah')->groupBy('status')->pluck('jumlah', 'status');
+        // 1 query GROUP BY untuk semua kelas (bukan 1 query per kelas).
+        $terisiPerKelas = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
+            ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
+            ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
+
+        $rekapPerKelas = Kelas::aktif()->with('waliKelas')
+            ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+            ->orderBy('nama_kelas')
+            ->get()
+            ->map(function ($kelas) use ($terisiPerKelas) {
+                $terisi = (int) ($terisiPerKelas[$kelas->id] ?? 0);
+
                 return [
-                    'label' => $tanggal->translatedFormat('d M'),
-                    'Hadir' => (int) ($perStatus['Hadir'] ?? 0),
-                    'Sakit' => (int) ($perStatus['Sakit'] ?? 0),
-                    'Izin' => (int) ($perStatus['Izin'] ?? 0),
-                    'Alfa' => (int) ($perStatus['Alfa'] ?? 0),
+                    'kelas' => $kelas->nama_kelas,
+                    'wali_kelas' => $kelas->waliKelas->name ?? '-',
+                    'jumlah_siswa' => $kelas->siswas_count,
+                    'terisi' => $terisi,
+                    'persentase' => $kelas->siswas_count > 0 ? (int) round($terisi / $kelas->siswas_count * 100) : 0,
+                    'sudah_diabsen' => $terisi > 0,
                 ];
-            })->values();
+            });
 
-            $checklistOnboarding = (new OnboardingChecklistService)->status($user->role);
+        $kelasBelumDiabsen = $rekapPerKelas->where('sudah_diabsen', false)->count();
 
-            // (2026-08-26) — "Aktivitas Terbaru": TIDAK ada log aktivitas
-            // sungguhan di aplikasi ini (siapa-mengubah-apa-kapan) untuk
-            // data non-surat. Ini pendekatan TERBAIK YANG BISA DIBUAT tanpa
-            // membangun sistem audit trail baru: gabungan beberapa record
-            // TERBARU (dari kolom created_at/updated_at yang memang sudah
-            // ada) dari beberapa tabel utama, diurutkan jadi 1 linimasa.
-            // KETERBATASAN JUJUR: ini tidak tahu SIAPA yang melakukan
-            // perubahan (kolom itu tidak dicatat di tabel-tabel ini), jadi
-            // baris di sini TIDAK menyebut nama pengguna seperti pada
-            // contoh dashboard — hanya "apa" dan "kapan".
-            $aktivitasTerbaru = collect()
-                ->merge(JurnalMengajar::with(['kelas', 'guru'])->latest('created_at')->limit(5)->get()
-                    ->map(fn ($j) => [
-                        'teks' => "Jurnal mengajar ditambahkan — {$j->kelas?->nama_kelas} ({$j->guru?->name})",
-                        'waktu' => $j->created_at,
-                        'tag' => 'Jurnal',
-                    ]))
-                ->merge(Siswa::latest('created_at')->limit(3)->get()
-                    ->map(fn ($s) => [
-                        'teks' => "Siswa {$s->nama} ditambahkan/diperbarui",
-                        'waktu' => $s->created_at,
-                        'tag' => 'Siswa',
-                    ]))
-                ->merge(User::where('role', '!=', 'admin')->latest('updated_at')->limit(3)->get()
-                    ->map(fn ($u) => [
-                        'teks' => "Data pengguna {$u->name} diperbarui",
-                        'waktu' => $u->updated_at,
-                        'tag' => 'Pengguna',
-                    ]))
-                ->sortByDesc('waktu')->take(8)->values();
+        // Tren kehadiran 7 hari terakhir (dari baris mentah absensi — cukup
+        // akurat untuk tren visual; angkanya bisa sedikit berbeda dari kartu
+        // "hari ini" yang memakai status final per siswa).
+        $statistikMingguan = collect(range(6, 0))->map(function ($i) {
+            $tanggal = now()->subDays($i);
+            $perStatus = AbsensiSiswa::whereDate('tanggal', $tanggal->toDateString())
+                ->selectRaw('status, COUNT(*) as jumlah')->groupBy('status')->pluck('jumlah', 'status');
 
-            return view('dashboard.admin', compact(
-                'totalSiswa', 'totalSiswaLaki', 'totalSiswaPerempuan',
-                'totalGuru', 'totalGuruAktif', 'totalGuruTidakAktif',
-                'totalKelas', 'totalKelasTidakAktif',
-                'rekapHariIni', 'siswaAlfaHariIni', 'jurnalHariIni', 'jadwalHariIni',
-                'rekapPerKelas', 'statistikMingguan', 'aktivitasTerbaru', 'tahunAjaran', 'checklistOnboarding'
-            ));
+            return [
+                'label' => $tanggal->translatedFormat('d M'),
+                'Hadir' => (int) ($perStatus['Hadir'] ?? 0),
+                'Sakit' => (int) ($perStatus['Sakit'] ?? 0),
+                'Izin' => (int) ($perStatus['Izin'] ?? 0),
+                'Alfa' => (int) ($perStatus['Alfa'] ?? 0),
+            ];
+        })->values();
+
+        // Checklist persiapan hanya untuk yang MENGERJAKAN setup (Admin).
+        // Kepala Sekolah tidak diberi checklist karena seluruh tautannya
+        // menuju halaman yang tidak boleh ia buka (dulu berujung 403).
+        $checklistOnboarding = $user->role === 'admin'
+            ? (new OnboardingChecklistService)->status($user->role)
+            : null;
+
+        // "Aktivitas Terbaru" — BUKAN audit log (aplikasi tidak mencatat
+        // siapa mengubah apa untuk data non-surat), melainkan gabungan
+        // record terbaru beberapa tabel utama yang disusun jadi 1 linimasa.
+        $aktivitasTerbaru = collect()
+            ->merge(JurnalMengajar::with(['kelas', 'guru'])->latest('created_at')->limit(5)->get()
+                ->map(fn ($j) => [
+                    'teks' => "Jurnal mengajar {$j->kelas?->nama_kelas} oleh {$j->guru?->name}",
+                    'waktu' => $j->created_at,
+                    'tag' => 'Jurnal',
+                    'ikon' => 'fa-pen-to-square',
+                    'warna' => 'emerald',
+                ]))
+            ->merge(KasusSiswa::with('siswa')->latest('created_at')->limit(3)->get()
+                ->map(fn ($k) => [
+                    'teks' => "Kasus dicatat untuk {$k->siswa?->nama} ({$k->nama_pelanggaran})",
+                    'waktu' => $k->created_at,
+                    'tag' => 'BK',
+                    'ikon' => 'fa-triangle-exclamation',
+                    'warna' => 'rose',
+                ]))
+            ->merge(Siswa::latest('created_at')->limit(3)->get()
+                ->map(fn ($s) => [
+                    'teks' => "Data siswa {$s->nama} ditambahkan",
+                    'waktu' => $s->created_at,
+                    'tag' => 'Siswa',
+                    'ikon' => 'fa-user-graduate',
+                    'warna' => 'indigo',
+                ]))
+            ->sortByDesc('waktu')->take(8)->values();
+
+        return view('dashboard.admin', compact(
+            'totalSiswa', 'totalSiswaLaki', 'totalSiswaPerempuan',
+            'totalGuru', 'totalGuruAktif', 'totalGuruTidakAktif',
+            'totalKelas', 'totalKelasTidakAktif',
+            'rekapHariIni', 'siswaAlfaHariIni', 'jurnalHariIni', 'jadwalHariIni', 'persenJurnal',
+            'rekapPerKelas', 'kelasBelumDiabsen', 'statistikMingguan', 'aktivitasTerbaru',
+            'tahunAjaran', 'checklistOnboarding'
+        ));
+    }
+
+    /** Kurikulum: monitoring jurnal & kehadiran mengajar seluruh guru. */
+    private function dashboardKurikulum(User $user, ?TahunAjaran $tahunAjaran)
+    {
+        $jurnalHariIni = JurnalMengajar::with(['guru', 'kelas', 'mapel'])
+            ->whereDate('tanggal', now()->toDateString())
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $totalJadwalHariIni = $tahunAjaran
+            ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
+            : 0;
+        $totalJurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
+        $persenJurnal = $totalJadwalHariIni > 0 ? (int) round($totalJurnalHariIni / $totalJadwalHariIni * 100) : 0;
+
+        $totalGuru = User::where('role', 'guru')->count();
+        $totalMappingKelas = $tahunAjaran ? GuruMengajarKelas::where('tahun_ajaran_id', $tahunAjaran->id)->count() : 0;
+        $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
+
+        // INTI "monitoring guru": guru yang hari ini punya jadwal tapi belum
+        // satu pun mengisi jurnal. Cukup 3 query untuk seluruh guru.
+        $guruBelumMengisi = collect();
+        if ($tahunAjaran) {
+            $guruTerjadwal = JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)
+                ->where('hari', $this->hariIndonesia())
+                ->distinct()->pluck('guru_id');
+
+            $guruSudahMengisi = JurnalMengajar::whereDate('tanggal', now()->toDateString())
+                ->distinct()->pluck('guru_id');
+
+            $guruBelumMengisi = User::whereIn('id', $guruTerjadwal->diff($guruSudahMengisi))
+                ->orderBy('name')->get(['id', 'name']);
         }
 
-        // Kurikulum: monitoring jurnal & absensi seluruh guru
-        if ($user->role === 'kurikulum') {
-            $jurnalHariIni = JurnalMengajar::with(['guru', 'kelas', 'mapel'])
+        $checklistOnboarding = (new OnboardingChecklistService)->status($user->role);
+
+        return view('dashboard.kurikulum', compact(
+            'jurnalHariIni', 'totalJadwalHariIni', 'totalJurnalHariIni', 'persenJurnal',
+            'totalGuru', 'totalMappingKelas', 'siswaAlfaHariIni', 'guruBelumMengisi',
+            'tahunAjaran', 'checklistOnboarding'
+        ));
+    }
+
+    /** Kesiswaan: monitoring kehadiran & pelanggaran se-sekolah (view-only). */
+    private function dashboardKesiswaan(?TahunAjaran $tahunAjaran)
+    {
+        $totalSiswa = Siswa::where('is_active', true)->count();
+        $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
+
+        $alfaPerKelasHariIni = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
+            ->where('status', 'Alfa')
+            ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
+            ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
+
+        $rekapPerKelas = Kelas::aktif()
+            ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+            ->orderBy('nama_kelas')->get()
+            ->map(fn ($kelas) => [
+                'kelas' => $kelas,
+                'total_siswa' => $kelas->siswas_count,
+                'alfa_hari_ini' => (int) ($alfaPerKelasHariIni[$kelas->id] ?? 0),
+            ]);
+
+        $kelasBermasalah = $rekapPerKelas->where('alfa_hari_ini', '>', 0)->count();
+        $totalEkskulAktif = Ekstrakurikuler::where('is_aktif', true)->count();
+        $kasusBulanIni = KasusSiswa::aktif()
+            ->whereBetween('tanggal_kejadian', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->count();
+
+        return view('dashboard.kesiswaan', compact(
+            'totalSiswa', 'siswaAlfaHariIni', 'rekapPerKelas', 'kelasBermasalah',
+            'totalEkskulAktif', 'kasusBulanIni', 'tahunAjaran'
+        ));
+    }
+
+    /** Guru BK: monitoring absensi + penanganan kasus di kelas binaannya. */
+    private function dashboardGuruBk(User $user, ?TahunAjaran $tahunAjaran)
+    {
+        $kelasBk = $user->kelasBk();
+        $kelasBkIds = $kelasBk->pluck('id');
+
+        $siswaAlfaHariIni = collect();
+        $rekapPerKelasBk = collect();
+        $kasusBulanIni = 0;
+        $siswaDalamPembinaan = 0;
+        $pemanggilanMenunggu = 0;
+        $totalSiswaBinaan = 0;
+
+        if ($kelasBkIds->isNotEmpty()) {
+            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni()
+                ->filter(fn ($a) => $kelasBkIds->contains($a['kelas']?->id))
+                ->values();
+
+            // 1 query GROUP BY untuk semua kelas binaan sekaligus.
+            $totalSiswaPerKelas = Kelas::whereIn('id', $kelasBkIds)
+                ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
+                ->get()->pluck('siswas_count', 'id');
+            $alfaPerKelasHariIni = AbsensiSiswa::whereIn('kelas_id', $kelasBkIds)
                 ->whereDate('tanggal', now()->toDateString())
-                ->latest()
-                ->take(10)
-                ->get();
-
-            $totalJadwalHariIni = $tahunAjaran
-                ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
-                : 0;
-            $totalJurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
-            $totalGuru = User::where('role', 'guru')->count();
-            $totalMappingKelas = $tahunAjaran ? GuruMengajarKelas::where('tahun_ajaran_id', $tahunAjaran->id)->count() : 0;
-            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
-
-            $checklistOnboarding = (new OnboardingChecklistService)->status($user->role);
-
-            return view('dashboard.kurikulum', compact(
-                'jurnalHariIni', 'totalJadwalHariIni', 'totalJurnalHariIni', 'totalGuru', 'totalMappingKelas', 'siswaAlfaHariIni', 'tahunAjaran', 'checklistOnboarding'
-            ));
-        }
-
-        // Kesiswaan: view-only, monitoring kehadiran siswa se-sekolah
-        // (bukan per-mapping seperti Guru BK) + pantauan pelanggaran yang
-        // datanya berasal dari inputan Guru BK (lihat modul BK, akses
-        // view-only diatur lewat middleware role di routes).
-        if ($user->role === 'kesiswaan') {
-            $totalSiswa = Siswa::where('is_active', true)->count();
-            $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni();
-
-            // PERBAIKAN PERFORMA (N+1) — 2 query per kelas (total siswa +
-            // alfa hari ini) dijadikan 1 query GROUP BY masing-masing,
-            // dipakai bersama untuk semua kelas sekaligus.
-            $alfaPerKelasHariIni = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
                 ->where('status', 'Alfa')
                 ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
                 ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
 
-            $rekapPerKelas = Kelas::aktif()
-                ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
-                ->orderBy('nama_kelas')->get()
-                ->map(fn ($kelas) => [
-                    'kelas' => $kelas,
-                    'total_siswa' => $kelas->siswas_count,
-                    'alfa_hari_ini' => (int) ($alfaPerKelasHariIni[$kelas->id] ?? 0),
-                ]);
+            $rekapPerKelasBk = $kelasBk->map(fn ($kelas) => [
+                'kelas' => $kelas,
+                'total_siswa' => (int) ($totalSiswaPerKelas[$kelas->id] ?? 0),
+                'alfa_hari_ini' => (int) ($alfaPerKelasHariIni[$kelas->id] ?? 0),
+            ]);
 
-            return view('dashboard.kesiswaan', compact('totalSiswa', 'siswaAlfaHariIni', 'rekapPerKelas', 'tahunAjaran'));
+            $totalSiswaBinaan = (int) $totalSiswaPerKelas->sum();
+
+            $kasusBulanIni = KasusSiswa::aktif()
+                ->whereIn('kelas_id', $kelasBkIds)
+                ->whereBetween('tanggal_kejadian', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+                ->count();
+
+            $siswaDalamPembinaan = PembinaanSiswa::where('status', 'Pembinaan')
+                ->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasBkIds))
+                ->distinct()->count('siswa_id');
+
+            $pemanggilanMenunggu = PemanggilanOrangTua::where('status', PemanggilanOrangTua::STATUS_MENUNGGU_PERTEMUAN)
+                ->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasBkIds))
+                ->count();
         }
 
-        // Guru BK: monitoring absensi lintas kelas sesuai mapping-nya
-        if ($user->role === 'guru_bk') {
-            $kelasBk = $user->kelasBk();
-            $kelasBkIds = $kelasBk->pluck('id');
+        return view('dashboard.guru-bk', compact(
+            'kelasBk', 'siswaAlfaHariIni', 'rekapPerKelasBk', 'totalSiswaBinaan',
+            'kasusBulanIni', 'siswaDalamPembinaan', 'pemanggilanMenunggu', 'tahunAjaran'
+        ));
+    }
 
-            $siswaAlfaHariIni = collect();
-            $rekapPerKelasBk = collect();
-
-            if ($kelasBkIds->isNotEmpty()) {
-                // Ambil siswa Alfa hari ini untuk SEMUA kelas mapping sekaligus,
-                // lalu di-filter ke kelas yang relevan (siswaAlfaHariIni tanpa
-                // parameter = se-sekolah, jadi difilter manual di sini).
-                $siswaAlfaHariIni = AbsensiSiswa::siswaAlfaHariIni()
-                    ->filter(fn ($a) => $kelasBkIds->contains($a['kelas']?->id))
-                    ->values();
-
-                // PERBAIKAN PERFORMA (N+1) — sama seperti Kesiswaan di atas:
-                // 2 query per kelas dijadikan 1 query GROUP BY untuk semua
-                // kelas mapping guru BK ini sekaligus.
-                $totalSiswaPerKelas = Kelas::whereIn('id', $kelasBkIds)
-                    ->withCount(['siswas' => fn ($q) => $q->where('is_active', true)])
-                    ->get()->pluck('siswas_count', 'id');
-                $alfaPerKelasHariIni = AbsensiSiswa::whereIn('kelas_id', $kelasBkIds)
-                    ->whereDate('tanggal', now()->toDateString())
-                    ->where('status', 'Alfa')
-                    ->selectRaw('kelas_id, COUNT(DISTINCT siswa_id) as jumlah')
-                    ->groupBy('kelas_id')->pluck('jumlah', 'kelas_id');
-
-                $rekapPerKelasBk = $kelasBk->map(fn ($kelas) => [
-                    'kelas' => $kelas,
-                    'total_siswa' => (int) ($totalSiswaPerKelas[$kelas->id] ?? 0),
-                    'alfa_hari_ini' => (int) ($alfaPerKelasHariIni[$kelas->id] ?? 0),
-                ]);
-            }
-
-            return view('dashboard.guru-bk', compact('kelasBk', 'siswaAlfaHariIni', 'rekapPerKelasBk', 'tahunAjaran'));
-        }
-
-        // Guru (termasuk Wali Kelas)
+    /** Guru mapel (termasuk yang merangkap Wali Kelas). */
+    private function dashboardGuru(User $user, ?TahunAjaran $tahunAjaran)
+    {
         $jadwalHariIniMentah = $tahunAjaran
             ? JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
                 ->where('guru_id', $user->id)
@@ -262,14 +328,18 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        // Dikelompokkan jadi sesi (jam berurutan, kelas & mapel sama = 1 kartu)
-        // supaya konsisten dengan halaman "Absensi & Jurnal Mengajar".
+        // Jam berurutan dengan kelas & mapel sama digabung jadi 1 sesi,
+        // konsisten dengan halaman "Absensi & Jurnal Mengajar".
         $jadwalHariIni = SesiMengajarGrouper::kelompokkan($jadwalHariIniMentah);
-
-        // Tandai sesi yang sudah diisi jurnalnya hari ini — pakai helper yang
-        // SAMA dengan halaman Absensi & Jurnal Mengajar, supaya status
-        // "Terisi" di dashboard selalu konsisten (bukan logic duplikat).
         $jadwalHariIni = SesiMengajarGrouper::tandaiSudahDiisi($jadwalHariIni, $jadwalHariIniMentah);
+
+        $totalSesiHariIni = $jadwalHariIni->count();
+        $sesiTerisiHariIni = $jadwalHariIni->filter(fn ($s) => $s['sudah_diisi'] ?? false)->count();
+        $sesiBelumTerisi = $totalSesiHariIni - $sesiTerisiHariIni;
+
+        $jurnalBulanIni = JurnalMengajar::where('guru_id', $user->id)
+            ->whereBetween('tanggal', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->count();
 
         $jurnalTerakhir = JurnalMengajar::with(['kelas', 'mapel'])
             ->where('guru_id', $user->id)
@@ -280,12 +350,16 @@ class DashboardController extends Controller
         $kelasWali = $user->kelasWali;
         $siswaAlfaHariIni = $kelasWali ? AbsensiSiswa::siswaAlfaHariIni($kelasWali->id) : collect();
 
-        return view('dashboard.guru', compact('jadwalHariIni', 'jurnalTerakhir', 'kelasWali', 'siswaAlfaHariIni', 'tahunAjaran'));
+        return view('dashboard.guru', compact(
+            'jadwalHariIni', 'jurnalTerakhir', 'kelasWali', 'siswaAlfaHariIni', 'tahunAjaran',
+            'totalSesiHariIni', 'sesiTerisiHariIni', 'sesiBelumTerisi', 'jurnalBulanIni'
+        ));
     }
 
     private function hariIndonesia(): string
     {
         $map = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 0 => 'Minggu'];
+
         return $map[now()->dayOfWeek] ?? 'Senin';
     }
 }

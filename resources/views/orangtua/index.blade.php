@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Data Orang Tua')
+@section('title', 'Akun Orang Tua')
 
 @section('content')
 <div class="space-y-6">

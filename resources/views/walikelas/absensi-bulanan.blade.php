@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Rekap Absensi Bulanan')
+@section('title', 'Rekap Absensi Kelas')
 
 @section('content')
 <div class="space-y-6">

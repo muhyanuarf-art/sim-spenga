@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Data Pelanggaran (Master)')
+@section('title', 'Master Jenis Pelanggaran')
 
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">

@@ -3,329 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') - SIM-SPENGA</title>
-    {{-- Dulu Tailwind/Alpine/Font Awesome/Google Fonts dimuat dari CDN eksternal
-         (Tailwind CDN bahkan meng-compile CSS di browser tiap request — lambat).
-         Sekarang semua di-build & di-self-host lewat Vite, jadi cuma 1 file CSS
-         dan 1 file JS yang sudah ter-minify + bisa di-cache browser. --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Dashboard') — SIM-SPENGA</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    {{-- JARING PENGAMAN ikon (permintaan admin: "icon masih tidak muncul").
-         KHUSUS Font Awesome dari CDN sebagai cadangan — BUKAN Tailwind CDN
-         (itu yang sengaja dihapus di atas karena lambat; CSS Font Awesome
-         statis begini TIDAK dikompilasi di browser, jadi tidak menimbulkan
-         masalah performa yang sama). Kalau versi self-hosted di atas
-         berhasil dimuat, browser cukup memakai definisi @font-face yang
-         datang duluan/sama — tidak dobel-render, tidak menambah lag. Kalau
-         versi self-hosted GAGAL dimuat (mis. public/build belum sempat
-         di-build ulang di server tertentu), ikon tetap tampil dari sini
-         sebagai cadangan. Hapus blok ini kapan pun setelah dipastikan
-         `npm run build` di server selalu berjalan otomatis saat deploy. --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-          integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
-          crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased" x-data="{ sidebarOpen: false }">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased" x-data="{ sidebarOpen: false }">
+
+@php
+    $user = auth()->user();
+    $halaman = \App\Support\Navigasi::halamanAktif($user);
+    $periodeAktif = $tahunAjaranAktifGlobal ?? \App\Models\TahunAjaran::aktif();
+@endphp
 
 <div class="min-h-screen flex">
-    {{-- Sidebar --}}
-    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-           class="fixed z-40 inset-y-0 left-0 w-72 bg-[#0b1f4d] border-r border-[#132a5e] transform transition-transform duration-200 lg:translate-x-0 lg:static lg:flex lg:flex-col">
-        <div class="h-16 flex items-center gap-3 px-5 border-b border-white/10 shrink-0">
-            <div class="w-10 h-10 rounded-xl bg-white text-[#0b1f4d] flex items-center justify-center font-extrabold text-base shadow-soft">SP</div>
-            <div>
-                <p class="font-bold text-white leading-tight text-base">SIM-SPENGA</p>
-                <p class="text-xs text-blue-200/80 leading-tight">Sistem Info Sekolah</p>
-            </div>
-        </div>
+    @include('partials.sidebar')
 
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 text-base">
-            @php $user = auth()->user(); @endphp
+    <div x-show="sidebarOpen" @click="sidebarOpen = false" x-cloak x-transition.opacity
+         class="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px] z-30 lg:hidden"></div>
 
-            <x-nav-link :href="route('dashboard')" icon="fa-house" :active="request()->routeIs('dashboard')">
-                Dashboard
-            </x-nav-link>
-
-            @if($user->role === 'guru' || $user->role === 'admin')
-                <x-nav-group icon="fa-chalkboard-user" label="Guru Mapel" :active="request()->routeIs('mengajar.*')">
-                    <x-nav-sublink :href="route('mengajar.index')" :active="request()->routeIs('mengajar.*')">
-                        Absensi & Jurnal Mengajar
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-
-            {{-- (2026-08-23) — pembina ekskul dari SEKOLAH (guru/guru_bk)
-                 masuk lewat sini untuk isi absensi kegiatan yang mereka
-                 bina; halaman ini hanya menampilkan kegiatan yang mereka
-                 bina (dicek di EkskulAbsensiController). Kesiswaan/Admin
-                 TIDAK perlu link ini — mereka sudah punya tombol
-                 "Absensi"/"Rekap" langsung di menu Ekstrakurikuler/Kesiswaan. --}}
-            @if($user->role === 'guru' || $user->role === 'guru_bk')
-                <x-nav-link :href="route('ekstrakurikuler.absensi.pilih')" icon="fa-people-group" :active="request()->routeIs('ekstrakurikuler.absensi.*') || request()->routeIs('ekstrakurikuler.rekap')">
-                    Absensi Ekskul
-                </x-nav-link>
-            @endif
-
-            @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <x-nav-group icon="fa-triangle-exclamation" label="Pelanggaran" :active="request()->routeIs('bk.*')">
-                    @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                    <x-nav-sublink :href="route('bk.dashboard')" :active="request()->routeIs('bk.dashboard')">
-                        Pantau Pelanggaran
-                    </x-nav-sublink>
-                    @endif
-                    <x-nav-sublink :href="route('bk.kasus.index')" :active="request()->routeIs('bk.kasus.*')">
-                        Kasus/Pelanggaran
-                    </x-nav-sublink>
-                    @if(in_array($user->role, ['guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                    <x-nav-sublink :href="route('bk.pembinaan.index')" :active="request()->routeIs('bk.pembinaan.*')">
-                        Pembinaan
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('bk.pengurangan.index')" :active="request()->routeIs('bk.pengurangan.*')">
-                        Pengurangan Poin
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('bk.pemanggilan.index')" :active="request()->routeIs('bk.pemanggilan.*')">
-                        Pemanggilan Orang Tua
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('bk.siswa.index')" :active="request()->routeIs('bk.siswa.*')">
-                        Monitoring Siswa
-                    </x-nav-sublink>
-                    @endif
-                    @if(in_array($user->role, ['guru_bk', 'admin']))
-                    <x-nav-sublink :href="route('bk.jenis-pelanggaran.index')" :active="request()->routeIs('bk.jenis-pelanggaran.*')">
-                        Data Pelanggaran (Master)
-                    </x-nav-sublink>
-                    @endif
-                </x-nav-group>
-            @endif
-
-            @if($user->role === 'kesiswaan')
-                <x-nav-group icon="fa-triangle-exclamation" label="Pelanggaran" :active="request()->routeIs('bk.dashboard')">
-                    <x-nav-sublink :href="route('bk.dashboard')" :active="request()->routeIs('bk.dashboard')">
-                        Pantau Pelanggaran
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-
-            @if($user->role === 'kesiswaan')
-                <x-nav-link :href="route('ekstrakurikuler.index')" icon="fa-people-group" :active="request()->routeIs('ekstrakurikuler.*')">
-                    Ekstrakurikuler
-                </x-nav-link>
-            @endif
-
-            {{-- (2026-08-26) — ROMBAK TOTAL: Surat sekarang KHUSUS keperluan
-                 BK. Hanya Guru BK yang kelola penuh (Dashboard/Buat/Draft/
-                 Arsip). Kesiswaan/Kurikulum/Kepala Sekolah cuma baca (link
-                 flat "Surat" di bawah). TU cuma kelola master "Jenis
-                 Surat" (grup terpisah lagi di bawahnya). Disposisi/
-                 Lampiran DIHILANGKAN dari menu — tidak ada di spesifikasi
-                 baru (tabelnya tetap ada di database, tidak dipakai lagi). --}}
-            @if($user->role === 'guru_bk')
-                <x-nav-group icon="fa-envelope" label="Manajemen Surat" :active="request()->routeIs('surat.*')">
-                    <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
-                        Dashboard
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.create')" :active="request()->routeIs('surat.create') || request()->routeIs('surat.store')">
-                        + Buat Surat
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['status' => 'draft'])" :active="request()->routeIs('surat.index') && request('status') === 'draft'">
-                        Draft
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index', ['status' => 'diarsipkan'])" :active="request()->routeIs('surat.index') && request('status') === 'diarsipkan'">
-                        Arsip
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index')" :active="request()->routeIs('surat.index') && !request('status')">
-                        Semua Surat
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-
-            {{-- Baca saja — TIDAK bisa membuat/mengedit surat, cuma tahu
-                 surat sudah ada & bisa dibuka/dicetak. --}}
-            @if(in_array($user->role, ['kesiswaan', 'kurikulum', 'kepala_sekolah']))
-                <x-nav-link :href="route('surat.index')" icon="fa-envelope" :active="request()->routeIs('surat.*')">
-                    Surat (BK)
-                </x-nav-link>
-            @endif
-
-            {{-- TU: cuma kelola master Jenis Surat, TIDAK melihat arsip surat individual. --}}
-            @if($user->role === 'tu')
-                <x-nav-link :href="route('jenis-surat.index')" icon="fa-envelope" :active="request()->routeIs('jenis-surat.*')">
-                    Jenis Surat
-                </x-nav-link>
-            @endif
-
-            @if($user->role === 'admin')
-                <x-nav-group icon="fa-people-group" label="Kesiswaan" :active="request()->routeIs('ekstrakurikuler.*') || request()->routeIs('surat.*') || request()->routeIs('jenis-surat.*')">
-                    <x-nav-sublink :href="route('ekstrakurikuler.index')" :active="request()->routeIs('ekstrakurikuler.*')">
-                        Ekstrakurikuler
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.dashboard')" :active="request()->routeIs('surat.dashboard')">
-                        Surat — Dashboard
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.create')" :active="request()->routeIs('surat.create') || request()->routeIs('surat.store')">
-                        Surat — Buat Baru
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('surat.index')" :active="request()->routeIs('surat.index')">
-                        Surat — Semua
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('jenis-surat.index')" :active="request()->routeIs('jenis-surat.*')">
-                        Jenis Surat
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-
-
-            @if($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->role === 'guru_bk' || $user->role === 'kesiswaan' || ($user->role === 'guru' && $user->isWaliKelas()))
-                <x-nav-group icon="fa-chalkboard" label="Monitoring Kelas" :active="request()->routeIs('walikelas.*')">
-                    <x-nav-sublink :href="route('walikelas.absensi-bulanan')" :active="request()->routeIs('walikelas.absensi-bulanan')">
-                        Rekap Absensi Bulanan
-                    </x-nav-sublink>
-                    @if($user->role !== 'kesiswaan')
-                    <x-nav-sublink :href="route('walikelas.jurnal-kelas')" :active="request()->routeIs('walikelas.jurnal-kelas')">
-                        Jurnal Mengajar Kelas
-                    </x-nav-sublink>
-                    @endif
-                </x-nav-group>
-            @endif
-
-            @if(in_array($user->role, ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin']))
-                <x-nav-group icon="fa-file-lines" label="Laporan" :active="request()->routeIs('laporan.*') || request()->routeIs('notifikasi-wa.*')">
-                    @if($user->role !== 'guru_bk')
-                    <x-nav-sublink :href="route('laporan.jurnal-guru')" :active="request()->routeIs('laporan.jurnal-guru')">
-                        Jurnal Mengajar Guru Tiap Mapel
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('laporan.absensi-guru')" :active="request()->routeIs('laporan.absensi-guru')">
-                        Absensi Guru Tiap Mapel
-                    </x-nav-sublink>
-                    @endif
-                    <x-nav-sublink :href="route('notifikasi-wa.index')" :active="request()->routeIs('notifikasi-wa.index')">
-                        Status WhatsApp Ortu
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-
-            @if(in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah']))
-                <x-nav-link :href="route('rekap.index')" icon="fa-chart-line" :active="request()->routeIs('rekap.index')">
-                    Rekapitulasi
-                </x-nav-link>
-            @endif
-
-            @if($user->role === 'kurikulum' || $user->role === 'admin')
-                <x-nav-group icon="fa-graduation-cap" label="Kurikulum" :active="
-                    request()->routeIs('kurikulum.*') || request()->routeIs('jadwal.*') || request()->routeIs('siswa.*') ||
-                    request()->routeIs('orangtua-akun.*') || request()->routeIs('kelas.*') || request()->routeIs('mapel.*') ||
-                    request()->routeIs('tahun-ajaran.*') || request()->routeIs('pengaturan-sekolah.*')
-                ">
-                    <x-nav-sublink :href="route('kurikulum.guru-mengajar.index')" :active="request()->routeIs('kurikulum.guru-mengajar.*')">
-                        Mapping Guru Mengajar
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('kurikulum.guru-bk.index')" :active="request()->routeIs('kurikulum.guru-bk.*')">
-                        Mapping Guru BK
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('jadwal.index')" :active="request()->routeIs('jadwal.*')">
-                        Jadwal Pelajaran
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('siswa.index')" :active="request()->routeIs('siswa.*')">
-                        Data Siswa
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('orangtua-akun.index')" :active="request()->routeIs('orangtua-akun.*')">
-                        Data Orang Tua
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('kelas.index')" :active="request()->routeIs('kelas.*')">
-                        Data Kelas
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('mapel.index')" :active="request()->routeIs('mapel.*')">
-                        Mata Pelajaran
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('tahun-ajaran.index')" :active="request()->routeIs('tahun-ajaran.*')">
-                        Tahun Ajaran
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('pengaturan-sekolah.edit')" :active="request()->routeIs('pengaturan-sekolah.*')">
-                        Pengaturan Sekolah
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-
-            @if($user->role === 'admin')
-                <x-nav-group icon="fa-user-shield" label="Administrator" :active="request()->routeIs('jam-pelajaran.*') || request()->routeIs('users.*')">
-                    <x-nav-sublink :href="route('jam-pelajaran.index')" :active="request()->routeIs('jam-pelajaran.*')">
-                        Jam Pelajaran
-                    </x-nav-sublink>
-                    <x-nav-sublink :href="route('users.index')" :active="request()->routeIs('users.*')">
-                        Kelola Pengguna
-                    </x-nav-sublink>
-                </x-nav-group>
-            @endif
-        </nav>
-
-        <div class="p-3 border-t border-white/10">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button class="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-base font-semibold text-red-300 hover:bg-red-500/10 hover:text-red-200 transition">
-                    <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Keluar
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <div x-show="sidebarOpen" @click="sidebarOpen=false" x-cloak class="fixed inset-0 bg-black/30 z-30 lg:hidden"></div>
-
-    {{-- Main --}}
     <div class="flex-1 flex flex-col min-w-0">
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-2">
+        {{-- ===== Top bar ===== --}}
+        <header class="h-16 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-3">
             <div class="flex items-center gap-3 min-w-0">
-                <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 shrink-0 text-slate-600">
-                    <i class="fa-solid fa-bars text-lg"></i>
+                <button @click="sidebarOpen = !sidebarOpen"
+                        class="lg:hidden w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-600 shrink-0">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
-                <h1 class="font-semibold text-slate-800 text-base lg:text-lg truncate">@yield('title', 'Dashboard')</h1>
+
+                {{-- Breadcrumb: pengguna selalu tahu sedang berada di bagian mana --}}
+                <nav class="hidden md:flex items-center gap-2 text-sm min-w-0" aria-label="Breadcrumb">
+                    <a href="{{ route('dashboard') }}" class="text-slate-400 hover:text-brand-600 shrink-0">
+                        <i class="fa-solid fa-house"></i>
+                    </a>
+                    @if($halaman)
+                        <i class="fa-solid fa-chevron-right text-[9px] text-slate-300"></i>
+                        <span class="text-slate-400 truncate">{{ $halaman['seksi'] }}</span>
+                        @if($halaman['induk'])
+                            <i class="fa-solid fa-chevron-right text-[9px] text-slate-300"></i>
+                            <span class="text-slate-400 truncate">{{ $halaman['induk'] }}</span>
+                        @endif
+                    @endif
+                    <i class="fa-solid fa-chevron-right text-[9px] text-slate-300"></i>
+                    <span class="font-semibold text-slate-700 truncate">@yield('title', 'Dashboard')</span>
+                </nav>
+                <span class="md:hidden font-semibold text-slate-800 truncate">@yield('title', 'Dashboard')</span>
             </div>
+
             <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                {{-- STEP 8 Bagian 3/22 — badge periode aktif SELALU tampil, termasuk
-                     di layar kecil (sebelumnya hidden di mobile — admin/guru yang
-                     paling sering pakai HP justru tidak pernah melihat info ini). --}}
-                @php $periodeAktif = \App\Models\TahunAjaran::aktif(); @endphp
+                {{-- Badge periode akademik aktif --}}
                 @if($periodeAktif)
-                    <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-700' }} inline-flex">
-                        <i class="fa-solid fa-calendar-days mr-1.5"></i> <span class="hidden sm:inline">{{ $periodeAktif->labelSingkat() }}</span><span class="sm:hidden">{{ $periodeAktif->nama }}</span>
-                        @if($periodeAktif->isTerkunci()) &nbsp;<i class="fa-solid fa-lock mr-1.5"></i> @endif
+                    <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-100' : 'bg-brand-50 text-brand-700 ring-1 ring-brand-100' }}"
+                          title="{{ $periodeAktif->isTerkunci() ? 'Periode terkunci — data tidak bisa diubah' : 'Periode akademik aktif' }}">
+                        <i class="fa-solid {{ $periodeAktif->isTerkunci() ? 'fa-lock' : 'fa-calendar-days' }} mr-1.5"></i>
+                        <span class="hidden sm:inline">{{ $periodeAktif->labelSingkat() }}</span>
+                        <span class="sm:hidden">{{ $periodeAktif->nama }}</span>
                     </span>
                 @else
-                    <span class="badge bg-amber-50 text-amber-700 inline-flex"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> <span class="hidden sm:inline">Belum ada periode aktif</span></span>
+                    <a href="{{ \App\Support\Navigasi::bolehAkses('tahun-ajaran.index', $user) ? route('tahun-ajaran.index') : route('dashboard') }}"
+                       class="badge bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+                        <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                        <span class="hidden sm:inline">Belum ada periode aktif</span>
+                        <span class="sm:hidden">Periode?</span>
+                    </a>
                 @endif
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-semibold text-slate-800 leading-tight">{{ auth()->user()->name }}</p>
-                    <p class="text-xs text-slate-400 leading-tight">{{ auth()->user()->roleLabel() }}</p>
-                </div>
-                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+
+                {{-- Menu pengguna --}}
+                <div class="relative" x-data="{ buka: false }" @click.outside="buka = false">
+                    <button @click="buka = !buka" class="flex items-center gap-2 rounded-xl hover:bg-slate-100 pl-2 pr-1.5 py-1.5 transition">
+                        <div class="text-right hidden sm:block leading-tight">
+                            <p class="text-sm font-semibold text-slate-800">{{ $user->name }}</p>
+                            <p class="text-[11px] text-slate-400">{{ $user->roleLabel() }}</p>
+                        </div>
+                        <div class="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 hidden sm:block"></i>
+                    </button>
+
+                    <div x-show="buka" x-cloak x-transition.origin.top.right
+                         class="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-30">
+                        <div class="px-4 py-3 border-b border-slate-100">
+                            <p class="font-semibold text-slate-800 truncate">{{ $user->name }}</p>
+                            <p class="text-xs text-slate-400 truncate">{{ $user->email }}</p>
+                            <span class="badge bg-brand-50 text-brand-700 mt-2">{{ $user->roleLabel() }}</span>
+                        </div>
+                        <div class="px-4 py-3 border-b border-slate-100 text-xs text-slate-500 space-y-1">
+                            <p><i class="fa-solid fa-calendar-days w-4 text-slate-400"></i> {{ $periodeAktif?->nama ?? 'Belum ada periode aktif' }}</p>
+                            @if($user->nip)<p><i class="fa-solid fa-id-card w-4 text-slate-400"></i> NIP {{ $user->nip }}</p>@endif
+                        </div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button class="w-full text-left px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition">
+                                <i class="fa-solid fa-right-from-bracket w-4 mr-1"></i> Keluar
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </header>
 
         <main class="flex-1 p-4 lg:p-8">
+            {{-- ===== Judul halaman: seragam di SEMUA halaman, diambil dari
+                 @section('title') + deskripsi dari registry Navigasi.
+                 Halaman boleh menambah tombol aksi lewat @section('aksi'). ===== --}}
+            @sectionMissing('tanpa-judul')
+                <div class="flex items-start justify-between gap-4 flex-wrap mb-5 no-print">
+                    <div class="min-w-0">
+                        <h1 class="text-xl lg:text-2xl font-extrabold text-slate-800 tracking-tight">@yield('title', 'Dashboard')</h1>
+                        @hasSection('deskripsi')
+                            <p class="text-sm text-slate-500 mt-1">@yield('deskripsi')</p>
+                        @elseif($halaman && $halaman['deskripsi'])
+                            <p class="text-sm text-slate-500 mt-1">{{ $halaman['deskripsi'] }}</p>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">@yield('aksi')</div>
+                </div>
+            @endif
+
+            {{-- ===== Notifikasi ===== --}}
             @if(session('success'))
-                <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm font-medium">
-                    <i class="fa-solid fa-circle-check mr-1.5"></i> {{ session('success') }}
+                <div class="alert alert-success no-print" x-data="{ tampil: true }" x-show="tampil" x-cloak>
+                    <i class="fa-solid fa-circle-check mt-0.5"></i>
+                    <span class="flex-1">{{ session('success') }}</span>
+                    <button @click="tampil = false" class="text-emerald-500 hover:text-emerald-700"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             @endif
             @if(session('error'))
-                <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm font-medium">
-                    <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> {{ session('error') }}
+                <div class="alert alert-danger no-print" x-data="{ tampil: true }" x-show="tampil" x-cloak>
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                    <span class="flex-1">{{ session('error') }}</span>
+                    <button @click="tampil = false" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            @endif
+            @if(session('warning'))
+                <div class="alert alert-warning no-print">
+                    <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                    <span class="flex-1">{{ session('warning') }}</span>
                 </div>
             @endif
             @if($errors->any())
-                <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-                    <p class="font-medium mb-1"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Terjadi kesalahan:</p>
-                    <ul class="list-disc list-inside space-y-0.5">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
+                <div class="alert alert-danger no-print">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-semibold mb-1">Periksa kembali isian berikut:</p>
+                        <ul class="list-disc list-inside space-y-0.5">
+                            @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                        </ul>
+                    </div>
                 </div>
             @endif
 
             @yield('content')
         </main>
+
+        <footer class="px-4 lg:px-8 py-4 text-center text-xs text-slate-400 no-print">
+            SIM-SPENGA — {{ $pengaturanSekolahGlobal->nama_sekolah ?? 'Sistem Informasi Manajemen Sekolah' }} &middot; {{ now()->translatedFormat('l, d F Y') }}
+        </footer>
     </div>
 </div>
 

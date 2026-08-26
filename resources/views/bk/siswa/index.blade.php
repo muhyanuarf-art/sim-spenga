@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Monitoring Siswa')
+@section('title', 'Profil Poin Siswa')
 
 @section('content')
 <div class="space-y-6">

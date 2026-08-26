@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Kasus / Pelanggaran')
+@section('title', 'Kasus & Pelanggaran')
 
 @section('content')
 @php $user = auth()->user(); @endphp

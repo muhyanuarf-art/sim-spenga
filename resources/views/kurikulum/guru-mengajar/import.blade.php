@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Import Mapping Guru Mengajar')
+@section('title', 'Import Pemetaan Guru Mengajar')
 
 @section('content')
 <div class="max-w-xl mx-auto">

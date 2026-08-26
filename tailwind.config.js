@@ -1,35 +1,42 @@
 /** @type {import('tailwindcss').Config} */
+
+/**
+ * PERBAIKAN — beberapa komponen (stat-card, aksi-cepat, kelas-badge,
+ * mapel-badge, initial-avatar, dashboard) menyusun nama class warna SECARA
+ * DINAMIS dari variabel PHP, contoh:  <div class="bg-{{ $color }}-500">
+ * Tailwind memindai file sumber sebagai teks mentah (ia tidak menjalankan
+ * PHP/Blade), sehingga class seperti itu tidak pernah cocok dengan class
+ * literal apa pun dan akan dibuang saat build — akibatnya warna/ikon
+ * terlihat "hilang".
+ *
+ * Dulu masalah ini diatasi dengan safelist berpola regex yang juga
+ * mencakup varian opacity (\/\d{1,3}) — akibatnya Tailwind membangkitkan
+ * RIBUAN class yang tidak pernah dipakai dan file CSS hasil build
+ * membengkak sampai ~1,9 MB (ikut memperlambat setiap halaman).
+ *
+ * Sekarang safelist dibuat EKSPLISIT: hanya kombinasi warna + utility yang
+ * benar-benar dipakai secara dinamis di aplikasi ini. Hasilnya sama-sama
+ * aman, tapi ukuran CSS turun drastis.
+ */
+const warnaDinamis = [
+    'brand', 'blue', 'indigo', 'violet', 'fuchsia', 'sky', 'cyan', 'teal',
+    'emerald', 'lime', 'amber', 'orange', 'rose', 'red', 'slate',
+];
+
+const safelist = warnaDinamis.flatMap((c) => [
+    `bg-${c}-50`, `bg-${c}-100`, `bg-${c}-500`, `bg-${c}-100/70`, `bg-${c}-50/60`,
+    `text-${c}-500`, `text-${c}-600`, `text-${c}-700`,
+    `border-${c}-100`, `border-${c}-200`, `border-${c}-300`,
+    `shadow-${c}-500/30`,
+]);
+
 export default {
     content: [
         './resources/**/*.blade.php',
         './resources/**/*.js',
         './app/**/*.php',
     ],
-    // PERBAIKAN — "icon/warna tidak muncul di semua dashboard".
-    // Akar masalahnya BUKAN Font Awesome, tapi Tailwind: banyak komponen
-    // (stat-card, kelas-badge, mapel-badge, initial-avatar, dashboard
-    // admin/guru, dashboard orang tua) MEMBUAT NAMA CLASS WARNA SECARA
-    // DINAMIS dari variabel PHP, contoh:
-    //   <div class="bg-{{ $color }}-500 text-{{ $color }}-600">
-    // Tailwind men-scan file SUMBER sebagai teks mentah untuk tahu class
-    // apa saja yang perlu di-build — ia TIDAK menjalankan PHP/Blade, jadi
-    // "bg-{{ $color }}-500" tidak pernah cocok dengan class literal
-    // apa pun ("bg-emerald-500", "bg-amber-500", dst) dan SEMUANYA
-    // dibuang saat build. Akibatnya kontainer icon jadi tanpa warna latar
-    // (mis. teks putih di atas latar putih) — kelihatan seperti "icon
-    // hilang", padahal Font Awesome-nya sendiri baik-baik saja.
-    //
-    // safelist di bawah memaksa Tailwind TETAP membuat seluruh kombinasi
-    // warna+tingkat kegelapan yang dipakai lewat variabel di seluruh app
-    // (daftar warna: lihat $palet di kelas-badge/mapel-badge/initial-
-    // avatar/dashboard guru.blade.php, + $warna di orangtua/dashboard,
-    // + $color di stat-card/dashboard admin), termasuk varian opacity
-    // (mis. "bg-emerald-200/40") yang juga dipakai di beberapa tempat.
-    safelist: [
-        {
-            pattern: /(bg|text|border|from|to|ring|shadow)-(indigo|amber|teal|emerald|rose|violet|sky|fuchsia|cyan|lime|red|slate)-(50|100|200|300|400|500|600|700|800|900)(\/\d{1,3})?/,
-        },
-    ],
+    safelist,
     theme: {
         extend: {
             fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },

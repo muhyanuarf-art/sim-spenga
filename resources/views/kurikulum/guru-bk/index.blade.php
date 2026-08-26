@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Mapping Guru BK')
+@section('title', 'Pemetaan Guru BK')
 
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">

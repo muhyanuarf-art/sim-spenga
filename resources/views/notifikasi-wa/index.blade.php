@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Status WhatsApp Ortu')
+@section('title', 'Notifikasi WhatsApp Ortu')
 
 @section('content')
 <div class="space-y-6">
