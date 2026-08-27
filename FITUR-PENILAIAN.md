@@ -348,3 +348,76 @@ disimpan sama sekali.
 | `database/migrations/2026_08_27_000007_add_program_perbaikan_to_analisis_sumatifs_table.php` | 4 kolom rencana pelaksanaan |
 | `app/Http/Controllers/ProgramPerbaikanController.php` | Pemilahan peserta & penyusun dokumen |
 | `resources/views/nilai/program-perbaikan.blade.php` | Tampilan & cetakan |
+
+---
+
+# Laporan Akhir Semester (bahan Rapat Penerimaan Rapor)
+
+Satu lembar rekap **satu semester penuh** yang menggabungkan empat modul,
+supaya wali kelas tidak perlu membuka empat menu berbeda (dan Rekap Absensi
+enam kali, sebulan sekali) saat menyiapkan rapat penerimaan rapor.
+
+Menu: **Penilaian › Laporan Akhir Semester**. Route: `nilai.laporan-semester`.
+
+## 1. Empat item yang direkap
+
+| Item | Isi kolom | Sumbernya |
+|---|---|---|
+| **1. Nilai** | Mapel dinilai, Rata-rata, Peringkat, Mapel belum tuntas | `nilai_siswas` (Daftar Nilai guru mapel) |
+| **2. Kehadiran** | H, S, I, A, % Hadir | `absensi_siswas`, aturan `finalPerHari()` |
+| **3. Kedisiplinan** | Kasus, Poin aktif, Status BK | `PoinSiswaService::ringkasanBanyak()` |
+| **4. Ekstrakurikuler** | Kegiatan yang diikuti, % Hadir | `ekstrakurikuler_siswas` + `absensi_ekskul_pesertas` |
+
+Baris terakhir tabel berisi **jumlah/rata-rata seluruh kelas** untuk tiap
+kolom, dan di bawahnya ada blok **Rekapitulasi Total per Item** berupa
+kalimat siap dibacakan saat rapat.
+
+## 2. Tidak ada perhitungan baru
+
+Seluruh angkanya memakai sumber yang sama persis dengan halaman aslinya:
+
+- **Peringkat** lewat `App\Support\PeringkatKelas` — kelas ini dipakai
+  bersama oleh Rekap Nilai Rapor Kelas, jadi kedua lembar yang dibawa ke
+  rapat yang sama tidak mungkin menampilkan peringkat berbeda.
+- **Kehadiran** lewat `AbsensiSiswa::finalPerHari()` — aturan yang sama
+  dengan Rekap Absensi Kelas (absensi kegiatan sekolah didahulukan;
+  selebihnya status dari guru mapel jam paling akhir hari itu).
+- **Poin pelanggaran** lewat `PoinSiswaService::ringkasanBanyak()` — rumus
+  yang sama dengan profil poin siswa di modul BK, dan tanpa N+1.
+
+Persentase kehadiran dihitung dari hari yang **tercatat**, bukan dari jumlah
+hari kalender — guru tidak selalu sempat mengisi absensi tiap hari, dan hari
+yang tidak terisi bukan berarti siswa tidak masuk.
+
+## 3. Rentang waktu
+
+Bawaannya seluruh semester, diambil dari tanggal mulai & selesai Tahun
+Ajaran aktif (kurang lebih enam bulan). Bisa dipersempit lewat isian
+Dari/Sampai, mis. untuk melihat satu triwulan. Kalau tanggal periode belum
+diisi admin, rentangnya diperkirakan dari nama tahun ajaran + semester
+(Ganjil = Juli–Desember, Genap = Januari–Juni) dan halaman menampilkan
+peringatan agar admin melengkapinya. Tanggal yang terbalik ditukar otomatis.
+
+## 4. Peserta didik yang perlu perhatian khusus
+
+Bagian tersendiri di bawah tabel, berisi nama + **alasannya**, supaya wali
+kelas tidak perlu menyisir tabel satu per satu. Seorang siswa masuk daftar
+ini bila memenuhi salah satu: ada mapel di bawah KKTP (mapelnya disebutkan),
+Alfa ≥ 3 hari, punya poin pelanggaran aktif, atau kehadiran < 90%.
+
+## 5. Hak akses
+
+Sama dengan laporan rapor lain: Guru terkunci ke kelas perwaliannya, Guru BK
+ke kelas binaannya, Kurikulum/Kepala Sekolah/Admin bebas memilih kelas.
+Kesiswaan dan TU tidak diberi akses.
+
+## 6. Berkas
+
+| Berkas | Isi |
+|---|---|
+| `app/Http/Controllers/LaporanSemesterController.php` | Penggabungan empat modul + total per item |
+| `app/Support/PeringkatKelas.php` | Peringkat kelas, dipakai bersama Rekap Nilai Rapor Kelas |
+| `resources/views/laporan/akhir-semester.blade.php` | Tampilan & cetakan |
+
+> Catatan: tidak ada tabel baru. Laporan ini murni membaca data yang sudah
+> ada, jadi tidak ada yang bisa basi atau berbeda dengan halaman sumbernya.

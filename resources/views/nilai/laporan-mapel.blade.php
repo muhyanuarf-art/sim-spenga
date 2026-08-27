@@ -104,11 +104,11 @@
                                 </td>
                             @endfor
                             <td class="border border-slate-300 text-center tabular-nums font-bold bg-sky-50/60">
-                                {{ $n?->rata_formatif !== null ? number_format($n->rata_formatif, 2) : '–' }}
+                                {{ $n?->rata_formatif !== null ? number_format($n->rata_formatif, 2, ',', '') : '–' }}
                             </td>
 
                             <td class="border border-slate-300 text-center tabular-nums bg-violet-50/50">
-                                {{ $n?->rata_sumatif_lm !== null ? number_format($n->rata_sumatif_lm, 2) : '–' }}
+                                {{ $n?->rata_sumatif_lm !== null ? number_format($n->rata_sumatif_lm, 2, ',', '') : '–' }}
                             </td>
                             <td class="border border-slate-300 text-center tabular-nums bg-violet-50/50">
                                 {{ $n?->asts !== null ? round($n->asts) : '–' }}

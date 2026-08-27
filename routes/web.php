@@ -25,6 +25,7 @@ use App\Http\Controllers\KegiatanSekolahController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\RiwayatKelasController;
 use App\Http\Controllers\LaporanGuruController;
+use App\Http\Controllers\LaporanSemesterController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
 use App\Http\Controllers\NilaiController;
@@ -189,6 +190,10 @@ Route::middleware('auth')->group(function () {
         Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
             Route::get('rekap-kelas/{kelas?}', [NilaiWaliKelasController::class, 'rekapKelas'])->name('rekap-kelas');
             Route::get('per-mapel/{kelas?}', [NilaiWaliKelasController::class, 'laporanMapel'])->name('per-mapel');
+
+            // Rekap SATU SEMESTER PENUH lintas modul (nilai, kehadiran,
+            // kedisiplinan, ekstrakurikuler) — bahan rapat penerimaan rapor.
+            Route::get('laporan-semester/{kelas?}', [LaporanSemesterController::class, 'index'])->name('laporan-semester');
         });
 
         // Monitoring pengisian nilai seluruh sekolah.

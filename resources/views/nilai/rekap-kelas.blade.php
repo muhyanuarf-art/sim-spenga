@@ -113,7 +113,7 @@
                             @endforelse
 
                             <td class="border border-slate-300 text-center tabular-nums bg-emerald-50/50">{{ $b['jumlah'] ? round($b['jumlah']) : '–' }}</td>
-                            <td class="border border-slate-300 text-center tabular-nums font-bold bg-emerald-50/50">{{ $b['rata'] !== null ? number_format($b['rata'], 2) : '–' }}</td>
+                            <td class="border border-slate-300 text-center tabular-nums font-bold bg-emerald-50/50">{{ $b['rata'] !== null ? number_format($b['rata'], 2, ',', '') : '–' }}</td>
                             <td class="border border-slate-300 text-center tabular-nums font-bold bg-emerald-50/50">{{ $b['peringkat'] ?? '–' }}</td>
                             <td class="border border-slate-300 text-center tabular-nums font-bold {{ $b['belum_tuntas'] > 0 ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-400' }}">
                                 {{ $b['belum_tuntas'] }}
@@ -138,7 +138,7 @@
                             <td class="border border-slate-300"></td>
                             <td class="border border-slate-300 text-center tabular-nums">
                                 {{ $baris->pluck('rata')->filter(fn ($r) => $r !== null)->avg() !== null
-                                    ? number_format($baris->pluck('rata')->filter(fn ($r) => $r !== null)->avg(), 2) : '–' }}
+                                    ? number_format($baris->pluck('rata')->filter(fn ($r) => $r !== null)->avg(), 2, ',', '') : '–' }}
                             </td>
                             <td class="border border-slate-300"></td>
                             <td class="border border-slate-300 text-center tabular-nums">{{ $baris->sum('belum_tuntas') }}</td>
@@ -204,7 +204,7 @@
                             <td class="font-medium text-slate-700">{{ $r['mapel']->nama_mapel }}</td>
                             <td class="text-slate-600">{{ $r['header']?->guru?->name ?? '-' }}</td>
                             <td class="tabular-nums">{{ $r['terisi'] }} / {{ $baris->count() }}</td>
-                            <td class="tabular-nums font-semibold">{{ $r['rata'] !== null ? number_format($r['rata'], 2) : '–' }}</td>
+                            <td class="tabular-nums font-semibold">{{ $r['rata'] !== null ? number_format($r['rata'], 2, ',', '') : '–' }}</td>
                             <td>
                                 @if($r['belum_tuntas'] > 0)
                                     <span class="badge bg-rose-50 text-rose-700">{{ $r['belum_tuntas'] }} siswa</span>

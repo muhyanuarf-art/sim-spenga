@@ -9,6 +9,7 @@ use App\Models\NilaiSiswa;
 use App\Models\PenilaianKelasMapel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Support\PeringkatKelas;
 use App\Support\PeriodeAkademik;
 use App\Support\SkemaPenilaian;
 use Illuminate\Http\Request;
@@ -79,7 +80,7 @@ class NilaiWaliKelasController extends Controller
             ];
         });
 
-        $baris = $this->beriPeringkat($baris);
+        $baris = PeringkatKelas::bubuhkan($baris);
 
         // Ringkasan per mata pelajaran untuk kaki laporan (rata-rata kelas
         // & berapa siswa belum tuntas per mapel) + status finalisasinya.
@@ -161,37 +162,6 @@ class NilaiWaliKelasController extends Controller
         abort_if($periode === null, 409, 'Belum ada Tahun Ajaran yang aktif. Hubungi Kurikulum/Admin untuk mengaktifkan periode terlebih dahulu.');
 
         return $periode;
-    }
-
-    /**
-     * Peringkat kelas berdasarkan rata-rata nilai akhir. Nilai yang SAMA
-     * mendapat peringkat yang SAMA (peringkat kembar), dan peringkat
-     * berikutnya melompat sesuai jumlah yang kembar — sama seperti cara
-     * sekolah menuliskan peringkat di rapor. Siswa yang belum punya nilai
-     * sama sekali tidak diberi peringkat (bukan diberi peringkat terakhir).
-     */
-    private function beriPeringkat($baris)
-    {
-        $urut = $baris->filter(fn ($b) => $b['rata'] !== null)
-            ->sortByDesc('rata')
-            ->values();
-
-        $peringkat = [];
-        $nomor = 0;
-        $sebelumnya = null;
-        foreach ($urut as $index => $b) {
-            if ($sebelumnya === null || $b['rata'] < $sebelumnya) {
-                $nomor = $index + 1;
-                $sebelumnya = $b['rata'];
-            }
-            $peringkat[$b['siswa']->id] = $nomor;
-        }
-
-        return $baris->map(function ($b) use ($peringkat) {
-            $b['peringkat'] = $peringkat[$b['siswa']->id] ?? null;
-
-            return $b;
-        });
     }
 
     /** Mapel yang diajarkan di kelas ini + mapel yang sudah punya nilai. */

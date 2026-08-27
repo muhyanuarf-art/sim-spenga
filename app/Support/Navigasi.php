@@ -138,6 +138,15 @@ class Navigasi
                         'syarat' => $khususWaliKelas,
                     ],
                     [
+                        'label' => 'Laporan Akhir Semester',
+                        'icon' => 'fa-file-contract',
+                        'route' => 'nilai.laporan-semester',
+                        'cocok' => ['nilai.laporan-semester'],
+                        'deskripsi' => 'Rekap satu semester penuh: nilai, kehadiran, kedisiplinan, dan ekstrakurikuler — bahan rapat penerimaan rapor.',
+                        'roles' => ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin'],
+                        'syarat' => $khususWaliKelas,
+                    ],
+                    [
                         'label' => 'Monitoring Input Nilai',
                         'icon' => 'fa-clipboard-list',
                         'route' => 'nilai.monitoring',
