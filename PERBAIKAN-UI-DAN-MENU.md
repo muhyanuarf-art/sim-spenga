@@ -90,6 +90,18 @@ barang yang sama.
   `@section('aksi')` dan menyembunyikan judul lewat `@section('tanpa-judul')`.
 * Notifikasi sukses/gagal jadi komponen `.alert` yang bisa ditutup.
 
+
+### 2.5 Tombol Cetak kini benar-benar mencetak satu bagian saja
+
+`cetakBagian()` dulu hanya menyembunyikan elemen ber-class `print-section`
+*lain*. Isi halaman di luar print-section — kartu ringkasan, identitas,
+filter, kotak status — tetap ikut tercetak kecuali halamannya rajin menandai
+satu per satu dengan `no-print`. Sekarang fungsi itu menelusuri dari elemen
+yang dicetak naik sampai `<body>` dan menyembunyikan semua elemen sebelahnya
+di tiap tingkat, sehingga yang tercetak hanya bagian yang tombol Cetak-nya
+ditekan — berlaku di semua halaman yang punya tombol Cetak, tanpa perlu
+menandai elemen lain satu per satu.
+
 ---
 
 ## 3. Bug yang ditemukan & diperbaiki

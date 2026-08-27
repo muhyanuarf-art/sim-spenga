@@ -168,6 +168,9 @@ body { -webkit-font-smoothing: antialiased; }
        berubah, kartu tetap tampil seperti biasa. */
     .card { box-shadow: none !important; border: none !important; border-radius: 0 !important; background: transparent !important; }
     body.print-target-active .print-section { display: none !important; }
+    /* Elemen "sebelah" yang disembunyikan oleh cetakBagian() supaya yang
+       tercetak benar-benar hanya bagian yang dipilih (lihat app.js). */
+    body.print-target-active .print-sembunyi { display: none !important; }
     body.print-target-active .print-section.print-target-selected { display: block !important; }
     .cetak-saja { display: block !important; }
     /* Permintaan: semua teks abu-abu (dipakai untuk keterangan/label
