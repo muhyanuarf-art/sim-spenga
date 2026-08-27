@@ -26,7 +26,11 @@ use App\Http\Controllers\RiwayatKelasController;
 use App\Http\Controllers\LaporanGuruController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
+use App\Http\Controllers\NilaiController;
+use App\Http\Controllers\NilaiMonitoringController;
+use App\Http\Controllers\NilaiWaliKelasController;
 use App\Http\Controllers\NotifikasiWhatsappController;
+use App\Http\Controllers\PengaturanPenilaianController;
 use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\PengaturanSekolahController;
@@ -136,6 +140,47 @@ Route::middleware('auth')->group(function () {
         Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
             Route::get('jurnal-kelas/{kelas?}', [WaliKelasController::class, 'jurnalKelas'])->name('jurnal-kelas');
         });
+    });
+
+    // ===== PENILAIAN: daftar nilai guru mapel → nilai rapor wali kelas =====
+    // Pembagian tugasnya tegas:
+    // - MENGISI daftar nilai: Guru Mapel (hanya kelas & mapel yang diampu —
+    //   dicek lagi di NilaiController lewat guru_mengajar_kelas) + Admin
+    //   sebagai perwakilan bila guru berhalangan.
+    // - MEMBACA & MENCETAK lembar mana pun: + Kurikulum & Kepala Sekolah.
+    // - LAPORAN WALI KELAS: Wali Kelas (kelasnya sendiri), Guru BK (kelas
+    //   binaannya), Kurikulum/Kepsek/Admin (semua kelas).
+    // - BUKA KUNCI lembar yang sudah final: HANYA Kurikulum & Admin.
+    Route::prefix('nilai')->name('nilai.')->group(function () {
+        // Daftar lembar + pengisian oleh guru mata pelajaran.
+        Route::middleware('role:guru,kurikulum,kepala_sekolah,admin')->group(function () {
+            Route::get('/', [NilaiController::class, 'pilih'])->name('pilih');
+            Route::get('lembar/{kelas}/{mapel}', [NilaiController::class, 'form'])->name('form');
+        });
+        Route::middleware(['role:guru,admin', 'periode-aktif'])->group(function () {
+            Route::post('lembar/{kelas}/{mapel}', [NilaiController::class, 'store'])->name('store');
+            Route::post('lembar/{kelas}/{mapel}/finalisasi', [NilaiController::class, 'finalisasi'])->name('finalisasi');
+        });
+        Route::middleware(['role:kurikulum,admin', 'periode-aktif'])->group(function () {
+            Route::post('lembar/{kelas}/{mapel}/buka-kunci', [NilaiController::class, 'bukaKunci'])->name('buka-kunci');
+        });
+
+        // Laporan untuk wali kelas (baca saja — nilainya otomatis dari guru mapel).
+        Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,admin')->group(function () {
+            Route::get('rekap-kelas/{kelas?}', [NilaiWaliKelasController::class, 'rekapKelas'])->name('rekap-kelas');
+            Route::get('per-mapel/{kelas?}', [NilaiWaliKelasController::class, 'laporanMapel'])->name('per-mapel');
+        });
+
+        // Monitoring pengisian nilai seluruh sekolah.
+        Route::middleware('role:kurikulum,kepala_sekolah,admin')->group(function () {
+            Route::get('monitoring', [NilaiMonitoringController::class, 'index'])->name('monitoring');
+        });
+    });
+
+    // Skema penilaian (bobot 60/20/20, KKTP per tingkat, jumlah kolom TPF/LM).
+    Route::middleware('role:kurikulum,admin')->group(function () {
+        Route::get('pengaturan-penilaian', [PengaturanPenilaianController::class, 'edit'])->name('penilaian.pengaturan.edit');
+        Route::put('pengaturan-penilaian', [PengaturanPenilaianController::class, 'update'])->name('penilaian.pengaturan.update');
     });
 
     // ===== KESISWAAN: master data Kegiatan Ekstrakurikuler =====

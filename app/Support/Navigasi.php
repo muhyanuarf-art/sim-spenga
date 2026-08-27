@@ -109,6 +109,46 @@ class Navigasi
             ],
 
             [
+                'label' => 'Penilaian',
+                'item' => [
+                    [
+                        'label' => 'Daftar Nilai',
+                        'icon' => 'fa-table-list',
+                        'route' => 'nilai.pilih',
+                        'cocok' => ['nilai.pilih', 'nilai.form', 'nilai.store', 'nilai.finalisasi', 'nilai.buka-kunci'],
+                        'deskripsi' => 'Isi nilai formatif, sumatif lingkup materi, ASTS, dan sumatif akhir untuk kelas yang Anda ampu.',
+                        'roles' => ['guru', 'kurikulum', 'kepala_sekolah', 'admin'],
+                    ],
+                    [
+                        'label' => 'Nilai Rapor Kelas',
+                        'icon' => 'fa-award',
+                        'route' => 'nilai.rekap-kelas',
+                        'cocok' => ['nilai.rekap-kelas'],
+                        'deskripsi' => 'Nilai akhir seluruh mata pelajaran satu kelas beserta rata-rata dan peringkatnya.',
+                        'roles' => ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin'],
+                        'syarat' => $khususWaliKelas,
+                    ],
+                    [
+                        'label' => 'Nilai per Mata Pelajaran',
+                        'icon' => 'fa-list-ol',
+                        'route' => 'nilai.per-mapel',
+                        'cocok' => ['nilai.per-mapel'],
+                        'deskripsi' => 'Rincian nilai formatif dan nilai akhir satu mata pelajaran untuk satu kelas.',
+                        'roles' => ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'admin'],
+                        'syarat' => $khususWaliKelas,
+                    ],
+                    [
+                        'label' => 'Monitoring Input Nilai',
+                        'icon' => 'fa-clipboard-list',
+                        'route' => 'nilai.monitoring',
+                        'cocok' => ['nilai.monitoring'],
+                        'deskripsi' => 'Pantau mata pelajaran dan kelas mana yang nilainya belum masuk atau belum difinalisasi.',
+                        'roles' => ['kurikulum', 'kepala_sekolah', 'admin'],
+                    ],
+                ],
+            ],
+
+            [
                 'label' => 'Monitoring',
                 'item' => [
                     [
@@ -391,6 +431,14 @@ class Navigasi
                         'route' => 'pengaturan-sekolah.edit',
                         'cocok' => ['pengaturan-sekolah.*'],
                         'deskripsi' => 'Identitas sekolah & kepala sekolah yang dipakai di semua dokumen cetak.',
+                        'roles' => ['kurikulum', 'admin'],
+                    ],
+                    [
+                        'label' => 'Pengaturan Penilaian',
+                        'icon' => 'fa-percent',
+                        'route' => 'penilaian.pengaturan.edit',
+                        'cocok' => ['penilaian.pengaturan.*'],
+                        'deskripsi' => 'Bobot nilai rapor, KKTP tiap tingkat, dan bentuk kolom daftar nilai.',
                         'roles' => ['kurikulum', 'admin'],
                     ],
                     [

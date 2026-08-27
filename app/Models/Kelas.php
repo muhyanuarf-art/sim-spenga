@@ -43,6 +43,19 @@ class Kelas extends Model
         return $this->hasMany(GuruMengajarKelas::class, 'kelas_id');
     }
 
+    /**
+     * Fase Kurikulum Merdeka untuk tingkat kelas ini. Dipakai di kepala
+     * lembar Daftar Nilai & laporan penilaian ("Kelas/Fase : IX A / D").
+     * Jenjang SMP (kelas 7, 8, 9) seluruhnya berada di Fase D.
+     */
+    public function fase(): string
+    {
+        return match ((int) $this->tingkat) {
+            7, 8, 9 => 'D',
+            default => '-',
+        };
+    }
+
     public function jadwal(): HasMany
     {
         return $this->hasMany(JadwalPelajaran::class, 'kelas_id');
