@@ -122,7 +122,7 @@ class RekapController extends Controller
                 // tidak dihitung 2x. Konsisten dengan Rekap Absensi Bulanan Wali Kelas.
                 $absensiKelas = AbsensiSiswa::where('kelas_id', $kelas->id)
                     ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
-                    ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
+                    ->with(AbsensiSiswa::RELASI_KONTEKS)
                     ->get()
                     ->groupBy('siswa_id');
 

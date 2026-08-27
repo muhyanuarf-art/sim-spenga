@@ -3,10 +3,6 @@
 
 @section('content')
 <div class="space-y-6">
-    <div>
-        <p class="text-xl font-extrabold text-slate-800">Dashboard Pelanggaran</p>
-        <p class="text-sm text-slate-500">Pantau kasus, pembinaan, dan perkembangan perilaku siswa.</p>
-    </div>
 
     @php
         $deltaKasus = $totalKasusBulanLalu > 0

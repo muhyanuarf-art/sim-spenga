@@ -1,17 +1,18 @@
 @extends('layouts.app')
 @section('title', 'Edit Surat')
 
+@section('deskripsi', 'Surat untuk ' . ($surat->siswa->nama ?? '-'))
+
+@section('aksi')
+    <a href="{{ route('surat.show', $surat) }}" class="btn-outline">&larr; Kembali</a>
+@endsection
+
 @section('content')
 @php
     $tipe = $surat->jenisSurat->tipe_formulir ?? 'bebas';
     $f = $surat->data_formulir ?? [];
 @endphp
 <div class="max-w-3xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <p class="text-lg font-extrabold text-slate-800">Edit Surat — {{ $surat->siswa->nama ?? '-' }}</p>
-        <a href="{{ route('surat.show', $surat) }}" class="btn-outline">&larr; Kembali</a>
-    </div>
-
     <form method="POST" action="{{ route('surat.update', $surat) }}" class="card p-5 space-y-4">
         @csrf @method('PUT')
 

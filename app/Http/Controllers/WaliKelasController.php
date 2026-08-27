@@ -45,7 +45,7 @@ class WaliKelasController extends Controller
         // tanpa query tambahan per baris.
         $absensiRaw = AbsensiSiswa::where('kelas_id', $kelas->id)
             ->whereBetween('tanggal', RentangBulan::dari($tahun, $bulan))
-            ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
+            ->with(AbsensiSiswa::RELASI_KONTEKS)
             ->get()
             ->groupBy('siswa_id');
 
@@ -90,9 +90,14 @@ class WaliKelasController extends Controller
                 };
                 $data[$tgl] = $kode;
 
-                $mapelNama = $final->jurnal?->mapel?->nama_mapel ?? '-';
-                $jamKe = $final->jurnal?->jamPelajaranAkhir?->jam_ke ?? $final->jurnal?->jamPelajaran?->jam_ke;
-                $keterangan[$tgl] = "{$final->status} \u{2014} {$mapelNama}" . ($jamKe ? " (jam ke-{$jamKe})" : '');
+                // Konteks absensi: nama mata pelajaran untuk hari KBM biasa,
+                // atau nama kegiatan sekolah (lomba/asesmen/classmeeting/
+                // pesantren Ramadan) untuk hari kegiatan yang diisi wali kelas.
+                $konteks = $final->konteksLabel() ?? '-';
+                $jamKe = $final->dariKegiatan()
+                    ? null
+                    : ($final->jurnal?->jamPelajaranAkhir?->jam_ke ?? $final->jurnal?->jamPelajaran?->jam_ke);
+                $keterangan[$tgl] = "{$final->status} \u{2014} {$konteks}" . ($jamKe ? " (jam ke-{$jamKe})" : '');
 
                 if ($final->status === 'Sakit') $sakit++;
                 if ($final->status === 'Izin') $izin++;

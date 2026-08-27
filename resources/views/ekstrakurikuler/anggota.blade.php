@@ -1,16 +1,14 @@
 @extends('layouts.app')
 @section('title', 'Anggota — ' . $ekstrakurikuler->nama_ekstrakurikuler)
 
+@section('deskripsi', $ekstrakurikuler->anggotas->count() . ' siswa terdaftar · Pembina: ' . $ekstrakurikuler->daftarNamaPembina())
+
+@section('aksi')
+    <a href="{{ route('ekstrakurikuler.index') }}" class="btn-outline">&larr; Kembali ke Ekstrakurikuler</a>
+@endsection
+
 @section('content')
 <div class="space-y-6">
-    <div class="flex items-center justify-between flex-wrap gap-3">
-        <div>
-            <a href="{{ route('ekstrakurikuler.index') }}" class="text-xs text-brand-600 font-semibold">&larr; Kembali ke Kegiatan Ekstrakurikuler</a>
-            <p class="text-lg font-extrabold text-slate-800 mt-1">Anggota — {{ $ekstrakurikuler->nama_ekstrakurikuler }}</p>
-            <p class="text-sm text-slate-500">{{ $ekstrakurikuler->anggotas->count() }} siswa terdaftar. Pembina: {{ $ekstrakurikuler->daftarNamaPembina() }}</p>
-        </div>
-    </div>
-
     <div class="card p-5">
         <p class="font-bold text-slate-800 mb-1">Tambah/Edit Anggota per Kelas</p>
         <p class="text-xs text-slate-500 mb-3">Pilih kelas, centang siswa yang ikut kegiatan ini, lalu Simpan. Yang sudah tercentang berarti sudah jadi anggota — hapus centang untuk mengeluarkannya (berguna kalau terlanjur salah simpan).</p>

@@ -80,7 +80,9 @@ barang yang sama.
 * Grup yang sedang dibuka **diingat** lewat `localStorage`, tidak menutup lagi
   setiap pindah halaman.
 * Tombol tutup sidebar di layar HP + area gelap yang bisa diklik.
-* Header: **breadcrumb** (Bagian › Grup › Halaman), badge periode akademik
+* Header: **breadcrumb** berisi jalur menuju halaman (Beranda › Bagian › Grup).
+  Nama halamannya sendiri tidak diulang di breadcrumb karena sudah tampil
+  besar sebagai judul halaman tepat di bawahnya, badge periode akademik
   (merah + gembok kalau periode terkunci), dan **menu pengguna** berisi nama,
   email, jabatan, periode aktif, NIP, serta tombol Keluar.
 * Setiap halaman kini punya **judul besar + kalimat penjelas** yang seragam,

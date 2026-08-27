@@ -1,16 +1,14 @@
 @extends('layouts.app')
 @section('title', 'Ringkasan Surat')
 
+@section('deskripsi', 'Ringkasan surat yang Anda buat' . ($pengaturanSekolahGlobal->nama_sekolah ? ' di ' . $pengaturanSekolahGlobal->nama_sekolah : '') . '.')
+
+@section('aksi')
+    <a href="{{ route('surat.create') }}" class="btn-primary"><i class="fa-solid fa-plus"></i> Buat Surat Baru</a>
+@endsection
+
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-start flex-wrap gap-3">
-        <div>
-            <p class="text-xl font-extrabold text-slate-800">Dashboard Surat BK</p>
-            <p class="text-sm text-slate-500">Ringkasan surat yang Anda buat{{ $pengaturanSekolahGlobal->nama_sekolah ? ' di ' . $pengaturanSekolahGlobal->nama_sekolah : '' }}.</p>
-        </div>
-        <a href="{{ route('surat.create') }}" class="btn-primary">+ Buat Surat Baru</a>
-    </div>
-
     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="card p-5">
             <div class="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center mb-3">

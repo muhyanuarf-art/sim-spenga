@@ -87,6 +87,17 @@ class Navigasi
                         'roles' => ['guru', 'kurikulum', 'admin'],
                     ],
                     [
+                        'label' => 'Absensi Kegiatan Sekolah',
+                        'icon' => 'fa-flag-checkered',
+                        'route' => 'kegiatan.absensi.pilih',
+                        'cocok' => ['kegiatan.absensi.*'],
+                        'deskripsi' => 'Isi kehadiran siswa pada kegiatan di luar jam KBM (lomba, asesmen, classmeeting, pesantren Ramadan).',
+                        'roles' => ['guru', 'admin'],
+                        // Hanya wali kelas yang berhak mengisi absensi kegiatan,
+                        // jadi guru mapel biasa tidak perlu melihat menu ini.
+                        'syarat' => $khususWaliKelas,
+                    ],
+                    [
                         'label' => 'Absensi Ekstrakurikuler',
                         'icon' => 'fa-person-running',
                         'route' => 'ekstrakurikuler.absensi.pilih',
@@ -211,6 +222,14 @@ class Navigasi
                                 'roles' => ['guru_bk', 'admin'],
                             ],
                         ],
+                    ],
+                    [
+                        'label' => 'Kegiatan Sekolah',
+                        'icon' => 'fa-calendar-day',
+                        'route' => 'kegiatan.index',
+                        'cocok' => ['kegiatan.index', 'kegiatan.show'],
+                        'deskripsi' => 'Jadwal kegiatan di luar jam KBM beserta pantauan pengisian absensinya oleh wali kelas.',
+                        'roles' => ['kesiswaan', 'kurikulum', 'kepala_sekolah', 'guru_bk', 'admin'],
                     ],
                     [
                         'label' => 'Ekstrakurikuler',

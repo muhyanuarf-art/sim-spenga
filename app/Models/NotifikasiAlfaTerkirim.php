@@ -18,7 +18,7 @@ class NotifikasiAlfaTerkirim extends Model
     public const MAKS_PERCOBAAN = 2;
 
     protected $fillable = [
-        'siswa_id', 'tanggal', 'mata_pelajaran_id', 'jam_ke',
+        'siswa_id', 'tanggal', 'mata_pelajaran_id', 'kegiatan_sekolah_id', 'jam_ke',
         'dikirim_at', 'status_kirim', 'percobaan_ke', 'keterangan_gagal',
     ];
 
@@ -35,6 +35,22 @@ class NotifikasiAlfaTerkirim extends Model
     public function mapel(): BelongsTo
     {
         return $this->belongsTo(MataPelajaran::class, 'mata_pelajaran_id');
+    }
+
+    /** Terisi kalau Alfa-nya terjadi pada kegiatan sekolah di luar jam KBM. */
+    public function kegiatan(): BelongsTo
+    {
+        return $this->belongsTo(KegiatanSekolah::class, 'kegiatan_sekolah_id');
+    }
+
+    /** Label konteks untuk ditampilkan di histori: mapel atau nama kegiatan. */
+    public function konteksLabel(): string
+    {
+        if ($this->kegiatan_sekolah_id) {
+            return $this->kegiatan?->nama ?? 'Kegiatan sekolah';
+        }
+
+        return $this->mapel?->nama_mapel ?? '-';
     }
 
     /**

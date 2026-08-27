@@ -1,20 +1,16 @@
 @extends('layouts.app')
 @section('title', $judul)
 
+@section('deskripsi', 'Surat resmi BK — dibuat oleh Guru BK, dapat dilihat & dicetak oleh Kesiswaan, Kurikulum, dan Kepala Sekolah.')
+
+@section('aksi')
+    @if(in_array(auth()->user()->role, ['guru_bk', 'admin']))
+        <a href="{{ route('surat.create') }}" class="btn-primary"><i class="fa-solid fa-plus"></i> Buat Surat</a>
+    @endif
+@endsection
+
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center flex-wrap gap-3">
-        <div>
-            <p class="text-lg font-extrabold text-slate-800">{{ $judul }}</p>
-            <p class="text-sm text-slate-500">Surat resmi BK — dibuat oleh Guru BK, bisa dilihat/dicetak oleh Kesiswaan, Kurikulum, dan Kepala Sekolah.</p>
-        </div>
-        @if(in_array(auth()->user()->role, ['guru_bk', 'admin']))
-        <div class="flex gap-2">
-            <a href="{{ route('surat.create') }}" class="btn-primary">+ Buat Surat</a>
-        </div>
-        @endif
-    </div>
-
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap gap-2">
             <input type="hidden" name="status" value="{{ request('status') }}">

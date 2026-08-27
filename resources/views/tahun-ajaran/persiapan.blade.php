@@ -5,8 +5,6 @@
 <div class="max-w-3xl mx-auto space-y-6">
 
     <div class="card p-6">
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Persiapan Tahun Ajaran</p>
-        <p class="text-2xl font-bold text-slate-800 mb-2">{{ $tahunAjaran->nama }}</p>
         @if($siapDiaktifkan)
             <span class="badge bg-emerald-50 text-emerald-700"><i class="fa-solid fa-circle-check mr-1.5"></i> Siap diaktifkan kapan saja</span>
         @else

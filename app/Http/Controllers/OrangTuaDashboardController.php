@@ -21,7 +21,7 @@ class OrangTuaDashboardController extends Controller
         [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
         $absensiRaw = AbsensiSiswa::where('siswa_id', $siswa->id)
             ->whereBetween('tanggal', [$awalBulan, $akhirBulan])
-            ->with(['jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir', 'jurnal.mapel'])
+            ->with(AbsensiSiswa::RELASI_KONTEKS)
             ->get();
 
         $rekapHarian = AbsensiSiswa::finalPerHari($absensiRaw)
@@ -30,7 +30,8 @@ class OrangTuaDashboardController extends Controller
                 'tanggal' => $r->tanggal->translatedFormat('d M Y'),
                 'status' => $r->status,
                 'keterangan' => $r->keterangan,
-                'mapel' => $r->jurnal?->mapel?->nama_mapel,
+                // Hari kegiatan sekolah menyebut nama kegiatannya, hari biasa mapel.
+                'mapel' => $r->konteksLabel(),
             ])
             ->values();
 

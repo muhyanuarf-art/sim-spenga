@@ -1,13 +1,12 @@
 @extends('layouts.app')
 @section('title', 'Catat Pemanggilan Orang Tua')
 
+@section('aksi')
+    <a href="{{ route('bk.pemanggilan.index') }}" class="btn-outline">&larr; Kembali</a>
+@endsection
+
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <p class="text-lg font-extrabold text-slate-800">Catat Pemanggilan Orang Tua</p>
-        <a href="{{ route('bk.pemanggilan.index') }}" class="btn-outline">&larr; Kembali</a>
-    </div>
-
     <div class="card p-5">
         <p class="font-bold text-slate-800 mb-3 text-sm">1. Cari &amp; Pilih Siswa</p>
         <form method="GET" class="flex gap-2 mb-3">

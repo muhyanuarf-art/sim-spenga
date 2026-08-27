@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AbsensiKegiatan;
 use App\Models\AbsensiSiswa;
 use App\Models\Ekstrakurikuler;
 use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
 use App\Models\JenisSurat;
 use App\Models\JurnalMengajar;
+use App\Models\KegiatanSekolah;
 use App\Models\KasusSiswa;
 use App\Models\Kelas;
 use App\Models\PemanggilanOrangTua;
@@ -79,7 +81,7 @@ class DashboardController extends Controller
         // Satu query dipakai untuk dua keperluan: rekap status absensi hari
         // ini sekaligus daftar siswa Alfa.
         $absensiHariIniRaw = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
-            ->with(['siswa', 'kelas', 'jurnal.mapel', 'jurnal.jamPelajaran', 'jurnal.jamPelajaranAkhir'])
+            ->with(array_merge(['siswa', 'kelas'], AbsensiSiswa::RELASI_KONTEKS))
             ->get()
             ->groupBy('siswa_id');
 
@@ -350,9 +352,30 @@ class DashboardController extends Controller
         $kelasWali = $user->kelasWali;
         $siswaAlfaHariIni = $kelasWali ? AbsensiSiswa::siswaAlfaHariIni($kelasWali->id) : collect();
 
+        // Kegiatan sekolah di luar jam KBM (lomba, asesmen, classmeeting,
+        // pesantren Ramadan) yang absensinya menjadi tanggung jawab wali
+        // kelas ini hari ini — lengkap dengan status sudah/belum diisi,
+        // supaya tidak terlewat hanya karena hari itu tidak ada jadwal KBM.
+        $kegiatanHariIni = collect();
+        if ($kelasWali) {
+            $tanggalHariIni = now()->toDateString();
+            $sudahDiisi = AbsensiKegiatan::whereDate('tanggal', $tanggalHariIni)
+                ->where('kelas_id', $kelasWali->id)
+                ->get()
+                ->keyBy('kegiatan_sekolah_id');
+
+            $kegiatanHariIni = KegiatanSekolah::berlangsungPadaTanggal($tanggalHariIni)
+                ->filter(fn ($k) => $k->mencakupKelas($kelasWali))
+                ->map(fn ($k) => [
+                    'kegiatan' => $k,
+                    'sudah_diisi' => $sudahDiisi->has($k->id),
+                ])
+                ->values();
+        }
+
         return view('dashboard.guru', compact(
             'jadwalHariIni', 'jurnalTerakhir', 'kelasWali', 'siswaAlfaHariIni', 'tahunAjaran',
-            'totalSesiHariIni', 'sesiTerisiHariIni', 'sesiBelumTerisi', 'jurnalBulanIni'
+            'totalSesiHariIni', 'sesiTerisiHariIni', 'sesiBelumTerisi', 'jurnalBulanIni', 'kegiatanHariIni'
         ));
     }
 

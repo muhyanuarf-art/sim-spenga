@@ -30,23 +30,23 @@
                     <i class="fa-solid fa-bars"></i>
                 </button>
 
-                {{-- Breadcrumb: pengguna selalu tahu sedang berada di bagian mana --}}
-                <nav class="hidden md:flex items-center gap-2 text-sm min-w-0" aria-label="Breadcrumb">
-                    <a href="{{ route('dashboard') }}" class="text-slate-400 hover:text-brand-600 shrink-0">
+                {{-- Breadcrumb hanya menampilkan JALUR menuju halaman ini
+                 (Beranda › Bagian › Grup). Nama halamannya sendiri sengaja
+                 TIDAK diulang di sini, karena sudah tampil besar sebagai
+                 judul halaman tepat di bawahnya. --}}
+                <nav class="flex items-center gap-2 text-sm min-w-0" aria-label="Breadcrumb">
+                    <a href="{{ route('dashboard') }}" class="text-slate-400 hover:text-brand-600 shrink-0" title="Beranda">
                         <i class="fa-solid fa-house"></i>
                     </a>
                     @if($halaman)
                         <i class="fa-solid fa-chevron-right text-[9px] text-slate-300"></i>
-                        <span class="text-slate-400 truncate">{{ $halaman['seksi'] }}</span>
+                        <span class="text-slate-500 truncate">{{ $halaman['seksi'] }}</span>
                         @if($halaman['induk'])
-                            <i class="fa-solid fa-chevron-right text-[9px] text-slate-300"></i>
-                            <span class="text-slate-400 truncate">{{ $halaman['induk'] }}</span>
+                            <i class="fa-solid fa-chevron-right text-[9px] text-slate-300 hidden sm:block"></i>
+                            <span class="text-slate-500 truncate hidden sm:block">{{ $halaman['induk'] }}</span>
                         @endif
                     @endif
-                    <i class="fa-solid fa-chevron-right text-[9px] text-slate-300"></i>
-                    <span class="font-semibold text-slate-700 truncate">@yield('title', 'Dashboard')</span>
                 </nav>
-                <span class="md:hidden font-semibold text-slate-800 truncate">@yield('title', 'Dashboard')</span>
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3 shrink-0">

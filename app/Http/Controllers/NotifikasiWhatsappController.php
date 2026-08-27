@@ -39,7 +39,7 @@ class NotifikasiWhatsappController extends Controller
         $awalBulan = Carbon::create($tahun, $bulan, 1)->startOfDay();
         $akhirBulan = $awalBulan->copy()->endOfMonth()->endOfDay();
 
-        $query = NotifikasiAlfaTerkirim::with(['siswa.kelas', 'mapel'])
+        $query = NotifikasiAlfaTerkirim::with(['siswa.kelas', 'mapel', 'kegiatan'])
             ->whereBetween('tanggal', [$awalBulan, $akhirBulan]);
 
         $kelasWali = null;

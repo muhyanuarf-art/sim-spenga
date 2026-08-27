@@ -22,6 +22,38 @@
                      :hint="now()->translatedFormat('F Y')" />
     </div>
 
+    {{-- Kegiatan sekolah hari ini (di luar jam KBM) — hanya wali kelas
+         yang berhak mengisinya, jadi ditonjolkan di paling atas supaya
+         tidak terlewat pada hari yang tidak ada jadwal KBM sama sekali. --}}
+    @if($kegiatanHariIni->isNotEmpty())
+        <x-panel judul="Kegiatan Sekolah Hari Ini" ikon="fa-flag-checkered"
+                 deskripsi="Absensi kegiatan ini menjadi tanggung jawab Anda sebagai wali kelas.">
+            <x-slot:aksi>
+                <a href="{{ route('kegiatan.absensi.pilih') }}" class="btn-outline">Semua kegiatan</a>
+            </x-slot:aksi>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                @foreach($kegiatanHariIni as $item)
+                    @php $k = $item['kegiatan']; @endphp
+                    <a href="{{ route('kegiatan.absensi.form', ['kegiatan' => $k, 'kelas' => $kelasWali]) }}"
+                       class="rounded-xl border p-4 block transition hover:shadow-md
+                            {{ $item['sudah_diisi'] ? 'border-emerald-200 bg-emerald-50/50' : 'border-amber-200 bg-amber-50/50 hover:border-amber-300' }}">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="badge bg-white text-slate-600">{{ $k->jenisLabel() }}</span>
+                            @if($item['sudah_diisi'])
+                                <span class="badge bg-emerald-100 text-emerald-700"><i class="fa-solid fa-check mr-1"></i> Terisi</span>
+                            @else
+                                <span class="badge bg-amber-100 text-amber-700">Perlu diisi</span>
+                            @endif
+                        </div>
+                        <p class="font-bold text-slate-800 leading-tight">{{ $k->nama }}</p>
+                        <p class="text-sm text-slate-500">Kelas {{ $kelasWali->nama_kelas }}</p>
+                    </a>
+                @endforeach
+            </div>
+        </x-panel>
+    @endif
+
     @if($kelasWali)
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-700 via-brand-600 to-indigo-500 text-white px-5 py-4 flex items-center justify-between flex-wrap gap-3 shadow-lg shadow-brand-500/20">
             <div class="relative z-10">

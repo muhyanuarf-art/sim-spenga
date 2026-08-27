@@ -1,13 +1,12 @@
 @extends('layouts.app')
 @section('title', 'Buat Surat')
 
+@section('aksi')
+    <a href="{{ route('surat.index') }}" class="btn-outline">&larr; Kembali</a>
+@endsection
+
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <p class="text-lg font-extrabold text-slate-800">Buat Surat</p>
-        <a href="{{ route('surat.index') }}" class="btn-outline">&larr; Kembali</a>
-    </div>
-
     <div class="card p-5">
         <p class="font-bold text-slate-800 mb-3 text-sm">1. Pilih Jenis Surat</p>
         <form method="GET">

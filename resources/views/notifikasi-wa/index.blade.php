@@ -106,7 +106,10 @@
                             </td>
                             <td><x-kelas-badge :nama="$n->siswa->kelas->nama_kelas ?? '-'" /></td>
                             <td class="text-slate-500">
-                                {{ $n->mapel->nama_mapel ?? '-' }}
+                                {{ $n->konteksLabel() }}
+                                @if($n->kegiatan_sekolah_id)
+                                    <span class="badge bg-brand-50 text-brand-700 ml-1">Kegiatan</span>
+                                @endif
                                 @if($n->jam_ke) <span class="text-slate-400">(jam ke-{{ $n->jam_ke }})</span> @endif
                             </td>
                             <td>

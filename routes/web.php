@@ -9,6 +9,7 @@ use App\Http\Controllers\BkPemanggilanController;
 use App\Http\Controllers\BkPembinaanController;
 use App\Http\Controllers\BkPenguranganPoinController;
 use App\Http\Controllers\BkSiswaController;
+use App\Http\Controllers\AbsensiKegiatanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EkskulAbsensiController;
 use App\Http\Controllers\EkskulRekapController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\GuruMengajarController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
 use App\Http\Controllers\JenisSuratController;
+use App\Http\Controllers\KegiatanSekolahController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\RiwayatKelasController;
 use App\Http\Controllers\LaporanGuruController;
@@ -148,6 +150,32 @@ Route::middleware('auth')->group(function () {
             Route::post('/sync-kelas', [EkstrakurikulerAnggotaController::class, 'syncKelas'])->name('sync-kelas');
             Route::delete('/{anggota}', [EkstrakurikulerAnggotaController::class, 'destroy'])->name('destroy');
         });
+    });
+
+    // ===== KEGIATAN SEKOLAH DI LUAR JAM KBM =====
+    // (lomba Agustus, tryout & asesmen sumatif, classmeeting, pesantren
+    // Ramadan, dsb). Pembagian tugasnya sengaja tegas:
+    //
+    // - MENJADWALKAN kegiatan: Kesiswaan, Kurikulum, Admin.
+    // - MEMANTAU pengisian (baca saja): + Kepala Sekolah & Guru BK.
+    // - MENGISI ABSENSI: HANYA WALI KELAS dari kelas sasaran (Admin
+    //   diizinkan sebagai perwakilan bila wali kelas berhalangan).
+    //   Middleware role di bawah baru saringan pertama; kepemilikan kelas
+    //   dicek lagi di AbsensiKegiatanController::pastikanBoleh().
+    Route::middleware('role:kesiswaan,kurikulum,kepala_sekolah,guru_bk,admin')->group(function () {
+        Route::get('kegiatan', [KegiatanSekolahController::class, 'index'])->name('kegiatan.index');
+        Route::get('kegiatan/{kegiatan}', [KegiatanSekolahController::class, 'show'])->name('kegiatan.show');
+    });
+    Route::middleware(['role:kesiswaan,kurikulum,admin', 'periode-aktif'])->group(function () {
+        Route::post('kegiatan', [KegiatanSekolahController::class, 'store'])->name('kegiatan.store');
+        Route::put('kegiatan/{kegiatan}', [KegiatanSekolahController::class, 'update'])->name('kegiatan.update');
+        Route::delete('kegiatan/{kegiatan}', [KegiatanSekolahController::class, 'destroy'])->name('kegiatan.destroy');
+    });
+    Route::middleware('role:guru,admin')->group(function () {
+        Route::get('kegiatan-absensi', [AbsensiKegiatanController::class, 'pilih'])->name('kegiatan.absensi.pilih');
+        Route::get('kegiatan/{kegiatan}/absensi/{kelas}', [AbsensiKegiatanController::class, 'form'])->name('kegiatan.absensi.form');
+        Route::post('kegiatan/{kegiatan}/absensi/{kelas}', [AbsensiKegiatanController::class, 'store'])
+            ->name('kegiatan.absensi.store')->middleware('periode-aktif');
     });
 
     // ===== ABSENSI EKSTRAKURIKULER =====

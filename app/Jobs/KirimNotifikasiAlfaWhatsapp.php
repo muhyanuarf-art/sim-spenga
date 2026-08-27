@@ -66,6 +66,11 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
         public string $tanggal,   // format Y-m-d
         public ?string $mapel = null,
         public ?int $jamKe = null,
+        // Diisi kalau Alfa-nya terjadi pada KEGIATAN SEKOLAH di luar jam
+        // KBM (lomba, asesmen, classmeeting, pesantren Ramadan, dsb) yang
+        // absensinya diisi wali kelas. Kalau terisi, pesan WA menyebut
+        // nama kegiatan, bukan mata pelajaran.
+        public ?string $kegiatan = null,
     ) {
         // Dikirim ke antrian 'notifikasi' (terpisah dari antrian 'default'
         // kalau nanti ada job lain), supaya bisa diatur prioritas/worker
@@ -171,7 +176,7 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
 
             // Beri jeda 2 menit sebelum coba lagi (jaga-jaga kalau
             // penyebabnya sesaat, mis. device Fonnte baru saja reconnect).
-            static::dispatch($this->siswaId, $this->tanggal, $this->mapel, $this->jamKe)
+            static::dispatch($this->siswaId, $this->tanggal, $this->mapel, $this->jamKe, $this->kegiatan)
                 ->delay(now()->addMinutes(2));
 
             return;
@@ -207,7 +212,15 @@ class KirimNotifikasiAlfaWhatsapp implements ShouldQueue
         $tanggalIndo = Carbon::parse($this->tanggal)->translatedFormat('d F Y');
         $sapaan = $siswa->nama_ortu ? "Bapak/Ibu {$siswa->nama_ortu}" : 'Bapak/Ibu orang tua/wali';
 
-        $mapelInfo = $this->mapel ? "Mata pelajaran : *{$this->mapel}*" . ($this->jamKe ? " (jam ke-{$this->jamKe})" : '') : '';
+        // Hari kegiatan sekolah (di luar KBM) menyebut nama kegiatannya,
+        // hari biasa menyebut mata pelajaran + jam ke berapa.
+        if ($this->kegiatan) {
+            $mapelInfo = "Kegiatan : *{$this->kegiatan}*";
+        } elseif ($this->mapel) {
+            $mapelInfo = "Mata pelajaran : *{$this->mapel}*" . ($this->jamKe ? " (jam ke-{$this->jamKe})" : '');
+        } else {
+            $mapelInfo = '';
+        }
 
         return "Assalamu'alaikum, {$sapaan}.\n\n"
             . "Kami dari SMP Negeri 3 Bumiayu menginformasikan bahwa pada :\n"

@@ -1,13 +1,12 @@
 @extends('layouts.app')
 @section('title', 'Isi Hasil Pertemuan')
 
+@section('aksi')
+    <a href="{{ route('bk.siswa.show', $pemanggilan->siswa_id) }}" class="btn-outline">&larr; Kembali</a>
+@endsection
+
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <p class="text-lg font-extrabold text-slate-800">Isi Hasil Pertemuan</p>
-        <a href="{{ route('bk.siswa.show', $pemanggilan->siswa_id) }}" class="btn-outline">&larr; Kembali</a>
-    </div>
-
     <div class="card p-5">
         <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Pemanggilan</p>
         <p class="font-bold text-slate-800">{{ $pemanggilan->siswa->nama ?? '-' }} &middot; {{ $pemanggilan->siswa->kelas->nama_kelas ?? '-' }}</p>
