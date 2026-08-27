@@ -59,176 +59,240 @@
         </span>
     </div>
 
-    {{-- Timeline --}}
-    <div class="card p-5" @if($timeline->isNotEmpty()) x-data="{ filter: 'semua' }" @endif>
-        <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+    {{-- ===== RIWAYAT PERKEMBANGAN (tabel + pagination) =====
+         Dulu berupa timeline kartu: satu kejadian = satu kartu besar, dan
+         SELURUH riwayat dirender sekaligus (filter jenisnya hanya
+         menyembunyikan di browser). Untuk siswa dengan riwayat panjang,
+         halamannya jadi berat dan sulit dibaca sebagai laporan.
+
+         Sekarang: tabel ringkas, filter diproses di server, dan
+         dipaginasi — jadi yang dikirim ke browser hanya baris yang benar
+         benar tampil. --}}
+    <div class="card print-section" id="print-riwayat-siswa">
+        {{-- KOP surat hanya muncul saat benar-benar dicetak (lihat .cetak-saja) --}}
+        <x-kop-surat />
+        <div class="cetak-saja px-5 pt-4">
+            <p class="font-bold text-slate-800">RIWAYAT PERKEMBANGAN PERILAKU SISWA</p>
+            <p class="text-sm">{{ $siswa->nama }} &middot; NIS {{ $siswa->nis }} &middot; Kelas {{ $siswa->kelas->nama_kelas ?? '-' }}</p>
+        </div>
+
+        <div class="flex items-start justify-between flex-wrap gap-3 px-5 py-4 border-b border-slate-100 no-print">
             <div>
-                <p class="font-bold text-slate-800 mb-1">Riwayat Perkembangan</p>
-                <p class="text-xs text-slate-400">Diurutkan dari catatan paling awal ke paling baru &middot; {{ $timeline->count() }} catatan.</p>
+                <p class="section-title">Riwayat Perkembangan</p>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    Diurutkan kronologis dari catatan paling awal ke paling baru
+                    &middot; {{ $jumlahPerJenis['semua'] }} catatan
+                    @if($jenisFilter !== 'semua') &middot; disaring: {{ $timeline->total() }} catatan @endif
+                </p>
             </div>
-            @if($timeline->isNotEmpty())
-            <div class="flex flex-wrap gap-1.5">
-                <button type="button" @click="filter = 'semua'"
-                    :class="filter === 'semua' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                    class="text-xs font-semibold px-3 py-1.5 rounded-full transition">
-                    Semua ({{ $timeline->count() }})
+
+            <div class="flex items-center gap-3 flex-wrap">
+                {{-- Filter jenis (link biasa, diproses di server) --}}
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach([
+                        'semua' => [null, 'Semua'],
+                        'kasus' => ['fa-folder-open', 'Kasus'],
+                        'pembinaan' => ['fa-handshake', 'Pembinaan'],
+                        'pengurangan' => ['fa-circle-check', 'Pengurangan'],
+                        'pemanggilan' => ['fa-phone', 'Panggil Ortu'],
+                    ] as $jenisKey => [$ikonFilter, $labelFilter])
+                        @if($jumlahPerJenis[$jenisKey] > 0 || $jenisKey === 'semua')
+                            <a href="{{ route('bk.siswa.show', [$siswa, 'jenis' => $jenisKey, 'per_page' => $perPage]) }}"
+                               class="text-xs font-semibold px-3 py-1.5 rounded-full transition
+                                    {{ $jenisFilter === $jenisKey ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' }}">
+                                @if($ikonFilter)<i class="fa-solid {{ $ikonFilter }}"></i>@endif
+                                {{ $labelFilter }} ({{ $jumlahPerJenis[$jenisKey] }})
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
+
+                <button type="button" onclick="cetakBagian('print-riwayat-siswa')" class="btn-outline">
+                    <i class="fa-solid fa-print"></i> Cetak
                 </button>
-                @foreach([
-                    'kasus' => ['fa-folder-open', 'Kasus'],
-                    'pembinaan' => ['fa-handshake', 'Pembinaan'],
-                    'pengurangan' => ['fa-circle-check', 'Pengurangan'],
-                    'pemanggilan' => ['fa-phone', 'Panggil Ortu'],
-                ] as $jenisKey => [$icon, $label])
-                    @php $jumlahJenis = $timeline->where('jenis', $jenisKey)->count(); @endphp
-                    @if($jumlahJenis > 0)
-                    <button type="button" @click="filter = '{{ $jenisKey }}'"
-                        :class="filter === '{{ $jenisKey }}' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                        class="text-xs font-semibold px-3 py-1.5 rounded-full transition">
-                        <i class="fa-solid {{ $icon }}"></i> {{ $label }} ({{ $jumlahJenis }})
-                    </button>
-                    @endif
-                @endforeach
+
+                <form method="GET" class="flex items-center gap-2">
+                    <input type="hidden" name="jenis" value="{{ $jenisFilter }}">
+                    <label class="text-xs text-slate-400">Tampil</label>
+                    <select name="per_page" class="input py-1 w-auto text-xs" onchange="this.form.submit()">
+                        @foreach([15, 30, 50, 100] as $n)
+                            <option value="{{ $n }}" @selected($perPage === $n)>{{ $n }} baris</option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
-            @endif
         </div>
 
         @if($timeline->isEmpty())
-            <p class="text-sm text-slate-400 py-8 text-center">Belum ada riwayat.</p>
+            <p class="empty-state">
+                @if($jenisFilter === 'semua')
+                    Belum ada riwayat perkembangan untuk siswa ini.
+                @else
+                    Tidak ada catatan pada filter ini.
+                @endif
+            </p>
         @else
-        <div class="space-y-0">
-            @foreach($timeline as $item)
-            @php
-                $d = $item['data'];
-                $tampilan = match ($item['jenis']) {
-                    'kasus' => ['fa-folder-open', 'bg-rose-100 text-rose-600', 'Kasus/Pelanggaran'],
-                    'pembinaan' => ['fa-handshake', 'bg-violet-100 text-violet-600', 'Pembinaan'],
-                    'pengurangan' => ['fa-circle-check', 'bg-emerald-100 text-emerald-600', 'Pengurangan Poin'],
-                    default => ['fa-phone', 'bg-sky-100 text-sky-600', 'Pemanggilan Orang Tua'],
-                };
-                [$ikon, $kelasIkon, $labelJenis] = $tampilan;
-            @endphp
-            <div x-show="filter === 'semua' || filter === '{{ $item['jenis'] }}'" x-cloak class="flex gap-3">
-                {{-- Node ikon + garis penghubung --}}
-                <div class="flex flex-col items-center shrink-0">
-                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0 {{ $kelasIkon }}"><i class="fa-solid {{ $ikon }}"></i></div>
-                    @if(!$loop->last)<div class="w-px flex-1 bg-slate-200 my-1" style="min-height: 0.5rem;"></div>@endif
-                </div>
+        <div class="overflow-x-auto">
+            <table class="table-clean">
+                <thead>
+                    <tr>
+                        <th class="w-12 text-center">No</th>
+                        <th class="whitespace-nowrap">Tanggal</th>
+                        <th>Jenis</th>
+                        <th class="min-w-[260px]">Uraian</th>
+                        <th class="text-center whitespace-nowrap">Poin</th>
+                        <th>Petugas</th>
+                        <th>Status</th>
+                        <th class="th-aksi no-print">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($timeline as $item)
+                    @php
+                        $d = $item['data'];
+                        [$ikon, $kelasBadge, $labelJenis] = match ($item['jenis']) {
+                            'kasus' => ['fa-folder-open', 'bg-rose-50 text-rose-700', 'Kasus'],
+                            'pembinaan' => ['fa-handshake', 'bg-violet-50 text-violet-700', 'Pembinaan'],
+                            'pengurangan' => ['fa-circle-check', 'bg-emerald-50 text-emerald-700', 'Pengurangan'],
+                            default => ['fa-phone', 'bg-sky-50 text-sky-700', 'Panggil Ortu'],
+                        };
+                        $dibatalkan = ! empty($d->dibatalkan_at);
+                    @endphp
+                    <tr class="{{ $dibatalkan ? 'opacity-60' : '' }}">
+                        <td class="text-center text-slate-400">{{ $timeline->firstItem() + $loop->index }}</td>
 
-                {{-- Kartu isi --}}
-                <div class="flex-1 rounded-xl bg-slate-50 border border-slate-100 p-3.5 mb-3">
-                    <div class="flex items-center justify-between flex-wrap gap-x-3 gap-y-0.5 mb-1.5">
-                        <span class="text-[11px] font-bold uppercase tracking-wide text-slate-400">#{{ $loop->iteration }} &middot; {{ $labelJenis }}</span>
-                        <span class="text-xs text-slate-400 whitespace-nowrap">
-                            {{ $item['tanggal']->translatedFormat('d F Y') }}
-                            <span class="text-slate-300">&middot; {{ $item['tanggal']->diffForHumans() }}</span>
-                        </span>
-                    </div>
+                        <td class="whitespace-nowrap">
+                            <span class="font-medium text-slate-700">{{ $item['tanggal']->translatedFormat('d M Y') }}</span>
+                            <span class="block text-xs text-slate-400">{{ $item['tanggal']->diffForHumans() }}</span>
+                        </td>
 
-                    @if($item['jenis'] === 'kasus')
-                        <p class="font-semibold text-slate-800">
-                            {{ $d->nama_pelanggaran }}
-                            <span class="badge bg-rose-50 text-rose-700 ml-1">+{{ $d->poin }} poin</span>
-                            @if($d->dibatalkan_at)<span class="badge bg-slate-100 text-slate-400 ml-1">Dibatalkan</span>@endif
-                        </p>
-                        <p class="text-sm text-slate-500">Kategori {{ $d->kategori }} &middot; Dilaporkan {{ $d->guruPelapor->name ?? '-' }}</p>
-                        @if($d->bukti_catatan)<p class="text-xs text-slate-400 italic">Catatan: {{ $d->bukti_catatan }}</p>@endif
-                        @if($d->bukti_file_url)
-                            <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
-                            </a>
-                        @endif
-                        @if($d->dibatalkan_at)
-                            <p class="text-xs text-slate-400 italic">Alasan batal: {{ $d->alasan_pembatalan }}</p>
-                        @elseif($bisaKelolaPoin)
-                            <div class="mt-1 flex items-center gap-2">
-                                <span class="text-xs text-slate-400">Status:</span>
+                        <td class="whitespace-nowrap">
+                            <span class="badge {{ $kelasBadge }}"><i class="fa-solid {{ $ikon }} mr-1.5"></i>{{ $labelJenis }}</span>
+                        </td>
+
+                        <td>
+                            @if($item['jenis'] === 'kasus')
+                                <p class="font-semibold text-slate-800">{{ $d->nama_pelanggaran }}</p>
+                                <p class="text-xs text-slate-400">Kategori {{ $d->kategori }}</p>
+                                @if($d->bukti_catatan)<p class="text-xs text-slate-400 italic">{{ \Illuminate\Support\Str::limit($d->bukti_catatan, 80) }}</p>@endif
+                                @if($dibatalkan)<p class="text-xs text-slate-400 italic">Alasan batal: {{ $d->alasan_pembatalan }}</p>@endif
+
+                            @elseif($item['jenis'] === 'pembinaan')
+                                <p class="font-semibold text-slate-800">{{ $d->jenis_pembinaan }}</p>
+                                <p class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($d->catatan_bk, 80) }}</p>
+                                @if($d->hasil_pembinaan)<p class="text-xs text-slate-400 italic">Hasil: {{ \Illuminate\Support\Str::limit($d->hasil_pembinaan, 80) }}</p>@endif
+
+                            @elseif($item['jenis'] === 'pengurangan')
+                                <p class="font-semibold text-slate-800">Perubahan Perilaku</p>
+                                <p class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($d->alasan, 80) }}</p>
+
+                            @else
+                                <p class="font-semibold text-slate-800">Pemanggilan Orang Tua</p>
+                                <p class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($d->alasan, 80) }}</p>
+                                @if($d->hasil_pertemuan)<p class="text-xs text-slate-400 italic">Hasil: {{ \Illuminate\Support\Str::limit($d->hasil_pertemuan, 80) }}</p>@endif
+                                @if($d->kesepakatan)<p class="text-xs text-slate-400 italic">Kesepakatan: {{ \Illuminate\Support\Str::limit($d->kesepakatan, 80) }}</p>@endif
+                            @endif
+                        </td>
+
+                        <td class="text-center whitespace-nowrap">
+                            @if($item['jenis'] === 'kasus')
+                                <span class="badge bg-rose-50 text-rose-700">+{{ $d->poin }}</span>
+                            @elseif($item['jenis'] === 'pengurangan')
+                                <span class="badge bg-emerald-50 text-emerald-700">-{{ $d->jumlah }}</span>
+                            @else
+                                <span class="text-slate-300">—</span>
+                            @endif
+                        </td>
+
+                        <td class="text-slate-500 text-xs">
+                            {{ $item['jenis'] === 'kasus' ? ($d->guruPelapor->name ?? '-') : ($d->petugas->name ?? '-') }}
+                        </td>
+
+                        <td class="whitespace-nowrap">
+                            @if($dibatalkan)
+                                <span class="badge bg-slate-100 text-slate-400">Dibatalkan</span>
+
+                            @elseif($item['jenis'] === 'kasus' && $bisaKelolaPoin)
                                 <form method="POST" action="{{ route('bk.kasus.update-status', $d) }}">
                                     @csrf @method('PATCH')
-                                    <select name="status" onchange="this.form.submit()" class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
-                                        @foreach(['Baru','Diproses','Dalam Pembinaan','Selesai'] as $s)
-                                            <option value="{{ $s }}" {{ $d->status === $s ? 'selected' : '' }}>{{ $s }}</option>
+                                    <select name="status" onchange="this.form.submit()"
+                                            class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
+                                        @foreach(['Baru','Diproses','Dalam Pembinaan','Selesai'] as $st)
+                                            <option value="{{ $st }}" @selected($d->status === $st)>{{ $st }}</option>
                                         @endforeach
                                     </select>
                                 </form>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Menandai "Selesai" otomatis menyelesaikan pembinaan terkait juga.</p>
-                        @else
-                            <p class="text-sm text-slate-500">Status: {{ $d->status }}</p>
-                        @endif
 
-                    @elseif($item['jenis'] === 'pembinaan')
-                        <p class="font-semibold text-slate-800">
-                            {{ $d->jenis_pembinaan }}
-                            <span class="badge bg-violet-50 text-violet-700 ml-1">Tahap {{ $d->tahap }}</span>
-                        </p>
-                        <p class="text-sm text-slate-500">{{ $d->catatan_bk }}</p>
-                        @if($d->hasil_pembinaan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pembinaan }}</p>@endif
-                        @if($d->bukti_file_url)
-                            <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
-                            </a>
-                        @endif
-                        <p class="text-xs text-slate-400 mt-1">Petugas: {{ $d->petugas->name ?? '-' }}</p>
-                        @if($bisaKelolaPoin)
-                            <div class="mt-1 flex items-center gap-2">
-                                <span class="text-xs text-slate-400">Status:</span>
+                            @elseif($item['jenis'] === 'pembinaan' && $bisaKelolaPoin)
                                 <form method="POST" action="{{ route('bk.pembinaan.update', $d) }}">
                                     @csrf @method('PUT')
                                     <input type="hidden" name="hasil_pembinaan" value="{{ $d->hasil_pembinaan }}">
-                                    <select name="status" onchange="this.form.submit()" class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
-                                        <option value="Pembinaan" {{ $d->status === 'Pembinaan' ? 'selected' : '' }}>Pembinaan</option>
-                                        <option value="Selesai" {{ $d->status === 'Selesai' ? 'selected' : '' }}>Selesai</option>
+                                    <select name="status" onchange="this.form.submit()"
+                                            class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
+                                        <option value="Pembinaan" @selected($d->status === 'Pembinaan')>Pembinaan</option>
+                                        <option value="Selesai" @selected($d->status === 'Selesai')>Selesai</option>
                                     </select>
                                 </form>
-                            </div>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Menandai "Selesai" otomatis menyelesaikan kasus terkait juga.</p>
-                        @else
-                            <span class="badge bg-slate-100 text-slate-600 mt-1 inline-block">{{ $d->status }}</span>
-                        @endif
 
-                    @elseif($item['jenis'] === 'pengurangan')
-                        <p class="font-semibold text-slate-800">
-                            Perubahan Perilaku
-                            <span class="badge bg-emerald-50 text-emerald-700 ml-1">-{{ $d->jumlah }} poin</span>
-                            @if($d->dibatalkan_at)<span class="badge bg-slate-100 text-slate-400 ml-1">Dibatalkan</span>@endif
-                        </p>
-                        <p class="text-sm text-slate-500">{{ $d->alasan }}</p>
-                        <p class="text-xs text-slate-400">Petugas: {{ $d->petugas->name ?? '-' }}</p>
+                            @elseif($item['jenis'] === 'pemanggilan')
+                                @if(! $d->sudahAdaHasil())
+                                    <span class="badge bg-slate-100 text-slate-500"><i class="fa-solid fa-hourglass-half mr-1"></i> Menunggu</span>
+                                @else
+                                    <span class="badge {{ $d->ortu_hadir ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                        {{ $d->ortu_hadir ? 'Ortu Hadir' : 'Ortu Tidak Hadir' }}
+                                    </span>
+                                @endif
 
-                    @else
-                        <p class="font-semibold text-slate-800">
-                            Pemanggilan Orang Tua
-                            @if(!$d->sudahAdaHasil())
-                                <span class="badge bg-slate-100 text-slate-500 ml-1"><i class="fa-solid fa-hourglass-half mr-1"></i> Menunggu Pertemuan</span>
+                            @elseif($item['jenis'] === 'pengurangan')
+                                <span class="badge bg-emerald-50 text-emerald-700">Berlaku</span>
+
                             @else
-                                <span class="badge {{ $d->ortu_hadir ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }} ml-1">
-                                    {{ $d->ortu_hadir ? 'Hadir' : 'Tidak Hadir' }}
-                                </span>
+                                <span class="badge bg-slate-100 text-slate-600">{{ $d->status }}</span>
                             @endif
-                        </p>
-                        <p class="text-sm text-slate-500">{{ $d->alasan }}</p>
-                        @if($d->hasil_pertemuan)<p class="text-sm text-slate-500 italic">Hasil: {{ $d->hasil_pertemuan }}</p>@endif
-                        @if($d->kesepakatan)<p class="text-sm text-slate-500 italic">Kesepakatan: {{ $d->kesepakatan }}</p>@endif
-                        @if($d->surat)
-                            <a href="{{ route('surat.show', $d->surat) }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                <i class="fa-solid fa-envelope mr-1.5"></i> Lihat Surat Panggilan ({{ $d->surat->nomor_surat ?: 'belum ada nomor' }})
-                            </a>
-                        @elseif($d->bukti_file_url)
-                            {{-- Data lama sebelum integrasi Surat (2026-08-26) — tetap ditampilkan, tidak dihapus. --}}
-                            <a href="{{ $d->bukti_file_url }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1">
-                                <i class="fa-solid fa-paperclip mr-1.5"></i> Lihat Bukti ({{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }})
-                            </a>
-                        @endif
-                        @if(!$d->sudahAdaHasil())
-                            <a href="{{ route('bk.pemanggilan.hasil.edit', $d) }}" class="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 mt-2">
-                                <i class="fa-solid fa-pen mr-1"></i> Isi Hasil Pertemuan
-                            </a>
-                        @endif
-                    @endif
-                </div>
-            </div>
-            @endforeach
+                        </td>
+
+                        <td class="td-aksi no-print">
+                            <div class="action-buttons">
+                                @if($item['jenis'] === 'pemanggilan' && $d->surat)
+                                    <a href="{{ route('surat.show', $d->surat) }}" target="_blank" class="btn-chip btn-chip-edit"
+                                       title="Surat {{ $d->surat->nomor_surat ?: 'belum bernomor' }}">
+                                        <i class="fa-solid fa-envelope"></i> Surat
+                                    </a>
+                                @endif
+
+                                @if(! empty($d->bukti_file_url))
+                                    <a href="{{ $d->bukti_file_url }}" target="_blank" class="btn-chip btn-chip-cancel"
+                                       title="Bukti {{ strtoupper(pathinfo($d->bukti_file, PATHINFO_EXTENSION)) }}">
+                                        <i class="fa-solid fa-paperclip"></i> Bukti
+                                    </a>
+                                @endif
+
+                                @if($item['jenis'] === 'pemanggilan' && ! $d->sudahAdaHasil())
+                                    <a href="{{ route('bk.pemanggilan.hasil.edit', $d) }}" class="btn-chip btn-chip-success">
+                                        <i class="fa-solid fa-pen"></i> Isi Hasil
+                                    </a>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
+
+        <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+            <p class="text-xs text-slate-400">
+                Menampilkan {{ $timeline->firstItem() }}–{{ $timeline->lastItem() }} dari {{ $timeline->total() }} catatan.
+                <span class="no-print">Tombol Cetak mencetak baris yang sedang tampil — pilih "100 baris" dulu bila ingin seluruh riwayat dalam satu lembar.</span>
+            </p>
+            <div class="no-print">{{ $timeline->links() }}</div>
+        </div>
+        @endif
+
+        @if($bisaKelolaPoin && $timeline->isNotEmpty())
+            <p class="px-5 pb-4 text-[11px] text-slate-400">
+                Menandai kasus atau pembinaan sebagai "Selesai" otomatis menyelesaikan pasangannya juga.
+            </p>
         @endif
     </div>
 

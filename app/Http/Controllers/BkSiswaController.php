@@ -12,6 +12,7 @@ use App\Models\Siswa;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class BkSiswaController extends Controller
 {
@@ -79,10 +80,8 @@ class BkSiswaController extends Controller
             ->where('siswa_id', $siswa->id)->orderByDesc('tanggal')->get();
 
         // Riwayat diurutkan KRONOLOGIS dari yang PALING AWAL ke yang PALING
-        // BARU (permintaan: "urutkan berdasarkan tanggal serta inputan awal
-        // sampai akhir"), lalu diberi nomor urut di tampilan (lihat
-        // resources/views/bk/siswa/show.blade.php).
-        $timeline = collect()
+        // BARU, lalu diberi nomor urut di tampilan.
+        $timelineSemua = collect()
             ->concat($kasus->map(fn ($k) => [
                 'tanggal' => $k->tanggal_kejadian, 'jenis' => 'kasus', 'data' => $k,
             ]))
@@ -95,8 +94,49 @@ class BkSiswaController extends Controller
             ->concat($pemanggilan->map(fn ($p) => [
                 'tanggal' => $p->tanggal, 'jenis' => 'pemanggilan', 'data' => $p,
             ]))
-            ->sortBy(fn ($item) => $item['tanggal']->format('Y-m-d') . '-' . $item['data']->id)
+            ->sortBy(fn ($item) => $item['tanggal']->format('Y-m-d').'-'.$item['data']->id)
             ->values();
+
+        // Jumlah per jenis dihitung dari SELURUH riwayat (bukan halaman yang
+        // sedang dibuka), supaya angka pada tombol filter tidak berubah-ubah
+        // saat pengguna berpindah halaman.
+        $jumlahPerJenis = [
+            'semua' => $timelineSemua->count(),
+            'kasus' => $kasus->count(),
+            'pembinaan' => $pembinaan->count(),
+            'pengurangan' => $pengurangan->count(),
+            'pemanggilan' => $pemanggilan->count(),
+        ];
+
+        // Filter jenis kini diproses di SERVER (dulu disembunyikan lewat
+        // Alpine di browser). Bedanya: dulu seluruh riwayat tetap dirender ke
+        // HTML meski disembunyikan — makin panjang riwayat siswa, makin berat
+        // halamannya. Sekarang yang dikirim ke browser hanya baris yang
+        // benar-benar tampil.
+        $jenisFilter = $request->get('jenis', 'semua');
+        if (! array_key_exists($jenisFilter, $jumlahPerJenis)) {
+            $jenisFilter = 'semua';
+        }
+
+        $timelineTersaring = $jenisFilter === 'semua'
+            ? $timelineSemua
+            : $timelineSemua->where('jenis', $jenisFilter)->values();
+
+        // Paginator DIBUAT MANUAL karena riwayat ini gabungan 4 tabel
+        // (kasus, pembinaan, pengurangan poin, pemanggilan) yang tidak bisa
+        // di-paginate lewat satu query. Nomor urut baris tetap benar lintas
+        // halaman karena dihitung dari firstItem() di view.
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = in_array($perPage, [15, 30, 50, 100], true) ? $perPage : 15;
+        $halaman = LengthAwarePaginator::resolveCurrentPage();
+
+        $timeline = new LengthAwarePaginator(
+            $timelineTersaring->forPage($halaman, $perPage)->values(),
+            $timelineTersaring->count(),
+            $perPage,
+            $halaman,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $jenisList = JenisPelanggaran::where('is_active', true)->orderBy('kategori')->orderBy('nama')->get();
         $kasusAktifTerbuka = $kasus->whereNull('dibatalkan_at')->whereNotIn('status', ['Selesai'])->values();
@@ -107,7 +147,8 @@ class BkSiswaController extends Controller
         // halaman detail siswa ini — lihat BkPemanggilanController.
 
         return view('bk.siswa.show', compact(
-            'siswa', 'ringkasan', 'timeline', 'jenisList', 'kasusAktifTerbuka'
+            'siswa', 'ringkasan', 'timeline', 'jenisList', 'kasusAktifTerbuka',
+            'jumlahPerJenis', 'jenisFilter', 'perPage'
         ));
     }
 }
