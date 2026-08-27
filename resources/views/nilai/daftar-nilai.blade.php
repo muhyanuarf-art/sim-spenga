@@ -7,6 +7,9 @@
     <a href="{{ route('nilai.analisis', ['kelas' => $kelas->id, 'mapel' => $mapel->id]) }}" class="btn-outline">
         <i class="fa-solid fa-magnifying-glass-chart mr-1.5"></i> Analisis Hasil Tes
     </a>
+    <a href="{{ route('nilai.program', ['kelas' => $kelas->id, 'mapel' => $mapel->id]) }}" class="btn-outline">
+        <i class="fa-solid fa-user-graduate mr-1.5"></i> Pengayaan &amp; Perbaikan
+    </a>
     <button type="button" onclick="cetakBagian('print-daftar-nilai')" class="btn-outline">
         <i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF
     </button>

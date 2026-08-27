@@ -285,3 +285,66 @@ menyimpan; Kesiswaan, TU, dan Guru BK tidak diberi akses.
 | `app/Models/AnalisisSumatif.php` | Model keterangan lembar |
 | `app/Http/Controllers/AnalisisSumatifController.php` | Penyusun lembar & rekap butir |
 | `resources/views/nilai/analisis-sumatif.blade.php` | Tampilan & cetakan |
+
+---
+
+# Program Pengayaan dan Perbaikan
+
+Dokumen tindak lanjut dari Analisis Hasil Tes Sumatif Lingkup Materi. Dibuka lewat
+tombol **Pengayaan & Perbaikan** pada halaman Daftar Nilai maupun pada halaman
+Analisis Hasil Tes.
+
+Route: `nilai.program` (`/nilai/program/{kelas}/{mapel}?lm=n`).
+
+## 1. Isi dokumen
+
+**A. Program Perbaikan (Remedial)** — sasaran, bentuk & tanggal pelaksanaan, lalu
+tabel per anak:
+
+| Kolom | Sumbernya |
+|---|---|
+| Nilai Sebelum | nilai **SUM** di Daftar Nilai |
+| Butir Soal yang Belum Dikuasai | butir yang skornya belum sempurna pada lembar **Analisis** |
+| Nilai Setelah | kolom **REM** di Daftar Nilai |
+| Nilai Akhir LM | hasil kebijakan remedial yang berlaku (`SkemaPenilaian::nilaiLingkupMateri`) |
+| Keterangan | Tuntas / Belum Tuntas / Belum Remedi |
+
+Di bawah "Sasaran" juga tercantum **materi yang perlu diulang**, yaitu nomor butir
+soal yang daya serap kelasnya masih di bawah 70% — dasar guru menyusun perbaikan
+klasikal.
+
+**B. Program Pengayaan** — peserta didik yang sudah mencapai KKTP, beserta bentuk
+pengayaan dan keterangan **Tuntas** / **Di atas KKTP** (nilai melampaui batas atas
+rentang KKTP, yaitu yang paling siap diberi pengayaan bertaraf lebih tinggi).
+
+Satu tombol **Cetak / Export PDF** mencetak kedua bagian sebagai satu dokumen,
+lengkap dengan KOP surat dan blok tanda tangan. Tiap bagian ditandai `cetak-utuh`
+supaya tidak terpotong di tengah antar halaman.
+
+## 2. Yang diketik guru, dan yang tidak
+
+Guru **hanya** mengetik rencana pelaksanaannya: bentuk kegiatan dan tanggal, untuk
+perbaikan dan pengayaan. Tersedia tombol **Isi contoh** yang mengisikan redaksi
+lazim ke kotak isian — teks itu tidak pernah tersimpan sendiri, jadi yang tercetak
+selalu tulisan guru yang bersangkutan.
+
+Seluruh sisanya diturunkan: siapa masuk perbaikan/pengayaan, butir soal yang belum
+dikuasai tiap anak, nilai setelah perbaikan, dan status ketuntasannya. Kalau guru
+mengoreksi nilai di Daftar Nilai, isi dokumen ini ikut berubah sendiri dan tidak
+pernah basi.
+
+## 3. Catatan penyimpanan
+
+Kolomnya menumpang di tabel `analisis_sumatifs` karena identitasnya **sama persis**
+(kelas × mapel × periode × lingkup materi) dan dokumennya memakai ulang kepala
+lembar analisis (Materi Ajar, Banyak Soal). Tabel kedua dengan kunci unik identik
+hanya akan menambah join tanpa manfaat. Daftar pesertanya sendiri tetap tidak
+disimpan sama sekali.
+
+## 4. Berkas
+
+| Berkas | Isi |
+|---|---|
+| `database/migrations/2026_08_27_000007_add_program_perbaikan_to_analisis_sumatifs_table.php` | 4 kolom rencana pelaksanaan |
+| `app/Http/Controllers/ProgramPerbaikanController.php` | Pemilahan peserta & penyusun dokumen |
+| `resources/views/nilai/program-perbaikan.blade.php` | Tampilan & cetakan |

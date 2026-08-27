@@ -6,6 +6,9 @@
     <a href="{{ route('nilai.form', ['kelas' => $kelas->id, 'mapel' => $mapel->id]) }}" class="btn-outline">
         <i class="fa-solid fa-table-list mr-1.5"></i> Daftar Nilai
     </a>
+    <a href="{{ route('nilai.program', ['kelas' => $kelas->id, 'mapel' => $mapel->id] + (isset($lm) ? ['lm' => $lm] : [])) }}" class="btn-outline">
+        <i class="fa-solid fa-user-graduate mr-1.5"></i> Pengayaan &amp; Perbaikan
+    </a>
     @if($lembar)
         <button type="button" onclick="cetakBagian('print-analisis')" class="btn-outline">
             <i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF

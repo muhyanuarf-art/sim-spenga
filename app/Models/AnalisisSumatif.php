@@ -24,7 +24,11 @@ class AnalisisSumatif extends Model
 
     protected $fillable = [
         'kelas_id', 'mata_pelajaran_id', 'tahun_ajaran_id', 'lingkup_materi',
-        'materi_ajar', 'jumlah_soal', 'tanggal_pelaksanaan', 'diperbarui_oleh_id',
+        'materi_ajar', 'jumlah_soal', 'tanggal_pelaksanaan',
+        // Program Pengayaan & Perbaikan — dokumen lanjutan dengan identitas
+        // yang sama persis (lihat catatan di migrasi 2026_08_27_000007).
+        'bentuk_perbaikan', 'tanggal_perbaikan', 'bentuk_pengayaan', 'tanggal_pengayaan',
+        'diperbarui_oleh_id',
     ];
 
     protected function casts(): array
@@ -33,6 +37,8 @@ class AnalisisSumatif extends Model
             'lingkup_materi' => 'integer',
             'jumlah_soal' => 'integer',
             'tanggal_pelaksanaan' => 'date',
+            'tanggal_perbaikan' => 'date',
+            'tanggal_pengayaan' => 'date',
         ];
     }
 

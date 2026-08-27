@@ -115,7 +115,7 @@ class Navigasi
                         'label' => 'Daftar Nilai',
                         'icon' => 'fa-table-list',
                         'route' => 'nilai.pilih',
-                        'cocok' => ['nilai.pilih', 'nilai.form', 'nilai.store', 'nilai.finalisasi', 'nilai.buka-kunci', 'nilai.analisis', 'nilai.analisis.update'],
+                        'cocok' => ['nilai.pilih', 'nilai.form', 'nilai.store', 'nilai.finalisasi', 'nilai.buka-kunci', 'nilai.analisis', 'nilai.analisis.update', 'nilai.program', 'nilai.program.update'],
                         'deskripsi' => 'Isi nilai formatif, sumatif lingkup materi, ASTS, dan sumatif akhir untuk kelas yang Anda ampu.',
                         'roles' => ['guru', 'kurikulum', 'kepala_sekolah', 'admin'],
                     ],

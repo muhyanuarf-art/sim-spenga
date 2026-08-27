@@ -32,6 +32,7 @@ use App\Http\Controllers\NilaiMonitoringController;
 use App\Http\Controllers\NilaiWaliKelasController;
 use App\Http\Controllers\NotifikasiWhatsappController;
 use App\Http\Controllers\PengaturanPenilaianController;
+use App\Http\Controllers\ProgramPerbaikanController;
 use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\PengaturanSekolahController;
@@ -162,11 +163,19 @@ Route::middleware('auth')->group(function () {
             // SUM yang sudah diinput di lembar Daftar Nilai di atas. Satu
             // lembar per Lingkup Materi yang sudah ada nilainya (?lm=n).
             Route::get('analisis/{kelas}/{mapel}', [AnalisisSumatifController::class, 'index'])->name('analisis');
+
+            // Program Pengayaan & Perbaikan — kelanjutan lembar analisis di
+            // atas: siapa yang remedial (beserta butir soal yang belum
+            // dikuasainya) dan siapa yang berhak pengayaan.
+            Route::get('program/{kelas}/{mapel}', [ProgramPerbaikanController::class, 'index'])->name('program');
         });
         Route::middleware(['role:guru,admin', 'periode-aktif'])->group(function () {
             // Hanya keterangan lembar (Materi Ajar, banyak soal, tanggal) —
             // skor tiap butir soal tidak pernah diketik, selalu diturunkan.
             Route::put('analisis/{kelas}/{mapel}', [AnalisisSumatifController::class, 'update'])->name('analisis.update');
+            // Hanya rencana pelaksanaan (bentuk & tanggal) — daftar pesertanya
+            // selalu diturunkan dari nilai, tidak pernah diketik.
+            Route::put('program/{kelas}/{mapel}', [ProgramPerbaikanController::class, 'update'])->name('program.update');
         });
         Route::middleware(['role:guru,admin', 'periode-aktif'])->group(function () {
             Route::post('lembar/{kelas}/{mapel}', [NilaiController::class, 'store'])->name('store');
