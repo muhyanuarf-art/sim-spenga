@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalisisSumatifController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\OrangTuaLoginController;
 use App\Http\Controllers\BkDashboardController;
@@ -156,6 +157,16 @@ Route::middleware('auth')->group(function () {
         Route::middleware('role:guru,kurikulum,kepala_sekolah,admin')->group(function () {
             Route::get('/', [NilaiController::class, 'pilih'])->name('pilih');
             Route::get('lembar/{kelas}/{mapel}', [NilaiController::class, 'form'])->name('form');
+
+            // Analisis Hasil Tes Sumatif Lingkup Materi — turunan dari nilai
+            // SUM yang sudah diinput di lembar Daftar Nilai di atas. Satu
+            // lembar per Lingkup Materi yang sudah ada nilainya (?lm=n).
+            Route::get('analisis/{kelas}/{mapel}', [AnalisisSumatifController::class, 'index'])->name('analisis');
+        });
+        Route::middleware(['role:guru,admin', 'periode-aktif'])->group(function () {
+            // Hanya keterangan lembar (Materi Ajar, banyak soal, tanggal) —
+            // skor tiap butir soal tidak pernah diketik, selalu diturunkan.
+            Route::put('analisis/{kelas}/{mapel}', [AnalisisSumatifController::class, 'update'])->name('analisis.update');
         });
         Route::middleware(['role:guru,admin', 'periode-aktif'])->group(function () {
             Route::post('lembar/{kelas}/{mapel}', [NilaiController::class, 'store'])->name('store');

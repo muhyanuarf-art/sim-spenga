@@ -4,6 +4,9 @@
 
 @section('aksi')
     <a href="{{ route('nilai.pilih') }}" class="btn-outline"><i class="fa-solid fa-arrow-left mr-1.5"></i> Daftar Lembar</a>
+    <a href="{{ route('nilai.analisis', ['kelas' => $kelas->id, 'mapel' => $mapel->id]) }}" class="btn-outline">
+        <i class="fa-solid fa-magnifying-glass-chart mr-1.5"></i> Analisis Hasil Tes
+    </a>
     <button type="button" onclick="cetakBagian('print-daftar-nilai')" class="btn-outline">
         <i class="fa-solid fa-print mr-1.5"></i> Cetak / Export PDF
     </button>

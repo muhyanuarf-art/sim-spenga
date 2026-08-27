@@ -304,6 +304,16 @@ class TahunAjaran extends Model
     }
 
     /**
+     * Nomor semester (1 untuk Ganjil, 2 untuk Genap). Dipakai di kepala
+     * dokumen resmi yang menuliskan semester sebagai angka, mis.
+     * "Semester : 1" pada lembar Analisis Hasil Tes Sumatif.
+     */
+    public function nomorSemester(): int
+    {
+        return $this->semester === 'Genap' ? 2 : 1;
+    }
+
+    /**
      * Label status siklus hidup untuk ditampilkan di admin (Bagian 3, 4, 7,
      * dan STEP 2 Bagian 6/19).
      *

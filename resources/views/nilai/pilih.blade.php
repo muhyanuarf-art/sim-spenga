@@ -79,10 +79,16 @@
                                 @endif
                             </td>
                             <td class="td-aksi">
-                                <a href="{{ route('nilai.form', ['kelas' => $l['kelas']->id, 'mapel' => $l['mapel']->id]) }}"
-                                   class="btn-chip btn-chip-edit">
-                                    <i class="fa-solid fa-pen-to-square"></i> Buka
-                                </a>
+                                <div class="action-buttons">
+                                    <a href="{{ route('nilai.form', ['kelas' => $l['kelas']->id, 'mapel' => $l['mapel']->id]) }}"
+                                       class="btn-chip btn-chip-edit">
+                                        <i class="fa-solid fa-pen-to-square"></i> Buka
+                                    </a>
+                                    <a href="{{ route('nilai.analisis', ['kelas' => $l['kelas']->id, 'mapel' => $l['mapel']->id]) }}"
+                                       class="btn-chip btn-chip-cancel" title="Analisis Hasil Tes Sumatif Lingkup Materi">
+                                        <i class="fa-solid fa-magnifying-glass-chart"></i> Analisis
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty

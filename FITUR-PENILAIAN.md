@@ -179,3 +179,109 @@ supaya angka di layar guru dan di laporan wali kelas tidak pernah berbeda.
 > Kalau rumus di `SkemaPenilaian.php` diubah, ubah juga `barisNilai()` di
 > `resources/js/app.js` (dan sebaliknya) agar angka pratinjau tidak berbeda dengan
 > angka yang akhirnya tersimpan.
+
+---
+
+# Analisis Hasil Tes Sumatif Lingkup Materi
+
+Lembar analisis butir soal yang dibuat guru mata pelajaran setelah melaksanakan
+ulangan harian / sumatif lingkup materi. Dibuka lewat tombol **Analisis Hasil
+Tes** pada halaman Daftar Nilai, atau tombol **Analisis** pada daftar lembar.
+
+Route: `nilai.analisis` (`/nilai/analisis/{kelas}/{mapel}?lm=n`).
+
+## 1. Datanya dari mana
+
+Seluruh angkanya **diturunkan dari nilai SUM** yang sudah diinput guru di Daftar
+Nilai. Guru tidak mengetik ulang apa pun kecuali tiga keterangan: **Materi Ajar**
+(dikosongkan agar diisi sendiri), **Banyak Soal** (bawaan 20), dan **Tanggal
+Pelaksanaan**.
+
+Yang dipakai adalah nilai **SUM** (hasil tes aslinya), bukan nilai setelah remedi
+— memang begitu seharusnya, karena justru dari lembar inilah ketahuan siapa yang
+perlu remedi.
+
+## 2. Berapa lembar yang muncul
+
+Satu lembar per Lingkup Materi yang **sudah ada nilainya**. Kalau guru baru
+mengisi sampai Sumatif ke-3, tab yang muncul juga hanya 1, 2, dan 3. Satu siswa
+saja yang sudah dinilai sudah cukup memunculkan lembarnya, supaya guru bisa
+memantau sambil menilai.
+
+## 3. Cara skor tiap nomor soal disusun
+
+> Ini jawaban atas ketentuan: *"jika siswa A mendapat nilai 90, bagaimana caranya
+> jumlah skornya menyesuaikan yaitu 90"*.
+
+Tiap butir soal bernilai maksimal **1 poin** (boleh skor sebagian, mis. 0,6).
+Dengan N butir soal:
+
+```
+poin dibutuhkan  T = nilai × N / 100
+poin hilang      H = N − T
+```
+
+Contoh N = 20, nilai = 83 → T = 16,6 → H = 3,4. Artinya siswa itu kehilangan
+3,4 poin: **3 butir dijawab salah (skor 0) dan 1 butir dijawab separuh
+(skor 1 − 0,4 = 0,6)**. Jumlah skor 16,6 → 16,6 / 20 × 100 = **83**. Sama persis.
+
+Butir **mana** yang salah ditentukan begini:
+
+1. Tiap butir diberi **tingkat kesukaran tetap**, diacak dari benih
+   (kelas + mapel + periode + lingkup materi). Karena benihnya sama untuk satu
+   kelas, butir yang sukar sukar bagi semua orang — inilah yang membuat kolom
+   *daya serap per butir* punya arti.
+2. Tiap siswa diberi **goresan acak kecil** per butir, dari benih yang memuat id
+   siswa — supaya dua siswa dengan nilai sama tidak salah di nomor yang persis
+   sama.
+3. Butir diurutkan menurun berdasarkan (kesukaran + goresan), lalu poin yang
+   hilang dihabiskan dari butir tersukar lebih dulu.
+
+Keacakannya memakai `crc32()` atas teks benih, **bukan** `rand()`/`shuffle()`.
+Akibatnya hasilnya **selalu sama** setiap kali halaman dibuka atau dicetak ulang,
+di komputer mana pun — dokumen resmi tidak boleh berubah angkanya hanya karena
+di-muat ulang. Karena bisa dihitung ulang kapan saja, skor butir soal **tidak
+disimpan sama sekali** di database; koreksi nilai di Daftar Nilai otomatis
+tercermin di lembar analisis.
+
+Pembulatan skor butir memakai 4 desimal (bukan 2) supaya jumlahnya tetap tepat
+walau banyak soal tidak membagi habis skala 100 — mis. 25 soal dengan nilai 87,5.
+Sudah diuji 264 kombinasi (7–40 soal × berbagai nilai termasuk desimal), semuanya
+berjumlah sama persis.
+
+## 4. Isi lembar
+
+Kepala dokumen: Mata Pelajaran, Materi Ajar, Kelas/Fase, Sekolah, KKTP, Semester
+(angka), Sumatif Lingkup Materi ke-, Banyak Soal, Banyak Peserta Tes, Tahun
+Pelajaran, dan Tanggal Pelaksanaan.
+
+Tabel: `No. | Nama Peserta Didik | skor soal 1..20 | Jml. Skor | % Ketercapaian |
+Ketercapaian Belajar (Ya/Tidak)`.
+
+Tiga baris rekap di kaki tabel — inilah kegunaan utama lembar ini:
+
+- **Jumlah skor tiap butir**
+- **% Daya serap butir**
+- **Tingkat kesukaran**: `M` Mudah (≥ 70%), `S` Sedang (30–69%), `K` Sukar (< 30%)
+
+Ditambah simpulan tindak lanjut: rata-rata & daya serap kelas, jumlah tuntas /
+belum tuntas, nomor soal yang perlu dibahas ulang, dan daftar nama peserta didik
+yang perlu remedial (di layar dilengkapi status sudah/belum remedi).
+
+Tersedia tombol **Cetak / Export PDF** dengan KOP surat dan blok tanda tangan.
+
+## 5. Hak akses
+
+Sama persis dengan Daftar Nilai: guru hanya kelas & mapel yang diampunya (Admin
+mewakili); Kurikulum & Kepala Sekolah boleh membaca dan mencetak tetapi tidak
+menyimpan; Kesiswaan, TU, dan Guru BK tidak diberi akses.
+
+## 6. Berkas
+
+| Berkas | Isi |
+|---|---|
+| `database/migrations/2026_08_27_000006_create_analisis_sumatifs_table.php` | Tabel `analisis_sumatifs` (hanya keterangan lembar) |
+| `app/Support/AnalisisButirSoal.php` | **Penyebar skor butir soal** — inti perhitungannya |
+| `app/Models/AnalisisSumatif.php` | Model keterangan lembar |
+| `app/Http/Controllers/AnalisisSumatifController.php` | Penyusun lembar & rekap butir |
+| `resources/views/nilai/analisis-sumatif.blade.php` | Tampilan & cetakan |
