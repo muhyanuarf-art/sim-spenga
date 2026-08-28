@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\JadwalImport;
 use App\Models\GuruMengajarKelas;
@@ -241,13 +242,16 @@ class JadwalController extends Controller
 
     public function import(Request $request)
     {
-        $request->validate(['file' => ['required', 'mimes:xlsx,xls,csv']]);
+        [$aturan, $pesan] = JalankanImport::aturanBerkas();
+        $request->validate($aturan, $pesan);
 
         $tahunAjaran = TahunAjaran::aktif();
         abort_if(! $tahunAjaran, 422, 'Tidak ada tahun ajaran aktif.');
 
-        Excel::import(new JadwalImport($tahunAjaran->id), $request->file('file'));
-
-        return redirect()->route('jadwal.index')->with('success', 'Import jadwal pelajaran berhasil.');
+        return JalankanImport::jalankan(
+            new JadwalImport($tahunAjaran->id),
+            $request->file('file'),
+            'jadwal.import.form'
+        );
     }
 }

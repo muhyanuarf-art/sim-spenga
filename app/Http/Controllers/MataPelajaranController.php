@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\MataPelajaranImport;
 use App\Models\MataPelajaran;
@@ -52,9 +53,10 @@ class MataPelajaranController extends Controller
 
     public function import(Request $request)
     {
-        $request->validate(['file' => ['required', 'mimes:xlsx,xls,csv']]);
-        Excel::import(new MataPelajaranImport(), $request->file('file'));
-        return redirect()->route('mapel.index')->with('success', 'Import mata pelajaran berhasil.');
+        [$aturan, $pesan] = JalankanImport::aturanBerkas();
+        $request->validate($aturan, $pesan);
+
+        return JalankanImport::jalankan(new MataPelajaranImport(), $request->file('file'), 'mapel.import.form');
     }
 
     public function template()

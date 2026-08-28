@@ -4,40 +4,71 @@ namespace App\Imports;
 
 use App\Models\Kelas;
 use App\Models\User;
-use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
-use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 /**
- * Format kolom excel (header baris 1):
+ * Format kolom excel (judul di baris 1):
  * nama_kelas | tingkat | nip_wali_kelas
- * Contoh   : 7A | 7 | 198501012010011001
+ * Contoh    : 7A | 7 | 198501012010011001
  *
  * nip_wali_kelas boleh dikosongkan (opsional).
  *
- * STEP 5 — kelas sekarang terikat Tahun Ajaran (tujuan dipilih di
- * halaman import, dikirim lewat constructor), bukan lagi kolom di Excel.
+ * STEP 5 — kelas terikat Tahun Ajaran; tujuannya dipilih di halaman
+ * import dan dikirim lewat constructor, bukan kolom di Excel.
  */
-class KelasImport implements ToModel, WithHeadingRow, SkipsEmptyRows
+class KelasImport extends ImportDasar
 {
-    public function __construct(private int $tahunAjaranId) {}
-
-    public function model(array $row)
+    public function __construct(private int $tahunAjaranId)
     {
-        $namaKelas = trim($row['nama_kelas'] ?? '');
-        $tingkat = (int) ($row['tingkat'] ?? 0);
+        parent::__construct('data kelas');
+    }
 
-        if ($namaKelas === '' || ! in_array($tingkat, [7, 8, 9], true)) {
-            return null; // baris dilewati jika data wajib tidak valid
+    protected function kolomWajib(): array
+    {
+        return ['nama_kelas', 'tingkat'];
+    }
+
+    protected function prosesBaris(array $data, int $baris): void
+    {
+        $namaKelas = $this->teks($data, 'nama_kelas');
+        $tingkat = $this->angka($data, 'tingkat');
+
+        if ($namaKelas === '') {
+            $this->hasil->lewati($baris, 'Kolom "nama_kelas" kosong.');
+
+            return;
         }
 
+        if (! in_array($tingkat, [7, 8, 9], true)) {
+            $this->hasil->lewati(
+                $baris,
+                'Kolom "tingkat" harus diisi 7, 8, atau 9 — terbaca "'.$this->teks($data, 'tingkat').'".',
+                'Kelas '.$namaKelas
+            );
+
+            return;
+        }
+
+        // Wali kelas opsional. Kalau NIP diisi tapi tidak ketemu, barisnya
+        // TETAP disimpan (kelasnya nyata) — tapi dilaporkan supaya operator
+        // tahu wali kelasnya belum terpasang, bukan dibiarkan diam-diam.
         $waliKelasId = null;
-        if (! empty($row['nip_wali_kelas'])) {
-            $wali = User::where('nip', trim($row['nip_wali_kelas']))->where('role', 'guru')->first();
+        $nipWali = $this->teks($data, 'nip_wali_kelas');
+
+        if ($nipWali !== '') {
+            $wali = User::where('nip', $nipWali)->where('role', 'guru')->first();
             $waliKelasId = $wali?->id;
+
+            if (! $wali) {
+                $this->hasil->lewati(
+                    $baris,
+                    'Kelas tetap disimpan, TAPI wali kelas tidak terpasang: NIP "'.$nipWali
+                        .'" tidak ditemukan sebagai guru di menu Kelola Pengguna.',
+                    'Kelas '.$namaKelas
+                );
+            }
         }
 
-        return Kelas::updateOrCreate(
+        $this->catat(Kelas::updateOrCreate(
             [
                 'tahun_ajaran_id' => $this->tahunAjaranId,
                 'nama_kelas' => $namaKelas,
@@ -46,6 +77,6 @@ class KelasImport implements ToModel, WithHeadingRow, SkipsEmptyRows
                 'tingkat' => $tingkat,
                 'wali_kelas_id' => $waliKelasId,
             ]
-        );
+        ));
     }
 }

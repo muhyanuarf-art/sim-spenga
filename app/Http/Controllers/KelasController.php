@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\KelasImport;
 use App\Models\Kelas;
@@ -154,12 +155,17 @@ class KelasController extends Controller
     /** STEP 5 — import sekarang butuh tahun_ajaran_id tujuan (default: tahun ajaran aktif). */
     public function import(Request $request)
     {
-        $validated = $request->validate([
-            'file' => ['required', 'mimes:xlsx,xls,csv'],
-            'tahun_ajaran_id' => ['required', 'exists:tahun_ajarans,id'],
-        ]);
-        Excel::import(new KelasImport((int) $validated['tahun_ajaran_id']), $request->file('file'));
-        return redirect()->route('kelas.index', ['tahun_ajaran_id' => $validated['tahun_ajaran_id']])->with('success', 'Import data kelas berhasil.');
+        [$aturan, $pesan] = JalankanImport::aturanBerkas();
+        $validated = $request->validate(
+            $aturan + ['tahun_ajaran_id' => ['required', 'exists:tahun_ajarans,id']],
+            $pesan + ['tahun_ajaran_id.required' => 'Pilih dulu Tahun Ajaran tujuan.']
+        );
+
+        return JalankanImport::jalankan(
+            new KelasImport((int) $validated['tahun_ajaran_id']),
+            $request->file('file'),
+            'kelas.import.form'
+        );
     }
 
     public function template()

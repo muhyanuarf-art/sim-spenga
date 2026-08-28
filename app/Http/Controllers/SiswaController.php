@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\SiswaImport;
 use App\Models\Kelas;
@@ -207,18 +208,10 @@ class SiswaController extends Controller
 
     public function import(Request $request)
     {
-        $request->validate(['file' => ['required', 'mimes:xlsx,xls,csv']]);
-        $import = new SiswaImport();
-        Excel::import($import, $request->file('file'));
+        [$aturan, $pesan] = JalankanImport::aturanBerkas();
+        $request->validate($aturan, $pesan);
 
-        $pesan = 'Import data siswa berhasil.';
-        if (! empty($import->dilewatiKelasTidakDitemukan)) {
-            $daftar = array_filter($import->dilewatiKelasTidakDitemukan);
-            $pesan .= ' ' . count($import->dilewatiKelasTidakDitemukan) . ' baris dilewati karena kode_kelas tidak ditemukan'
-                . ($daftar ? ' (NIS: ' . implode(', ', array_slice($daftar, 0, 10)) . (count($daftar) > 10 ? ', ...' : '') . ')' : '.');
-        }
-
-        return redirect()->route('siswa.index')->with('success', $pesan);
+        return JalankanImport::jalankan(new SiswaImport(), $request->file('file'), 'siswa.import.form');
     }
 
     public function template()

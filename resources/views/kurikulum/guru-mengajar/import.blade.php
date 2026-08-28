@@ -2,7 +2,7 @@
 @section('title', 'Import Pemetaan Guru Mengajar')
 
 @section('content')
-<div class="max-w-xl mx-auto">
+<div class="max-w-3xl mx-auto space-y-6">
     <div class="card p-6">
         <p class="font-bold text-slate-800 mb-1">Import Mapping Guru Mengajar dari Excel</p>
         <p class="text-sm text-slate-400 mb-5">
@@ -24,5 +24,7 @@
             </div>
         </form>
     </div>
+
+    <x-hasil-import />
 </div>
 @endsection

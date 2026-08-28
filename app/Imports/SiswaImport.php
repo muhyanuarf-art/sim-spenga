@@ -6,91 +6,132 @@ use App\Models\Kelas;
 use App\Models\RiwayatKelasSiswa;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
-use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
 /**
- * Format kolom excel (header baris 1):
+ * Format kolom excel (judul di baris 1):
  * nis | nisn | nama | nama_ortu | no_wa_ortu | jenis_kelamin | kode_kelas
  *
  * (Revisi permintaan admin) — fitur "Kenaikan Kelas" sudah dihapus. Sekolah
  * ini memindahkan siswa antar kelas/tahun ajaran LEWAT IMPORT EXCEL ini,
  * bukan lewat proses kenaikan kelas manual. Supaya histori kelas siswa
  * (Riwayat Kelas) TETAP tersimpan & bisa dilihat admin maupun orang tua,
- * import ini SEKARANG OTOMATIS mencatat baris riwayat_kelas_siswas setiap
- * kali kelas_id seorang siswa berubah — persis prinsip yang sama seperti
- * dulu dilakukan manual lewat menu Kenaikan Kelas, hanya pemicunya sekarang
- * import Excel.
+ * import ini otomatis mencatat baris riwayat_kelas_siswas setiap kali
+ * kelas_id seorang siswa berubah.
  */
-class SiswaImport implements ToModel, WithHeadingRow, SkipsEmptyRows
+class SiswaImport extends ImportDasar
 {
-    /** @var array<int,string> NIS yang dilewati karena kode_kelas tidak ditemukan. */
-    public array $dilewatiKelasTidakDitemukan = [];
+    /** Dibaca sekali di awal, bukan per baris (dulu query berulang tiap baris). */
+    private ?TahunAjaran $tahunAjaranAktif = null;
 
-    public function model(array $row)
+    private bool $periodeSudahDibaca = false;
+
+    public function __construct()
     {
-        // STEP 5 — kelas sekarang per tahun ajaran; siswa diimpor selalu ke
-        // kelas pada TAHUN AJARAN AKTIF (import data siswa adalah operasi
-        // "saat ini", bukan histori).
-        $tahunAjaranAktif = TahunAjaran::aktif();
-        $kelas = Kelas::aktif()->where('nama_kelas', trim($row['kode_kelas']))->first();
-        if (! $kelas) {
-            $this->dilewatiKelasTidakDitemukan[] = trim($row['nis'] ?? '');
-            return null;
+        parent::__construct('data siswa');
+    }
+
+    protected function kolomWajib(): array
+    {
+        return ['nis', 'nama', 'kode_kelas'];
+    }
+
+    protected function prosesBaris(array $data, int $baris): void
+    {
+        $nis = $this->teks($data, 'nis');
+        $nama = $this->teks($data, 'nama');
+        $kodeKelas = $this->teks($data, 'kode_kelas');
+
+        if ($nis === '') {
+            $this->hasil->lewati($baris, 'Kolom "nis" kosong — NIS wajib diisi karena dipakai sebagai penciri siswa.', $nama);
+
+            return;
         }
 
-        $nis = trim($row['nis']);
+        if ($nama === '') {
+            $this->hasil->lewati($baris, 'Kolom "nama" kosong.', 'NIS '.$nis);
+
+            return;
+        }
+
+        if ($kodeKelas === '') {
+            $this->hasil->lewati($baris, 'Kolom "kode_kelas" kosong.', 'NIS '.$nis);
+
+            return;
+        }
+
+        $kelas = Kelas::aktif()->where('nama_kelas', $kodeKelas)->first();
+
+        if (! $kelas) {
+            $this->hasil->lewati(
+                $baris,
+                'Kelas "'.$kodeKelas.'" tidak ada pada tahun ajaran yang sedang aktif. '
+                    .'Buat dulu kelasnya di menu Data Kelas, atau perbaiki penulisannya.',
+                'NIS '.$nis
+            );
+
+            return;
+        }
+
         $siswaLama = Siswa::where('nis', $nis)->first();
         $kelasAsalId = $siswaLama?->kelas_id; // null kalau siswa baru sama sekali
 
         $siswa = Siswa::updateOrCreate(
             ['nis' => $nis],
             [
-                'nisn' => $row['nisn'] ?? null,
-                'nama' => trim($row['nama']),
-                'nama_ortu' => isset($row['nama_ortu']) ? trim($row['nama_ortu']) : null,
-                'no_wa_ortu' => isset($row['no_wa_ortu']) ? trim((string) $row['no_wa_ortu']) : null,
-                'jenis_kelamin' => strtoupper(trim($row['jenis_kelamin'])) === 'P' ? 'P' : 'L',
+                'nisn' => $this->teks($data, 'nisn') ?: null,
+                'nama' => $nama,
+                'nama_ortu' => $this->teks($data, 'nama_ortu') ?: null,
+                'no_wa_ortu' => $this->teks($data, 'no_wa_ortu') ?: null,
+                'jenis_kelamin' => strtoupper($this->teks($data, 'jenis_kelamin')) === 'P' ? 'P' : 'L',
                 'kelas_id' => $kelas->id,
                 'is_active' => true,
             ]
         );
 
-        // Catat Riwayat Kelas untuk Tahun Ajaran aktif SAAT INI — baik untuk
-        // siswa baru (kelas_asal_id = null, "pertama kali masuk") maupun
-        // siswa lama yang pindah kelas/naik kelas lewat import (ganti tahun
-        // ajaran). Konvensi tahun_ajaran_id SELALU baris Semester Ganjil
-        // (sama seperti sebelumnya di menu Kenaikan Kelas).
-        //
-        // (2026-08-23) — jenis dibedakan dari 'pindah_kelas' (mutasi di
-        // tengah tahun ajaran berjalan, lihat SiswaController::pindahKelas())
-        // supaya keduanya bisa hidup berdampingan di baris yang berbeda pada
-        // tahun ajaran yang sama. firstOrCreate DI-SCOPE juga dengan jenis
-        // supaya tetap mencegah dobel kalau siswa yang sama diimpor
-        // berkali-kali di tahun ajaran yang sama (perilaku lama tetap sama —
-        // hanya baris "kenaikan_kelas"/"awal_masuk" pertama yang tercatat,
-        // import ulang berikutnya tidak menimpanya).
-        if ($tahunAjaranAktif) {
-            $tahunAjaranGanjil = TahunAjaran::where('nama', $tahunAjaranAktif->nama)->where('semester', 'Ganjil')->first();
-            if ($tahunAjaranGanjil) {
-                RiwayatKelasSiswa::firstOrCreate(
-                    [
-                        'siswa_id' => $siswa->id,
-                        'tahun_ajaran_id' => $tahunAjaranGanjil->id,
-                        'jenis' => $kelasAsalId === null ? RiwayatKelasSiswa::JENIS_AWAL_MASUK : RiwayatKelasSiswa::JENIS_KENAIKAN_KELAS,
-                    ],
-                    [
-                        'kelas_asal_id' => $kelasAsalId,
-                        'kelas_id' => $kelas->id,
-                        'tanggal_mutasi' => now()->toDateString(),
-                        'keterangan' => 'Dicatat otomatis dari Import Excel Data Siswa.',
-                        'dicatat_oleh_id' => auth()->id(),
-                    ]
-                );
-            }
+        $this->catat($siswa);
+        $this->catatRiwayatKelas($siswa, $kelas->id, $kelasAsalId);
+    }
+
+    /**
+     * Catat Riwayat Kelas untuk Tahun Ajaran aktif — baik untuk siswa baru
+     * (kelas_asal_id = null, "awal masuk") maupun siswa lama yang naik/pindah
+     * kelas lewat import. Konvensi tahun_ajaran_id SELALU baris Semester
+     * Ganjil.
+     *
+     * jenis dibedakan dari 'pindah_kelas' (mutasi di tengah tahun ajaran,
+     * lihat SiswaController::pindahKelas()) supaya keduanya bisa hidup
+     * berdampingan pada tahun ajaran yang sama. firstOrCreate juga di-scope
+     * dengan jenis, supaya import berulang tidak membuat baris ganda.
+     */
+    private function catatRiwayatKelas(Siswa $siswa, int $kelasId, ?int $kelasAsalId): void
+    {
+        if (! $this->periodeSudahDibaca) {
+            $aktif = TahunAjaran::aktif();
+            $this->tahunAjaranAktif = $aktif
+                ? TahunAjaran::where('nama', $aktif->nama)->where('semester', 'Ganjil')->first()
+                : null;
+            $this->periodeSudahDibaca = true;
         }
 
-        return $siswa;
+        if (! $this->tahunAjaranAktif) {
+            return;
+        }
+
+        RiwayatKelasSiswa::firstOrCreate(
+            [
+                'siswa_id' => $siswa->id,
+                'tahun_ajaran_id' => $this->tahunAjaranAktif->id,
+                'jenis' => $kelasAsalId === null
+                    ? RiwayatKelasSiswa::JENIS_AWAL_MASUK
+                    : RiwayatKelasSiswa::JENIS_KENAIKAN_KELAS,
+            ],
+            [
+                'kelas_asal_id' => $kelasAsalId,
+                'kelas_id' => $kelasId,
+                'tanggal_mutasi' => now()->toDateString(),
+                'keterangan' => 'Dicatat otomatis dari Import Excel Data Siswa.',
+                'dicatat_oleh_id' => auth()->id(),
+            ]
+        );
     }
 }
