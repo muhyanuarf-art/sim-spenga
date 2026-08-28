@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PesanAksesKelas;
 use App\Models\GuruMengajarKelas;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -117,7 +118,19 @@ class NilaiWaliKelasController extends Controller
         $skema = SkemaPenilaian::untuk($periode, (int) $kelas->tingkat);
         $mapels = $this->mapelKelas($kelas, $periode);
 
-        abort_if($mapels->isEmpty(), 404, 'Belum ada mata pelajaran yang dipetakan untuk kelas ini.');
+        // Sejak ada pemilih periode, keadaan "kelas ini belum punya mapping
+        // mapel PADA PERIODE INI" jadi hal yang wajar ditemui — mis. saat
+        // menengok semester yang mapping-nya memang belum diisi. Dulu
+        // abort(404): pesannya hilang ditelan halaman Not Found bawaan
+        // Laravel dan pengguna terlempar keluar aplikasi. Sekarang
+        // dikembalikan ke Rekap Nilai Kelas dengan penjelasan.
+        if ($mapels->isEmpty()) {
+            return redirect()->route('nilai.rekap-kelas', $kelas)->with(
+                'error',
+                "Belum ada mata pelajaran yang dipetakan untuk kelas {$kelas->nama_kelas} pada {$periode->labelPeriode()}. "
+                .'Lengkapi dulu lewat menu Guru Mengajar, atau pilih periode lain di kanan atas.'
+            );
+        }
 
         $mapelId = (int) $request->get('mapel_id', $mapels->first()->id);
         $mapel = $mapels->firstWhere('id', $mapelId) ?? $mapels->first();
@@ -184,7 +197,7 @@ class NilaiWaliKelasController extends Controller
     /** Anggota kelas sekarang + siswa yang sudah punya nilai di kelas ini. */
     private function daftarSiswa(Kelas $kelas, TahunAjaran $periode)
     {
-        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('id');
+        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('siswas.id');
         $idBernilai = NilaiSiswa::where('kelas_id', $kelas->id)
             ->where('tahun_ajaran_id', $periode->id)
             ->distinct()
@@ -229,7 +242,7 @@ class NilaiWaliKelasController extends Controller
         abort_unless(
             $bolehDilihat->contains('id', $kelasId),
             403,
-            'Anda tidak memiliki akses ke kelas ini.'
+            PesanAksesKelas::tolak($kelasId)
         );
 
         return $bolehDilihat->firstWhere('id', $kelasId);

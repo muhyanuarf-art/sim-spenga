@@ -27,10 +27,10 @@ trait BkAccessScope
             return true;
         }
         if ($user->role === 'guru_bk') {
-            return $user->kelasBk()->pluck('id')->contains($siswa->kelas_id);
+            return $user->kelasBk()->pluck('id')->contains($siswa->kelasIdSekarang());
         }
         if ($user->role === 'guru' && $user->isWaliKelas()) {
-            return optional($user->kelasWali)->id === $siswa->kelas_id;
+            return optional($user->kelasWali)->id === $siswa->kelasIdSekarang();
         }
         return false;
     }
@@ -61,7 +61,7 @@ trait BkAccessScope
     protected function bkPastikanSiswaSesuaiCakupan(User $user, Siswa $siswa): void
     {
         $kelasIds = $this->bkKelasIdsUntukUser($user);
-        if ($kelasIds !== null && $kelasIds !== [] && ! in_array($siswa->kelas_id, $kelasIds, true)) {
+        if ($kelasIds !== null && $kelasIds !== [] && ! in_array($siswa->kelasIdSekarang(), $kelasIds, true)) {
             abort(403, 'Siswa ini di luar cakupan kelas Anda.');
         }
     }
@@ -91,7 +91,7 @@ trait BkAccessScope
         }
 
         if ($kelasId) {
-            $tahunAjaran = TahunAjaran::aktif();
+            $tahunAjaran = KonteksPeriode::pilihan();
             $mapping = GuruBkKelas::where('kelas_id', $kelasId)
                 ->when($tahunAjaran, fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id))
                 ->with('guru')

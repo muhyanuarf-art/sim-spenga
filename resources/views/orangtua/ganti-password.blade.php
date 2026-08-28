@@ -16,6 +16,11 @@
             @if($errors->any())
                 <div class="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">{{ $errors->first() }}</div>
             @endif
+            {{-- Pesan dari middleware PaksaGantiPasswordOrangTua saat kata
+                 sandi masih bawaan. --}}
+            @if(session('error'))
+                <div class="mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">{{ session('error') }}</div>
+            @endif
             @if(session('success'))
                 <div class="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm">{{ session('success') }}</div>
             @endif

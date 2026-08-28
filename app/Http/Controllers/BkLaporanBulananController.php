@@ -49,7 +49,7 @@ class BkLaporanBulananController extends Controller
 
         // Batasan kelas dipakai berulang di lima query di bawah.
         $batasiKelasSiswa = fn ($q) => $kelasIds !== null
-            ? $q->whereHas('siswa', fn ($s) => $s->whereIn('kelas_id', $kelasIds))
+            ? $q->whereHas('siswa', fn ($s) => $s->diKelasIn($kelasIds))
             : $q;
 
         // ===== 1. Kasus bulan ini =====

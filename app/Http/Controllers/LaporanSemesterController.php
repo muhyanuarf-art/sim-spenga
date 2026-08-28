@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PesanAksesKelas;
 use App\Models\AbsensiEkskulPeserta;
 use App\Models\AbsensiSiswa;
 use App\Models\EkstrakurikulerSiswa;
@@ -385,7 +386,7 @@ class LaporanSemesterController extends Controller
 
     private function daftarSiswa(Kelas $kelas, TahunAjaran $periode)
     {
-        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('id');
+        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('siswas.id');
         $idBernilai = NilaiSiswa::where('kelas_id', $kelas->id)
             ->where('tahun_ajaran_id', $periode->id)
             ->distinct()
@@ -424,7 +425,7 @@ class LaporanSemesterController extends Controller
 
         $kelasId = (int) ($request->get('kelas_id') ?: $kelas?->id ?: $bolehDilihat->first()->id);
 
-        abort_unless($bolehDilihat->contains('id', $kelasId), 403, 'Anda tidak memiliki akses ke kelas ini.');
+        abort_unless($bolehDilihat->contains('id', $kelasId), 403, PesanAksesKelas::tolak($kelasId));
 
         return $bolehDilihat->firstWhere('id', $kelasId);
     }

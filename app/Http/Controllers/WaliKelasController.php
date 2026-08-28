@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PesanAksesKelas;
 use App\Models\AbsensiSiswa;
 use App\Models\Kelas;
 use App\Models\JurnalMengajar;
@@ -63,7 +64,7 @@ class WaliKelasController extends Controller
         // (supaya kelas tetap tampil lengkap untuk bulan berjalan/bulan
         // depan sebelum ada absensi sama sekali yang diinput).
         $siswaIdHistoris = $absensiRaw->keys();
-        $siswaIdSekarang = $kelas->siswas()->where('is_active', true)->pluck('id');
+        $siswaIdSekarang = $kelas->siswas()->where('is_active', true)->pluck('siswas.id');
         $siswas = Siswa::whereIn('id', $siswaIdHistoris->merge($siswaIdSekarang)->unique())
             ->orderBy('nama')
             ->get();
@@ -191,14 +192,17 @@ class WaliKelasController extends Controller
         abort_if($kelasBkIds->isEmpty(), 403, 'Anda belum di-mapping ke kelas manapun. Hubungi Kurikulum/Admin.');
 
         $kelasId = $request->get('kelas_id', $kelasDefault?->id ?? $kelasBkIds->first());
-        abort_unless($kelasBkIds->contains((int) $kelasId), 403, 'Anda tidak memiliki akses ke kelas ini.');
+        abort_unless($kelasBkIds->contains((int) $kelasId), 403, PesanAksesKelas::tolak((int) $kelasId));
 
         return Kelas::findOrFail($kelasId);
     }
 
     private function authorizeWali($user, ?Kelas $kelas): void
     {
-        if (! $kelas || $kelas->wali_kelas_id !== $user->id) {
+        // Dicek lewat penugasan SEMESTER AKTIF (Kelas::waliKelas()),
+        // bukan kolom kelas lagi — guru yang baru jadi wali kelas mulai
+        // Semester 2 tidak boleh membuka lembar Semester 1, dan sebaliknya.
+        if (! $kelas || optional($kelas->waliKelas)->id !== $user->id) {
             abort(403, 'Anda bukan Wali Kelas untuk kelas ini.');
         }
     }

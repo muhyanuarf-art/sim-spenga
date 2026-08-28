@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Rules\DalamPeriode;
 use App\Models\AbsensiKegiatan;
 use App\Models\KegiatanSekolah;
@@ -23,7 +24,7 @@ class KegiatanSekolahController extends Controller
 {
     public function index(Request $request)
     {
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
 
         $filter = $request->get('status', 'berjalan');
 

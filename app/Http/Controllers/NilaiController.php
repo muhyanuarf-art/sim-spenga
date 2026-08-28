@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnggotaKelas;
 use App\Models\GuruMengajarKelas;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -60,8 +61,11 @@ class NilaiController extends Controller
             ->get()
             ->keyBy(fn ($n) => $n->kelas_id.'|'.$n->mata_pelajaran_id);
 
-        $jumlahSiswaPerKelas = Siswa::where('is_active', true)
-            ->whereIn('kelas_id', $mapping->pluck('kelas_id')->unique())
+        // Jumlah siswa dihitung dari tabel keanggotaan: sejak
+        // 2026_08_29_000001 kelas siswa disimpan per SEMESTER di sana,
+        // bukan lagi kolom di tabel siswas.
+        $jumlahSiswaPerKelas = AnggotaKelas::whereIn('kelas_id', $mapping->pluck('kelas_id')->unique())
+            ->whereHas('siswa', fn ($q) => $q->where('is_active', true))
             ->selectRaw('kelas_id, COUNT(*) as jumlah')
             ->groupBy('kelas_id')
             ->pluck('jumlah', 'kelas_id');
@@ -364,7 +368,7 @@ class NilaiController extends Controller
      */
     private function daftarSiswa(Kelas $kelas, MataPelajaran $mapel, TahunAjaran $periode)
     {
-        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('id');
+        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('siswas.id');
         $idBernilai = NilaiSiswa::where('kelas_id', $kelas->id)
             ->where('mata_pelajaran_id', $mapel->id)
             ->where('tahun_ajaran_id', $periode->id)

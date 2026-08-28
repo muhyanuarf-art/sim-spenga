@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\KelasImport;
 use App\Models\Kelas;
+use App\Models\PenugasanWaliKelas;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -24,7 +26,7 @@ class KelasController extends Controller
     public function index(Request $request)
     {
         $tahunAjaranList = TahunAjaran::where('semester', 'Ganjil')->orderByDesc('id')->get();
-        $periodeAktif = TahunAjaran::aktif();
+        $periodeAktif = KonteksPeriode::pilihan();
 
         $tahunAjaranDipilih = $request->filled('tahun_ajaran_id')
             ? TahunAjaran::find($request->integer('tahun_ajaran_id'))
@@ -73,17 +75,27 @@ class KelasController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate($this->aturanValidasi());
+
+        // Wali kelas TIDAK lagi jadi kolom di tabel kelas — penugasannya
+        // per SEMESTER, lihat App\Models\PenugasanWaliKelas.
+        $waliKelasId = $validated['wali_kelas_id'] ?? null;
+        unset($validated['wali_kelas_id']);
+
         $kelas = Kelas::create($validated);
+        PenugasanWaliKelas::tetapkanLewatFormKelas($kelas->id, $waliKelasId, $kelas->tahunAjaran);
 
         return back()->with('success', "Kelas {$kelas->nama_kelas} berhasil ditambahkan untuk Tahun Ajaran {$kelas->tahunAjaran->nama}.");
     }
 
     /**
-     * STEP 5 Bagian 9/10/22 — Test 9: karena tiap tahun ajaran sekarang
-     * punya baris kelas SENDIRI, mengubah wali_kelas_id di sini HANYA
-     * menyentuh baris kelas tahun ajaran ini. Baris kelas tahun ajaran
-     * lain (nama_kelas boleh sama, id BEDA) tidak pernah tersentuh sama
-     * sekali — tidak perlu lagi tabel histori terpisah seperti STEP 4.
+     * STEP 5 Bagian 9/10/22 — tiap tahun ajaran punya baris kelas SENDIRI,
+     * jadi perubahan di sini tidak pernah menyentuh baris kelas tahun ajaran
+     * lain (nama_kelas boleh sama, id BEDA).
+     *
+     * (2026-08-28) WALI KELAS tidak lagi disimpan sebagai kolom di tabel ini.
+     * Penugasannya PER SEMESTER lewat App\Models\PenugasanWaliKelas, supaya
+     * pergantian wali kelas di tengah tahun (guru pensiun/mutasi) tidak ikut
+     * mengubah semester yang sudah lewat.
      *
      * `tahun_ajaran_id` SENGAJA TIDAK BOLEH diubah lewat form ini (kelas
      * tidak "pindah" tahun ajaran) — kalau perlu kelas yang sama di
@@ -94,9 +106,18 @@ class KelasController extends Controller
         $request->merge(['tahun_ajaran_id' => $kelas->tahun_ajaran_id]); // kunci ke tahun ajaran aslinya
         $validated = $request->validate($this->aturanValidasi($kelas->id));
 
-        $kelas->update($validated);
+        $waliKelasId = $validated['wali_kelas_id'] ?? null;
+        unset($validated['wali_kelas_id']);
 
-        return back()->with('success', 'Kelas berhasil diperbarui.');
+        $kelas->update($validated);
+        PenugasanWaliKelas::tetapkanLewatFormKelas($kelas->id, $waliKelasId, $kelas->tahunAjaran);
+
+        $periodeAktif = TahunAjaran::aktif();
+        $catatan = $periodeAktif && $periodeAktif->nama === $kelas->tahunAjaran?->nama
+            ? " Perubahan wali kelas berlaku untuk Semester {$periodeAktif->semester} saja — semester lain tidak ikut berubah."
+            : '';
+
+        return back()->with('success', 'Kelas berhasil diperbarui.'.$catatan);
     }
 
     public function destroy(Kelas $kelas)
@@ -111,7 +132,7 @@ class KelasController extends Controller
     /**
      * STEP 5 Bagian 14 — "Salin Struktur Kelas dari Tahun Sebelumnya".
      * Hasil salinan SELALU jadi baris/ID baru (bukan reuse ID lama), TIDAK
-     * menyalin wali_kelas_id (admin atur ulang manual sesuai Bagian 14 —
+     * menyalin wali kelasnya (admin atur ulang manual sesuai Bagian 14 —
      * wali kelas tahun baru memang wajar berbeda dari tahun lama), dan
      * aman dijalankan berulang (firstOrCreate, kombinasi yang sudah ada
      * di tujuan otomatis dilewati, bukan error/duplikat).

@@ -20,8 +20,13 @@ class OrangTua extends Authenticatable
 
     protected $table = 'orang_tuas';
 
+    // password_diubah_at WAJIB ada di sini: dulu tidak, sehingga
+    // $orangTua->update(['password_diubah_at' => now()]) diam-diam dibuang
+    // mass assignment. Akibatnya penanda "sudah ganti kata sandi" tidak
+    // pernah menyala, dan reset oleh admin tidak pernah benar-benar
+    // menandai akunnya kembali memakai kata sandi bawaan.
     protected $fillable = [
-        'siswa_id', 'nis', 'password',
+        'siswa_id', 'nis', 'password', 'password_diubah_at',
     ];
 
     protected $hidden = [

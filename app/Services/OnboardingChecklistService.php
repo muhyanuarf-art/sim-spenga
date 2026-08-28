@@ -36,7 +36,10 @@ class OnboardingChecklistService
 
         $kelasPeriode = $periodeKerja ? Kelas::untukTahunAjaran($periodeKerja) : Kelas::whereRaw('1 = 0');
         $totalKelas = (clone $kelasPeriode)->count();
-        $kelasTanpaWali = (clone $kelasPeriode)->whereNull('wali_kelas_id')->count();
+        $kelasTanpaWali = (clone $kelasPeriode)->whereDoesntHave(
+            'penugasanWali',
+            fn ($q) => $q->whereIn('tahun_ajaran_id', TahunAjaran::where('nama', $periodeKerja?->nama)->pluck('id'))
+        )->count();
 
         $siswaAktifDiKelasPeriode = $periodeKerja
             ? Siswa::where('is_active', true)

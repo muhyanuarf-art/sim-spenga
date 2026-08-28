@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnggotaKelas;
 use App\Models\GuruMengajarKelas;
 use App\Models\Kelas;
 use App\Models\NilaiSiswa;
@@ -49,8 +50,9 @@ class NilaiMonitoringController extends Controller
             ->get()
             ->keyBy(fn ($n) => $n->kelas_id.'|'.$n->mata_pelajaran_id);
 
-        $jumlahSiswa = Siswa::where('is_active', true)
-            ->whereIn('kelas_id', $mapping->pluck('kelas_id')->unique())
+        // Lihat catatan yang sama di NilaiController.
+        $jumlahSiswa = AnggotaKelas::whereIn('kelas_id', $mapping->pluck('kelas_id')->unique())
+            ->whereHas('siswa', fn ($q) => $q->where('is_active', true))
             ->selectRaw('kelas_id, COUNT(*) as jumlah')
             ->groupBy('kelas_id')
             ->pluck('jumlah', 'kelas_id');

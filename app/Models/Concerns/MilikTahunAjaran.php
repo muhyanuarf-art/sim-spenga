@@ -3,6 +3,7 @@
 namespace App\Models\Concerns;
 
 use App\Models\TahunAjaran;
+use App\Support\KonteksPeriode;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -48,23 +49,15 @@ trait MilikTahunAjaran
         return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id');
     }
 
-    /** Data milik satu tahun ajaran tertentu (semester mana pun boleh dikirim). */
+    /** Data milik SATU SEMESTER tertentu. */
     public function scopeUntukTahunAjaran($query, ?TahunAjaran $tahunAjaran)
     {
         if (! $tahunAjaran) {
             return $query;
         }
 
-        $idGanjil = $tahunAjaran->semester === 'Ganjil'
-            ? $tahunAjaran->id
-            : TahunAjaran::idSemesterGanjilUntukNama($tahunAjaran->nama);
-
-        if (! $idGanjil) {
-            return $query->whereNull('tahun_ajaran_id');
-        }
-
-        return $query->where(function ($q) use ($idGanjil) {
-            $q->where('tahun_ajaran_id', $idGanjil)->orWhereNull('tahun_ajaran_id');
+        return $query->where(function ($q) use ($tahunAjaran) {
+            $q->where('tahun_ajaran_id', $tahunAjaran->id)->orWhereNull('tahun_ajaran_id');
         });
     }
 
@@ -75,20 +68,19 @@ trait MilikTahunAjaran
      */
     public function scopePeriodeAktif($query)
     {
-        return $query->untukTahunAjaran(TahunAjaran::aktif());
+        return $query->untukTahunAjaran(KonteksPeriode::pilihan());
     }
 
-    /** id baris Semester Ganjil dari periode aktif — dipakai saat menyimpan. */
+    /**
+     * id SEMESTER yang sedang berjalan — dipakai saat menyimpan.
+     *
+     * Sengaja memakai periode yang benar-benar aktif, BUKAN periode
+     * pilihan: pencatatan baru selalu masuk ke semester berjalan, dan
+     * menyimpan saat sedang menengok periode lampau sudah diblokir lebih
+     * dulu oleh middleware 'periode-aktif'.
+     */
     public static function idPeriodeAktif(): ?int
     {
-        $aktif = TahunAjaran::aktif();
-
-        if (! $aktif) {
-            return null;
-        }
-
-        return $aktif->semester === 'Ganjil'
-            ? $aktif->id
-            : TahunAjaran::idSemesterGanjilUntukNama($aktif->nama);
+        return TahunAjaran::aktif()?->id;
     }
 }

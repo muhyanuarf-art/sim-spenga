@@ -117,11 +117,29 @@
                                 <select name="wali_kelas_id" class="input">
                                     <option value="">Wali Kelas (opsional)</option>
                                     @foreach($guruList as $g)
-                                        <option value="{{ $g->id }}" {{ $k->wali_kelas_id == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                                        <option value="{{ $g->id }}" {{ optional($k->waliKelas)->id == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
                                     @endforeach
                                 </select>
                                 <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                                 <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>
+                                {{-- Wali kelas adalah penugasan PER SEMESTER sejak 2026-08-28
+                                     (lihat App\Models\PenugasanWaliKelas) — perlu dijelaskan di
+                                     sini supaya admin tidak mengira semester lain ikut berubah. --}}
+                                @if($tahunAjaranDipilih && \App\Models\TahunAjaran::aktif()?->nama === $tahunAjaranDipilih->nama)
+                                <p class="sm:col-span-5 -mt-1 text-xs text-slate-500">
+                                    <i class="fa-solid fa-circle-info mr-1"></i>
+                                    Perubahan wali kelas hanya berlaku untuk <strong>Semester {{ \App\Models\TahunAjaran::aktif()->semester }}</strong>.
+                                    Semester lain pada tahun ajaran ini tidak ikut berubah — jadi pergantian wali kelas
+                                    di tengah tahun tidak merusak laporan semester yang sudah lewat.
+                                </p>
+                                @else
+                                <p class="sm:col-span-5 -mt-1 text-xs text-slate-500">
+                                    <i class="fa-solid fa-circle-info mr-1"></i>
+                                    Tahun ajaran ini belum berjalan, jadi wali kelas ditetapkan untuk
+                                    <strong>Semester Ganjil &amp; Genap sekaligus</strong>. Nanti bisa diubah per semester
+                                    setelah tahun ajarannya aktif.
+                                </p>
+                                @endif
                             </form>
                         </td>
                     </tr>

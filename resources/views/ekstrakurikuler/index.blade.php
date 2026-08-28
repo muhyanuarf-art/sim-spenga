@@ -19,7 +19,18 @@
 
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">Pembina dari Sekolah (boleh pilih lebih dari satu)</label>
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">
+                        Pembina dari Sekolah (boleh pilih lebih dari satu)
+                        {{-- Pembina adalah penugasan PER SEMESTER sejak 2026-08-28 —
+                             lihat App\Models\EkstrakurikulerPembina. --}}
+                        @if($periodeAktif ?? null)
+                            <span class="block font-normal text-xs text-slate-500 mt-0.5">
+                                Berlaku untuk <strong>Semester {{ $periodeAktif->semester }}</strong> saja.
+                                Kalau pembinanya berganti di semester berikutnya, ubah lagi di sana —
+                                semester ini tidak akan ikut berubah.
+                            </span>
+                        @endif
+                    </label>
                     <div class="border border-slate-200 rounded-lg p-3 max-h-40 overflow-y-auto space-y-1.5">
                         @forelse($calonPembina as $u)
                             <label class="flex items-center gap-2 text-sm">

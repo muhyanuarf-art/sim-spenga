@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Models\AbsensiSiswa;
 use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
@@ -27,7 +28,7 @@ class LaporanGuruController extends Controller
     {
         $user = $request->user();
         $isGuru = $user->role === 'guru';
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
 
         $guru = $this->resolveGuru($request, $user, $isGuru);
         $guruList = $isGuru ? collect() : User::where('role', 'guru')->orderBy('name')->get();
@@ -80,7 +81,7 @@ class LaporanGuruController extends Controller
     {
         $user = $request->user();
         $isGuru = $user->role === 'guru';
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
 
         $guru = $this->resolveGuru($request, $user, $isGuru);
         $guruList = $isGuru ? collect() : User::where('role', 'guru')->orderBy('name')->get();
@@ -123,7 +124,7 @@ class LaporanGuruController extends Controller
             // terdaftar di kelas ini (supaya kelas tetap tampil lengkap
             // untuk bulan berjalan sebelum ada absensi diinput).
             $siswaIdHistoris = $absensiRaw->keys();
-            $siswaIdSekarang = Siswa::where('kelas_id', $kelasId)->where('is_active', true)->pluck('id');
+            $siswaIdSekarang = Siswa::diKelas($kelasId)->where('is_active', true)->pluck('id');
             $siswas = Siswa::whereIn('id', $siswaIdHistoris->merge($siswaIdSekarang)->unique())
                 ->orderBy('nama')
                 ->get();

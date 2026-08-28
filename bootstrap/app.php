@@ -14,6 +14,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
             'periode-aktif' => \App\Http\Middleware\EnsurePeriodeTidakTerkunci::class,
+            'ortu-ganti-password' => \App\Http\Middleware\PaksaGantiPasswordOrangTua::class,
+        ]);
+        // Lisensi diperiksa PALING DULU: selama nomor seri belum
+        // dimasukkan, tidak ada satu halaman pun yang boleh terbuka —
+        // termasuk login staf & portal orang tua.
+        $middleware->prependToGroup('web', [
+            \App\Http\Middleware\EnsureLisensiAktif::class,
         ]);
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\NoCacheHeaders::class,

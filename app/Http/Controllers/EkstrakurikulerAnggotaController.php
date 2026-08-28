@@ -25,8 +25,28 @@ use Illuminate\Support\Facades\DB;
  */
 class EkstrakurikulerAnggotaController extends Controller
 {
+    /**
+     * Keanggotaan hanya boleh diubah pada kegiatan milik TAHUN AJARAN AKTIF.
+     *
+     * Sejak ekstrakurikuler ikut periode (migrasi 2026_08_28_000003), setiap
+     * tahun ajaran punya baris kegiatannya sendiri. Tanpa penjagaan ini,
+     * tautan/bookmark lama masih menunjuk id kegiatan tahun sebelumnya —
+     * dan anggota tahun berjalan bisa nyangkut di sana tanpa disadari.
+     */
+    private function pastikanPeriodeAktif(Ekstrakurikuler $ekstrakurikuler): void
+    {
+        abort_unless(
+            Ekstrakurikuler::periodeAktif()->whereKey($ekstrakurikuler->id)->exists(),
+            403,
+            'Kegiatan ini milik tahun ajaran lain sehingga anggotanya tidak dapat diubah. Salin dulu ke periode aktif lewat menu Tahun Ajaran → Salin Data, atau buat kegiatan baru.'
+        );
+    }
+
     public function index(Request $request, Ekstrakurikuler $ekstrakurikuler)
     {
+        // Sengaja TIDAK dijaga pastikanPeriodeAktif(): melihat daftar anggota
+        // kegiatan periode lampau memang diperbolehkan (pemilih periode di
+        // kepala halaman). Yang dijaga hanya aksi tulis di bawah.
         $ekstrakurikuler->load(['anggotas.siswa.kelas']);
         $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
 
@@ -39,7 +59,7 @@ class EkstrakurikulerAnggotaController extends Controller
         $siswaKelas = collect();
         $idAnggotaSaatIni = collect();
         if ($kelasDipilih) {
-            $siswaKelas = Siswa::where('kelas_id', $kelasDipilih->id)->where('is_active', true)->orderBy('nama')->get();
+            $siswaKelas = Siswa::diKelas($kelasDipilih->id)->where('is_active', true)->orderBy('nama')->get();
             $idAnggotaSaatIni = $ekstrakurikuler->anggotas->pluck('siswa_id');
         }
 
@@ -73,6 +93,7 @@ class EkstrakurikulerAnggotaController extends Controller
      */
     public function syncKelas(Request $request, Ekstrakurikuler $ekstrakurikuler)
     {
+        $this->pastikanPeriodeAktif($ekstrakurikuler);
         $validated = $request->validate([
             'kelas_id' => ['required', 'exists:kelas,id'],
             'siswa_id' => ['nullable', 'array'],
@@ -81,7 +102,7 @@ class EkstrakurikulerAnggotaController extends Controller
 
         $kelas = Kelas::findOrFail($validated['kelas_id']);
         $idTercentang = collect($validated['siswa_id'] ?? [])->map(fn ($id) => (int) $id);
-        $idSiswaKelasIni = Siswa::where('kelas_id', $kelas->id)->where('is_active', true)->pluck('id');
+        $idSiswaKelasIni = Siswa::diKelas($kelas->id)->where('is_active', true)->pluck('id');
 
         DB::transaction(function () use ($ekstrakurikuler, $idSiswaKelasIni, $idTercentang) {
             // Keluarkan: anggota lama dari kelas ini yang sekarang TIDAK dicentang.
@@ -108,6 +129,7 @@ class EkstrakurikulerAnggotaController extends Controller
 
     public function store(Request $request, Ekstrakurikuler $ekstrakurikuler)
     {
+        $this->pastikanPeriodeAktif($ekstrakurikuler);
         $validated = $request->validate([
             'siswa_id' => ['required', 'exists:siswas,id'],
         ]);
@@ -128,6 +150,7 @@ class EkstrakurikulerAnggotaController extends Controller
 
     public function destroy(Ekstrakurikuler $ekstrakurikuler, EkstrakurikulerSiswa $anggota)
     {
+        $this->pastikanPeriodeAktif($ekstrakurikuler);
         if ($anggota->ekstrakurikuler_id !== $ekstrakurikuler->id) {
             abort(404);
         }

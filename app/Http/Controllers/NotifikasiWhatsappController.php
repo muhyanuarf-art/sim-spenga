@@ -50,7 +50,7 @@ class NotifikasiWhatsappController extends Controller
         if ($user->role === 'guru') {
             $kelasWali = $user->kelasWali;
             if ($kelasWali) {
-                $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $kelasWali->id));
+                $query->whereHas('siswa', fn ($q) => $q->diKelas($kelasWali->id));
             } else {
                 $tanpaAksesData = true;
             }
@@ -59,10 +59,10 @@ class NotifikasiWhatsappController extends Controller
             if ($kelasBkList->isEmpty()) {
                 $tanpaAksesData = true;
             } else {
-                $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasBkList->pluck('id')));
+                $query->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasBkList->pluck('id')));
             }
         } elseif ($bisaFilterKelas && $request->filled('kelas_id')) {
-            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+            $query->whereHas('siswa', fn ($q) => $q->diKelas($request->kelas_id));
         }
 
         // PERBAIKAN PERFORMA — ringkasan dihitung lewat 3 query COUNT

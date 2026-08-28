@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\AnggotaKelas;
 use App\Models\Kelas;
 use App\Models\RiwayatKelasSiswa;
 use App\Models\Siswa;
@@ -58,71 +59,61 @@ class KeanggotaanKelas
     {
         $tanggal = Carbon::parse($tanggal)->toDateString();
 
-        // Kandidat: siapa saja yang PERNAH atau SEDANG berkaitan dengan
-        // kelas ini — supaya tidak perlu memindai riwayat SELURUH siswa
-        // sekolah, cukup yang relevan dengan kelas ini saja.
+        // (2026-08-29) Ditulis ulang setelah keanggotaan kelas pindah ke
+        // tabel anggota_kelas dan kelas menjadi milik SATU SEMESTER.
         //
-        // (2026-08-23, revisi) — sebelumnya kandidat riwayat hanya dicari
-        // lewat `kelas_id` (kelas TUJUAN pada baris riwayat itu). Untuk
-        // KELAS ASAL, ini salah: baris riwayat "pindah_kelas" mencatat
-        // kelas asal di kolom `kelas_asal_id`, BUKAN `kelas_id` (`kelas_id`
-        // di baris itu berisi kelas TUJUAN). Akibatnya siswa yang baris
-        // riwayat SATU-SATUNYA adalah baris pindah itu (kelas_id = kelas
-        // tujuan) tidak pernah lolos jadi kandidat saat kelas yang dicek
-        // adalah kelas ASAL-nya — jadi dia hilang total dari daftar,
-        // bahkan untuk tanggal SEBELUM dia pindah. Sekarang kandidat juga
-        // menjaring siswa lewat `kelas_asal_id`.
-        $idSekarang = Siswa::where('kelas_id', $kelas->id)->where('is_active', true)->pluck('id');
-        $idPernahDiRiwayat = RiwayatKelasSiswa::where('kelas_id', $kelas->id)
-            ->orWhere('kelas_asal_id', $kelas->id)
-            ->pluck('siswa_id');
-        $idKandidat = $idSekarang->merge($idPernahDiRiwayat)->unique()->values();
+        // Sumber kebenarannya sekarang anggota_kelas — daftar itu SUDAH
+        // benar untuk semester ini. Riwayat dipakai hanya untuk MENGGESER
+        // daftar tersebut ke tanggal yang diminta, dua penyesuaian saja:
+        //
+        //   1. KELUARKAN anggota sekarang yang baru MASUK kelas ini SESUDAH
+        //      $tanggal — pada tanggal itu dia masih di kelas lain.
+        //   2. MASUKKAN KEMBALI siswa yang KELUAR dari kelas ini sesudah
+        //      $tanggal — pada tanggal itu dia masih anggota di sini.
+        //
+        // Cara lama merekonstruksi dari nol lewat riwayat, dan itu pecah
+        // begitu tiap semester punya baris kelasnya sendiri: baris riwayat
+        // menunjuk kelas semester lain, sehingga SELURUH anggota terbuang
+        // dan form absensi tampil kosong.
+        $idAnggota = AnggotaKelas::where('kelas_id', $kelas->id)->pluck('siswa_id')->all();
 
-        if ($idKandidat->isEmpty()) {
-            return collect();
+        // Hanya riwayat yang menyangkut kelas ini — mutasi antar kelas lain
+        // tidak mengubah keanggotaan kelas ini.
+        $riwayat = RiwayatKelasSiswa::whereNotNull('tanggal_mutasi')
+            ->where(function ($q) use ($kelas) {
+                $q->where('kelas_id', $kelas->id)->orWhere('kelas_asal_id', $kelas->id);
+            })
+            // MUNDUR: daftar sekarang dibatalkan satu per satu dari mutasi
+            // paling akhir ke belakang. Urutan maju salah kalau ada dua mutasi
+            // di tanggal yang sama (mis. siswa keluar lalu kembali ke kelas
+            // yang sama pada hari itu) — hasilnya bisa terbalik.
+            ->orderByDesc('tanggal_mutasi')->orderByDesc('id')
+            ->get();
+
+        foreach ($riwayat as $r) {
+            $tglMutasi = $r->tanggal_mutasi->toDateString();
+
+            if ($tglMutasi <= $tanggal) {
+                continue; // sudah terjadi sebelum tanggal ini — daftar sekarang sudah benar
+            }
+
+            // Hanya PINDAH KELAS di tengah semester yang benar-benar
+            // menggeser keanggotaan. Baris "awal masuk" & "kenaikan kelas"
+            // adalah catatan administratif — tanggalnya tanggal PENDATAAN,
+            // bukan tanggal siswa mulai duduk di kelas itu. Dulu keduanya
+            // ikut dihitung, sehingga form absensi untuk tanggal sebelum
+            // pendataan tampil nyaris kosong.
+            if ((int) $r->kelas_id === (int) $kelas->id
+                && $r->jenis === RiwayatKelasSiswa::JENIS_PINDAH_KELAS) {
+                $idAnggota = array_values(array_diff($idAnggota, [$r->siswa_id]));
+            }
+
+            if ((int) $r->kelas_asal_id === (int) $kelas->id) {
+                $idAnggota[] = $r->siswa_id;
+            }
         }
 
-        $riwayatPerSiswa = RiwayatKelasSiswa::whereIn('siswa_id', $idKandidat)
-            ->whereNotNull('tanggal_mutasi')
-            ->orderBy('tanggal_mutasi')
-            ->orderBy('id')
-            ->get()
-            ->groupBy('siswa_id');
-
-        $kelasSekarangPerSiswa = Siswa::whereIn('id', $idKandidat)->pluck('kelas_id', 'id');
-
-        $idAnggota = $idKandidat->filter(function ($siswaId) use ($riwayatPerSiswa, $kelasSekarangPerSiswa, $kelas, $tanggal) {
-            $riwayat = $riwayatPerSiswa->get($siswaId, collect());
-
-            if ($riwayat->isEmpty()) {
-                // Tidak ada riwayat sama sekali — anggap sudah di kelas
-                // saat ini sejak awal.
-                return ($kelasSekarangPerSiswa[$siswaId] ?? null) === $kelas->id;
-            }
-
-            $efektif = $riwayat->filter(
-                fn ($r) => $r->tanggal_mutasi->toDateString() <= $tanggal
-            )->last();
-
-            if ($efektif) {
-                return $efektif->kelas_id === $kelas->id;
-            }
-
-            // Semua baris riwayat justru SESUDAH $tanggal. Sebelum tanggal
-            // mutasi PALING AWAL, siswa ada di kelas_asal_id baris itu
-            // (kalau ada) — ini menutup celah siswa yang baru punya baris
-            // riwayat pertama kali saat "Pindah Kelas" dipakai (baris
-            // riwayat awal_masuk-nya tidak pernah dibuat).
-            $paling_awal = $riwayat->first();
-            if ($paling_awal->kelas_asal_id !== null) {
-                return $paling_awal->kelas_asal_id === $kelas->id;
-            }
-
-            // Baris paling awal jenis awal_masuk (kelas_asal_id null) —
-            // sebelum tanggal itu siswa memang belum tercatat di kelas manapun.
-            return false;
-        });
-
-        return Siswa::whereIn('id', $idAnggota)->orderBy('nama')->get();
+        $idAnggota = collect($idAnggota)->unique()->values();
+        return Siswa::whereIn('id', $idAnggota)->where('is_active', true)->orderBy('nama')->get();
     }
 }

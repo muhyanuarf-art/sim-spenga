@@ -29,7 +29,23 @@ class Ekstrakurikuler extends Model
      */
     public function pembinas(): HasMany
     {
+        // Disaring ke SEMESTER AKTIF: pembina bisa berganti di tengah tahun
+        // (pensiun/mutasi) dan semester yang sudah lewat tidak boleh ikut
+        // berubah — lihat App\Models\EkstrakurikulerPembina. Untuk melihat
+        // seluruh semester sekaligus, pakai semuaPembinas().
+        return $this->hasMany(EkstrakurikulerPembina::class)->periodeAktif();
+    }
+
+    /** Pembina lintas semester — dipakai rekap/laporan periode lampau. */
+    public function semuaPembinas(): HasMany
+    {
         return $this->hasMany(EkstrakurikulerPembina::class);
+    }
+
+    /** Pembina pada SEMESTER tertentu. */
+    public function pembinasPada(?TahunAjaran $periode): HasMany
+    {
+        return $this->hasMany(EkstrakurikulerPembina::class)->untukSemester($periode);
     }
 
     /** Anggota (siswa) kegiatan ini — lihat App\Models\EkstrakurikulerSiswa. */

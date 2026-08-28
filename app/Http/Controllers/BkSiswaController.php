@@ -28,10 +28,10 @@ class BkSiswaController extends Controller
 
         $query = Siswa::periodeAktif()->with('kelas')->where('is_active', true);
         if ($kelasIds !== null) {
-            $query->whereIn('kelas_id', $kelasIds);
+            $query->diKelasIn($kelasIds);
         }
         if ($request->filled('kelas_id')) {
-            $query->where('kelas_id', $request->kelas_id);
+            $query->diKelas($request->kelas_id);
         }
         if ($request->filled('cari')) {
             $query->where('nama', 'like', '%' . $request->cari . '%');

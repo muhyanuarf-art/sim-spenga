@@ -83,10 +83,13 @@ class SiswaImport extends ImportDasar
                 'nama_ortu' => $this->teks($data, 'nama_ortu') ?: null,
                 'no_wa_ortu' => $this->teks($data, 'no_wa_ortu') ?: null,
                 'jenis_kelamin' => strtoupper($this->teks($data, 'jenis_kelamin')) === 'P' ? 'P' : 'L',
-                'kelas_id' => $kelas->id,
                 'is_active' => true,
             ]
         );
+
+        // Kelas siswa disimpan per SEMESTER di anggota_kelas, bukan lagi
+        // kolom di tabel siswas (migrasi 2026_08_29_000001).
+        App\Models\AnggotaKelas::tempatkan($siswa->id, $kelas);
 
         $this->catat($siswa);
         $this->catatRiwayatKelas($siswa, $kelas->id, $kelasAsalId);

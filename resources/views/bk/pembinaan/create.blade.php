@@ -56,7 +56,9 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Jenis Pembinaan</label>
                     <select name="jenis_pembinaan" required class="input">
-                        @foreach(['Teguran lisan','Teguran tertulis','Penugasan edukatif','Konseling individu','Kontrak perilaku','Pemanggilan orang tua','Pembinaan khusus','Ruang refleksi','Skorsing edukatif','Pembinaan lanjutan'] as $jp)
+                        {{-- Daftarnya dari model supaya selalu sama dengan
+                             enum di database & aturan validasinya. --}}
+                        @foreach(\App\Models\PembinaanSiswa::JENIS_LIST as $jp)
                             <option value="{{ $jp }}" @selected(old('jenis_pembinaan') === $jp)>{{ $jp }}</option>
                         @endforeach
                     </select>

@@ -77,18 +77,24 @@
                     <p class="text-sm text-slate-400">Tidak ada data {{ mb_strtolower($judul) }} di {{ $sumber->labelPeriode() }} untuk disalin.</p>
                 @endif
 
-                @if($kunci === 'kelas' && count($disalin) > 0)
+                @if($kunci === 'wali_kelas' && count($disalin) > 0)
                     <p class="text-xs text-amber-600">
                         <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
-                        Wali kelas disalin sebagai titik awal — sesuaikan lagi di menu Data Kelas kalau ada pergantian.
+                        Disalin sebagai titik awal untuk {{ $tujuan->labelPeriode() }} — sesuaikan lagi di menu Data Kelas
+                        pada kelas yang wali kelasnya berganti. Semester sumber tidak ikut berubah.
                     </p>
                 @endif
 
                 @if($kunci === 'ekskul' && count($disalin) > 0)
                     <p class="text-xs text-amber-600">
                         <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
-                        Pembina ikut disalin, <strong>daftar anggotanya tidak</strong> — saat ini siswa {{ $tujuan->nama }}
-                        biasanya belum diimpor. Isi anggotanya lewat menu Ekstrakurikuler setelah Data Siswa lengkap.
+                        @if($tahunSama)
+                            Pembina <strong>dan daftar anggotanya</strong> ikut disalin — siswanya orang yang sama
+                            sepanjang tahun ajaran ini.
+                        @else
+                            Pembina ikut disalin, <strong>daftar anggotanya tidak</strong> — saat ini siswa {{ $tujuan->nama }}
+                            biasanya belum diimpor. Isi anggotanya lewat menu Ekstrakurikuler setelah Data Siswa lengkap.
+                        @endif
                     </p>
                 @endif
             @endif
@@ -99,7 +105,7 @@
         <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Yang tidak ikut disalin</p>
         <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
             <li><strong>Data Siswa</strong> — dipindahkan lewat Import Excel Data Siswa dengan kode kelas barunya, supaya riwayat kelas tiap siswa ikut tercatat.</li>
-            <li><strong>Anggota ekstrakurikuler</strong> — diisi ulang setelah data siswa periode baru lengkap.</li>
+            <li><strong>Anggota ekstrakurikuler</strong> — ikut disalin antar semester dalam satu tahun ajaran, tapi TIDAK ke tahun ajaran berikutnya (diisi ulang setelah data siswa periode baru lengkap).</li>
             <li><strong>Seluruh data transaksi</strong> (jurnal, absensi, nilai, kasus BK, surat) — itu catatan kejadian milik periodenya sendiri dan tetap tersimpan di sana.</li>
             <li><strong>Pengguna &amp; Pengaturan Sekolah</strong> — berlaku untuk seluruh periode, tidak pernah perlu disalin.</li>
         </ul>

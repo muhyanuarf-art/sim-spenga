@@ -81,6 +81,10 @@ class OrangTuaDashboardController extends Controller
             'password_diubah_at' => now(),
         ]);
 
-        return back()->with('success', 'Password berhasil diganti.');
+        // Ke dashboard, bukan back(): kalau orang tua sampai di sini karena
+        // dipaksa mengganti kata sandi bawaan, kembali ke form yang sama
+        // membuatnya seolah belum berhasil.
+        return redirect()->route('orangtua.dashboard')
+            ->with('success', 'Kata sandi berhasil diganti. Portal sekarang bisa dipakai sepenuhnya.');
     }
 }

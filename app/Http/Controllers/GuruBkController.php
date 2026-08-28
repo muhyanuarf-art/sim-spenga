@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Models\GuruBkKelas;
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
@@ -13,7 +14,7 @@ class GuruBkController extends Controller
 {
     public function index(Request $request)
     {
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
 
         $query = GuruBkKelas::with(['guru', 'kelas'])
             ->when($tahunAjaran, fn ($q) => $q->where('guru_bk_kelas.tahun_ajaran_id', $tahunAjaran->id))

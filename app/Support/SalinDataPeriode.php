@@ -2,8 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\AnggotaKelas;
 use App\Models\Ekstrakurikuler;
 use App\Models\EkstrakurikulerPembina;
+use App\Models\EkstrakurikulerSiswa;
 use App\Models\GuruBkKelas;
 use App\Models\GuruMengajarKelas;
 use App\Models\JadwalPelajaran;
@@ -12,6 +14,7 @@ use App\Models\JenisPelanggaran;
 use App\Models\JenisSurat;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\PenugasanWaliKelas;
 use App\Models\TahunAjaran;
 use Illuminate\Support\Facades\DB;
 
@@ -58,10 +61,11 @@ use Illuminate\Support\Facades\DB;
  * =====================================================================
  * YANG SENGAJA TIDAK IKUT DISALIN
  * =====================================================================
- * - Anggota ekstrakurikuler. Saat "Salin Data" dijalankan, siswa periode
- *   baru biasanya BELUM diimpor, jadi tidak ada yang bisa dijodohkan.
- *   Lebih jujur dikosongkan dan diisi ulang setelah data siswa lengkap
- *   daripada menyalin daftar yang memuat siswa yang sudah lulus.
+ * - Anggota ekstrakurikuler KE TAHUN AJARAN BERIKUTNYA. Saat itu siswa
+ *   periode baru biasanya BELUM diimpor, jadi tidak ada yang bisa
+ *   dijodohkan, dan daftar lama masih memuat siswa yang sudah lulus.
+ *   Antar SEMESTER dalam tahun yang sama, anggota justru IKUT disalin —
+ *   siswanya persis orang yang sama.
  * - Seluruh data transaksi (jurnal, absensi, nilai, kasus BK, surat).
  *   Itu catatan kejadian, bukan pengaturan.
  */
@@ -74,14 +78,26 @@ class SalinDataPeriode
         'pelanggaran' => 'Jenis Pelanggaran',
         'jenis_surat' => 'Jenis Surat',
         'ekskul' => 'Ekstrakurikuler (beserta pembinanya)',
-        'kelas' => 'Kelas & Wali Kelas',
+        'kelas' => 'Kelas',
+        'wali_kelas' => 'Penugasan Wali Kelas',
         'mengajar' => 'Mapping Guru Mengajar',
         'guru_bk' => 'Mapping Guru BK',
         'jadwal' => 'Jadwal Pelajaran',
     ];
 
-    /** Kategori yang isinya sama persis bila sumber & tujuan satu tahun ajaran (beda semester saja). */
-    public const KATEGORI_PER_TAHUN = ['mapel', 'jam', 'pelanggaran', 'jenis_surat', 'ekskul', 'kelas'];
+    /**
+     * Kategori yang melekat pada TAHUN ajaran, bukan semester — menyalinnya
+     * antar semester dalam tahun yang sama tidak ada gunanya karena
+     * barisnya memang sudah dipakai bersama.
+     *
+     * SEKARANG KOSONG: sejak kelas & daftar siswanya ikut semester
+     * (migrasi 2026_08_29_000001), TIDAK ADA LAGI data yang berlaku untuk
+     * satu tahun penuh. Semuanya per semester. Konstanta ini dipertahankan
+     * karena halaman pratinjau memakainya untuk menandai kategori yang
+     * "memang sudah sama" — dan supaya jelas bahwa daftarnya sengaja
+     * kosong, bukan terlupa.
+     */
+    public const KATEGORI_PER_TAHUN = [];
 
     /**
      * Rencana penyalinan — TIDAK menulis apa pun ke database.
@@ -96,34 +112,50 @@ class SalinDataPeriode
         }
 
         $tahunSama = $sumber->nama === $tujuan->nama;
-        $idSumber = self::idTahun($sumber);
-        $idTujuan = self::idTahun($tujuan);
+        $idSumber = $sumber->id;   // master data: per SEMESTER
+        $idTujuan = $tujuan->id;
+        $idTahunSumber = self::idTahun($sumber);   // kelas: per TAHUN
+        $idTahunTujuan = self::idTahun($tujuan);
 
-        // ===== Master data (hanya relevan kalau beda TAHUN AJARAN) =====
-        if (! $tahunSama) {
-            foreach (self::daftarMaster() as $kunci => $master) {
-                [$model, $kunciBaris, $label] = $master;
-                $adaDiTujuan = self::petaBaris($model, $idTujuan, $kunciBaris);
+        // ===== Master data — SELALU diperiksa, termasuk antar semester.
+        // Inilah alur "isi Semester 2 dari Semester 1". =====
+        foreach (self::daftarMaster() as $kunci => $master) {
+            [$model, $kunciBaris, $label] = $master;
+            $adaDiTujuan = self::petaBaris($model, $idTujuan, $kunciBaris);
 
-                foreach (self::baris($model, $idSumber) as $baris) {
-                    $sisi = isset($adaDiTujuan[$kunciBaris($baris)]) ? 'sudah_ada' : 'disalin';
-                    $rencana[$kunci][$sisi][] = ['label' => $label($baris), 'catatan' => null];
-                }
+            foreach (self::baris($model, $idSumber) as $baris) {
+                $sisi = isset($adaDiTujuan[$kunciBaris($baris)]) ? 'sudah_ada' : 'disalin';
+                $rencana[$kunci][$sisi][] = ['label' => $label($baris), 'catatan' => null];
             }
+        }
 
-            // ===== Kelas =====
+        // ===== Kelas — SELALU, termasuk antar semester: sejak
+        // 2026_08_29_000001 kelas & daftar siswanya milik satu semester. =====
+        {
             $kelasTujuan = self::petaBaris(Kelas::class, $idTujuan, self::kunciKelas());
-            foreach (self::baris(Kelas::class, $idSumber, ['waliKelas'], ['tingkat', 'nama_kelas']) as $k) {
+            foreach (self::baris(Kelas::class, $idSumber, [], ['tingkat', 'nama_kelas']) as $k) {
                 $sisi = isset($kelasTujuan[self::kunciKelas()($k)]) ? 'sudah_ada' : 'disalin';
                 $rencana['kelas'][$sisi][] = [
                     'label' => $k->nama_kelas.' (Tingkat '.$k->tingkat.')',
-                    'catatan' => 'Wali Kelas: '.($k->waliKelas->name ?? 'belum diatur'),
+                    // Wali kelas SEMESTER SUMBER, bukan yang sedang aktif.
+                    'catatan' => 'Wali Kelas: '.($k->waliKelasPada($sumber)->name ?? 'belum diatur'),
                 ];
             }
         }
 
         // ===== Mapping & jadwal (selalu diperiksa, termasuk antar semester) =====
-        $peta = self::petaPenjodohan($idSumber, $idTujuan, $tahunSama);
+        $peta = self::petaPenjodohan($idSumber, $idTujuan, $idTahunSumber, $idTahunTujuan, $tahunSama);
+
+        foreach (self::penugasanWaliSumber($sumber->id) as $pw) {
+            $kelasTujuanId = $peta['kelas'][$pw->kelas_id] ?? null;
+            $sudahAda = $kelasTujuanId && PenugasanWaliKelas::where('tahun_ajaran_id', $idTujuan)
+                ->where('kelas_id', $kelasTujuanId)->exists();
+
+            $rencana['wali_kelas'][$sudahAda ? 'sudah_ada' : 'disalin'][] = [
+                'label' => ($pw->kelas->nama_kelas ?? '-').' — '.($pw->guru->name ?? '-'),
+                'catatan' => $kelasTujuanId ? null : 'kelasnya dibuat lebih dulu dalam aksi yang sama',
+            ];
+        }
 
         foreach (self::mengajarSumber($sumber->id) as $m) {
             [$sisi, $catatan] = self::periksaMengajar($m, $peta, $idTujuan);
@@ -163,63 +195,115 @@ class SalinDataPeriode
     public static function jalankan(TahunAjaran $sumber, TahunAjaran $tujuan): array
     {
         $tahunSama = $sumber->nama === $tujuan->nama;
-        $idSumber = self::idTahun($sumber);
-        $idTujuan = self::idTahun($tujuan);
+        $idSumber = $sumber->id;   // master data: per SEMESTER
+        $idTujuan = $tujuan->id;
+        $idTahunSumber = self::idTahun($sumber);   // kelas: per TAHUN
+        $idTahunTujuan = self::idTahun($tujuan);
 
         $jumlah = array_fill_keys(array_keys(self::KATEGORI), 0);
 
-        DB::transaction(function () use ($sumber, $tujuan, $tahunSama, $idSumber, $idTujuan, &$jumlah) {
-            if (! $tahunSama) {
-                // --- 1..4: master data sederhana (salin kolomnya apa adanya) ---
-                foreach (self::daftarMaster() as $kunci => $master) {
-                    [$model, $kunciBaris, , $kolom] = $master;
-                    $adaDiTujuan = self::petaBaris($model, $idTujuan, $kunciBaris);
+        DB::transaction(function () use ($sumber, $tujuan, $tahunSama, $idSumber, $idTujuan, $idTahunSumber, $idTahunTujuan, &$jumlah) {
+            // --- 1..5: master data — SELALU, termasuk antar semester ---
+            foreach (self::daftarMaster() as $kunci => $master) {
+                [$model, $kunciBaris, , $kolom] = $master;
+                $adaDiTujuan = self::petaBaris($model, $idTujuan, $kunciBaris);
 
-                    foreach (self::baris($model, $idSumber) as $baris) {
-                        if (isset($adaDiTujuan[$kunciBaris($baris)])) {
-                            continue;
+                foreach (self::baris($model, $idSumber) as $baris) {
+                    if (isset($adaDiTujuan[$kunciBaris($baris)])) {
+                        continue;
+                    }
+
+                    $baru = $model::create(
+                        collect($kolom)->mapWithKeys(fn ($k) => [$k => $baris->{$k}])->all()
+                            + ['tahun_ajaran_id' => $idTujuan]
+                    );
+                    $jumlah[$kunci]++;
+
+                    if ($model === Ekstrakurikuler::class) {
+                        // Pembina SEMESTER SUMBER disalin ke SEMESTER TUJUAN.
+                        foreach ($baris->pembinasPada($sumber)->get() as $p) {
+                            EkstrakurikulerPembina::create([
+                                'ekstrakurikuler_id' => $baru->id,
+                                'tahun_ajaran_id' => $tujuan->id,
+                                'user_id' => $p->user_id,
+                                'nama_eksternal' => $p->nama_eksternal,
+                                'kontak_eksternal' => $p->kontak_eksternal,
+                            ]);
                         }
 
-                        $baru = $model::create(
-                            collect($kolom)->mapWithKeys(fn ($k) => [$k => $baris->{$k}])->all()
-                                + ['tahun_ajaran_id' => $idTujuan]
-                        );
-                        $jumlah[$kunci]++;
-
-                        // Ekstrakurikuler: pembinanya ikut, anggotanya TIDAK
-                        // (lihat catatan kelas ini).
-                        if ($model === Ekstrakurikuler::class) {
-                            foreach ($baris->pembinas as $p) {
-                                EkstrakurikulerPembina::create([
+                        // ANGGOTA hanya ikut kalau masih dalam TAHUN AJARAN
+                        // YANG SAMA — siswanya persis orang yang sama, jadi
+                        // menyalinnya menghemat pekerjaan. Ke tahun ajaran
+                        // BERIKUTNYA sengaja tidak: saat itu siswa periode
+                        // baru biasanya belum diimpor, dan daftar lama masih
+                        // memuat siswa yang sudah lulus.
+                        if ($tahunSama) {
+                            foreach ($baris->anggotas as $a) {
+                                EkstrakurikulerSiswa::create([
                                     'ekstrakurikuler_id' => $baru->id,
-                                    'user_id' => $p->user_id,
-                                    'nama_eksternal' => $p->nama_eksternal,
-                                    'kontak_eksternal' => $p->kontak_eksternal,
+                                    'siswa_id' => $a->siswa_id,
+                                    'tanggal_gabung' => $a->tanggal_gabung,
                                 ]);
                             }
                         }
                     }
                 }
+            }
 
-                // --- 5: kelas (+ wali kelas sebagai titik awal) ---
+            // --- 6: kelas BESERTA DAFTAR SISWANYA — selalu, termasuk antar
+            //     semester dalam satu tahun. Sejak 2026_08_29_000001 kelas
+            //     milik satu semester, jadi Semester 2 memang berangkat dari
+            //     kosong dan mewarisi susunan Semester 1 lewat langkah ini.
+            //
+            //     Anggotanya HANYA ikut bila masih dalam TAHUN AJARAN YANG
+            //     SAMA: siswanya persis orang yang sama. Ke tahun berikutnya
+            //     sengaja tidak, karena di sanalah kenaikan kelas & kelulusan
+            //     terjadi (lewat Import Excel Data Siswa). ---
+            {
                 $kelasTujuan = self::petaBaris(Kelas::class, $idTujuan, self::kunciKelas());
                 foreach (self::baris(Kelas::class, $idSumber, [], ['tingkat', 'nama_kelas']) as $k) {
-                    if (isset($kelasTujuan[self::kunciKelas()($k)])) {
-                        continue;
+                    $baru = $kelasTujuan[self::kunciKelas()($k)] ?? null;
+
+                    if (! $baru) {
+                        $baru = Kelas::firstOrCreate(
+                            ['tahun_ajaran_id' => $idTujuan, 'tingkat' => $k->tingkat, 'nama_kelas' => $k->nama_kelas]
+                        );
+                        if ($baru->wasRecentlyCreated) {
+                            $jumlah['kelas']++;
+                        }
                     }
-                    $baru = Kelas::firstOrCreate(
-                        ['tahun_ajaran_id' => $idTujuan, 'tingkat' => $k->tingkat, 'nama_kelas' => $k->nama_kelas],
-                        ['wali_kelas_id' => $k->wali_kelas_id]
-                    );
-                    if ($baru->wasRecentlyCreated) {
-                        $jumlah['kelas']++;
+
+                    if ($tahunSama) {
+                        foreach ($k->anggota as $a) {
+                            AnggotaKelas::tempatkan($a->siswa_id, $baru);
+                        }
                     }
                 }
             }
 
-            // --- 6..8: mapping & jadwal. Peta dihitung SETELAH master data
+            // --- 7: penugasan wali kelas — SELALU, karena ini penugasan
+            //     ORANG dan itu per semester. Inilah yang membuat "Semester 2
+            //     mewarisi wali kelas Semester 1" bisa dilakukan sekali klik,
+            //     lalu tinggal diubah pada kelas yang gurunya berganti. ---
+            $petaKelasAwal = self::petaPenjodohan($idSumber, $idTujuan, $idTahunSumber, $idTahunTujuan, $tahunSama)['kelas'];
+            foreach (self::penugasanWaliSumber($sumber->id) as $pw) {
+                $kelasTujuanId = $petaKelasAwal[$pw->kelas_id] ?? null;
+                if (! $kelasTujuanId) {
+                    continue;
+                }
+
+                $sudahAda = PenugasanWaliKelas::where('tahun_ajaran_id', $tujuan->id)
+                    ->where('kelas_id', $kelasTujuanId)->exists();
+
+                if (! $sudahAda) {
+                    PenugasanWaliKelas::tetapkan($kelasTujuanId, $pw->guru_id, $tujuan);
+                    $jumlah['wali_kelas']++;
+                }
+            }
+
+            // --- 8..10: mapping & jadwal. Peta dihitung SETELAH master data
             //     dibuat, supaya setiap penunjuk sudah menemukan barisnya. ---
-            $peta = self::petaPenjodohan($idSumber, $idTujuan, $tahunSama);
+            $peta = self::petaPenjodohan($idSumber, $idTujuan, $idTahunSumber, $idTahunTujuan, $tahunSama);
 
             foreach (self::mengajarSumber($sumber->id) as $m) {
                 $kelas = $peta['kelas'][$m->kelas_id] ?? null;
@@ -368,16 +452,17 @@ class SalinDataPeriode
      *
      * @return array{mapel: array<int,int>, jam: array<int,int>, kelas: array<int,int>}
      */
-    private static function petaPenjodohan(?int $idSumber, ?int $idTujuan, bool $tahunSama): array
+    private static function petaPenjodohan(?int $idSumber, ?int $idTujuan, ?int $idTahunSumber, ?int $idTahunTujuan, bool $tahunSama): array
     {
-        $bangun = function (string $model, callable $kunci) use ($idSumber, $idTujuan, $tahunSama) {
-            $sumber = self::baris($model, $idSumber);
+        $bangun = function (string $model, callable $kunci, ?int $dari, ?int $ke, bool $identitas) {
+            $sumber = self::baris($model, $dari);
 
-            if ($tahunSama) {
+            // "Identitas": barisnya memang sama (kelas dalam satu tahun).
+            if ($identitas) {
                 return $sumber->mapWithKeys(fn ($b) => [$b->id => $b->id])->all();
             }
 
-            $tujuan = self::petaBaris($model, $idTujuan, $kunci);
+            $tujuan = self::petaBaris($model, $ke, $kunci);
             $peta = [];
             foreach ($sumber as $b) {
                 $pasangan = $tujuan[$kunci($b)] ?? null;
@@ -392,9 +477,13 @@ class SalinDataPeriode
         $master = self::daftarMaster();
 
         return [
-            'mapel' => $bangun(MataPelajaran::class, $master['mapel'][1]),
-            'jam' => $bangun(JamPelajaran::class, $master['jam'][1]),
-            'kelas' => $bangun(Kelas::class, self::kunciKelas()),
+            // Mata pelajaran & jam pelajaran per SEMESTER — selalu perlu
+            // dijodohkan, termasuk antar semester dalam satu tahun.
+            'mapel' => $bangun(MataPelajaran::class, $master['mapel'][1], $idSumber, $idTujuan, false),
+            'jam' => $bangun(JamPelajaran::class, $master['jam'][1], $idSumber, $idTujuan, false),
+            // Kelas per TAHUN — dalam satu tahun barisnya memang sama.
+            // Kelas juga per SEMESTER sejak 2026_08_29_000001.
+            'kelas' => $bangun(Kelas::class, self::kunciKelas(), $idSumber, $idTujuan, false),
         ];
     }
 
@@ -404,6 +493,14 @@ class SalinDataPeriode
      * baris Ganjil. Karena itu ketiga pembacaan di bawah memakai id SEMESTER
      * yang dipilih admin apa adanya — bukan id Ganjil-nya.
      */
+
+    /** Penugasan wali kelas milik SATU SEMESTER. */
+    private static function penugasanWaliSumber(int $idSemester)
+    {
+        return PenugasanWaliKelas::with(['kelas', 'guru'])
+            ->where('tahun_ajaran_id', $idSemester)
+            ->get()->filter(fn ($pw) => $pw->kelas !== null);
+    }
 
     private static function mengajarSumber(int $idSemester)
     {

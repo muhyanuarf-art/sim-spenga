@@ -12,6 +12,7 @@ use App\Http\Controllers\BkPembinaanController;
 use App\Http\Controllers\BkPenguranganPoinController;
 use App\Http\Controllers\BkSiswaController;
 use App\Http\Controllers\AbsensiKegiatanController;
+use App\Http\Controllers\AktivasiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EkskulAbsensiController;
 use App\Http\Controllers\EkskulRekapController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\KegiatanSekolahController;
 use App\Http\Controllers\KelasController;
 use App\Http\Controllers\RiwayatKelasController;
 use App\Http\Controllers\LaporanGuruController;
+use App\Http\Controllers\KonteksPeriodeController;
 use App\Http\Controllers\LaporanSemesterController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MengajarController;
@@ -56,6 +58,12 @@ Route::get('/', fn () => redirect()->route('login'));
 Route::get('favicon.ico', [IkonAplikasiController::class, 'favicon'])->name('favicon');
 Route::get('site.webmanifest', [IkonAplikasiController::class, 'manifest'])->name('site.webmanifest');
 
+// ===== AKTIVASI LISENSI: satu-satunya halaman yang terbuka sebelum
+// aplikasi diaktifkan (lihat App\Support\Lisensi & middleware
+// EnsureLisensiAktif yang dipasang di grup 'web'). =====
+Route::get('aktivasi', [AktivasiController::class, 'form'])->name('aktivasi.form');
+Route::post('aktivasi', [AktivasiController::class, 'simpan'])->name('aktivasi.simpan')->middleware('throttle:aktivasi');
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'create'])->name('login');
     Route::post('login', [LoginController::class, 'store'])->middleware('throttle:login');
@@ -68,7 +76,11 @@ Route::prefix('orangtua')->name('orangtua.')->group(function () {
         Route::post('login', [OrangTuaLoginController::class, 'store'])->middleware('throttle:login-ortu');
     });
 
-    Route::middleware('auth:orangtua')->group(function () {
+    // 'ortu-ganti-password': selama kata sandi masih bawaan, seluruh
+    // halaman portal dialihkan ke form ganti kata sandi. Nama pengguna
+    // portal ini adalah NIS anak — lihat penjelasan lengkap di
+    // App\Http\Middleware\PaksaGantiPasswordOrangTua.
+    Route::middleware(['auth:orangtua', 'ortu-ganti-password'])->group(function () {
         Route::post('logout', [OrangTuaLoginController::class, 'destroy'])->name('logout');
         Route::get('dashboard', [OrangTuaDashboardController::class, 'index'])->name('dashboard');
         Route::get('ganti-password', [OrangTuaDashboardController::class, 'gantiPasswordForm'])->name('ganti-password.form');
@@ -79,6 +91,12 @@ Route::prefix('orangtua')->name('orangtua.')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Pemilih periode di kepala halaman — mengubah periode yang DILIHAT
+    // pengguna ini saja, bukan periode aktif sekolah. Sengaja TIDAK
+    // dipasangi middleware 'periode-aktif': justru inilah satu-satunya
+    // jalan keluar dari mode lihat-saja. Lihat App\Support\KonteksPeriode.
+    Route::post('konteks-periode', [KonteksPeriodeController::class, 'ganti'])->name('konteks-periode.ganti');
 
     // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
     // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),
@@ -136,7 +154,9 @@ Route::middleware('auth')->group(function () {
                 Route::put('pemanggilan/{pemanggilan}/hasil', [BkPemanggilanController::class, 'updateHasil'])->name('pemanggilan.hasil.update');
             });
 
-            Route::prefix('jenis-pelanggaran')->name('jenis-pelanggaran.')->group(function () {
+            // Master jenis pelanggaran kini ikut semester, jadi aksi
+            // tulisnya ikut dijaga 'periode-aktif' seperti master lain.
+            Route::prefix('jenis-pelanggaran')->name('jenis-pelanggaran.')->middleware('periode-aktif')->group(function () {
                 Route::get('/', [BkJenisPelanggaranController::class, 'index'])->name('index');
                 Route::post('/', [BkJenisPelanggaranController::class, 'store'])->name('store');
                 Route::put('/{jenisPelanggaran}', [BkJenisPelanggaranController::class, 'update'])->name('update');
@@ -229,7 +249,12 @@ Route::middleware('auth')->group(function () {
 
     // ===== KESISWAAN: master data Kegiatan Ekstrakurikuler =====
     // Master kegiatan + pembina: HANYA Kesiswaan & Admin yang mengelola.
-    Route::middleware('role:kesiswaan,admin')->group(function () {
+    Route::middleware(['role:kesiswaan,admin', 'periode-aktif'])->group(function () {
+        // 'periode-aktif' menjaga seluruh aksi TULIS di grup ini: sejak
+        // master data ikut semester (migrasi 2026_08_28_000005), menyimpan
+        // saat pengguna sedang menengok periode lampau akan mendaratkan
+        // datanya di periode aktif — terlihat seperti hilang. Rute GET
+        // tidak terpengaruh (lihat EnsurePeriodeTidakTerkunci).
         Route::resource('ekstrakurikuler', EkstrakurikulerController::class)->except(['create', 'edit', 'show']);
 
         // Anggota (siswa) per kegiatan — juga khusus Kesiswaan & Admin.
@@ -289,7 +314,12 @@ Route::middleware('auth')->group(function () {
     // dikelola TU. Disposisi/Lampiran/Activity Log DIHILANGKAN dari alur
     // ini (tidak ada di spesifikasi baru — tabelnya tetap ada di database,
     // cuma tidak dipakai lagi, supaya data lama kalau ada tidak hilang). =====
-    Route::middleware('role:tu,admin')->group(function () {
+    Route::middleware(['role:tu,admin', 'periode-aktif'])->group(function () {
+        // 'periode-aktif' menjaga seluruh aksi TULIS di grup ini: sejak
+        // master data ikut semester (migrasi 2026_08_28_000005), menyimpan
+        // saat pengguna sedang menengok periode lampau akan mendaratkan
+        // datanya di periode aktif — terlihat seperti hilang. Rute GET
+        // tidak terpengaruh (lihat EnsurePeriodeTidakTerkunci).
         Route::resource('jenis-surat', JenisSuratController::class)->except(['create', 'edit', 'show']);
     });
     Route::middleware('role:guru_bk,admin')->group(function () {
@@ -346,14 +376,15 @@ Route::middleware('auth')->group(function () {
             Route::post('/import', [JadwalController::class, 'import'])->name('import')->middleware('periode-aktif');
         });
 
-        Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])->parameters(['siswa' => 'siswa']);
+        Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show'])
+            ->parameters(['siswa' => 'siswa'])->middleware('periode-aktif');
         // (2026-08-23) — aksi khusus untuk siswa pindah kelas DI TENGAH tahun
         // ajaran berjalan (beda dengan siswa.update yang untuk koreksi data
         // biasa). Lihat SiswaController::pindahKelas().
         Route::post('siswa/{siswa}/pindah-kelas', [SiswaController::class, 'pindahKelas'])->name('siswa.pindah-kelas')->middleware('periode-aktif');
         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
         Route::get('siswa-import/template', [SiswaController::class, 'template'])->name('siswa.template');
-        Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');
+        Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import')->middleware('periode-aktif');
 
         // ===== AKUN PORTAL ORANG TUA =====
         // (2026-08-28) Menu tersendiri dihapus — pengelolaannya kini menyatu
@@ -366,16 +397,17 @@ Route::middleware('auth')->group(function () {
         Route::post('akun-ortu/{orangTua}/reset-password', [OrangTuaController::class, 'resetPassword'])->name('akun-ortu.reset-password');
         Route::delete('akun-ortu/{orangTua}', [OrangTuaController::class, 'destroy'])->name('akun-ortu.destroy');
 
-        Route::resource('kelas', KelasController::class)->except(['create', 'edit', 'show'])->parameters(['kelas' => 'kelas']);
+        Route::resource('kelas', KelasController::class)->except(['create', 'edit', 'show'])
+            ->parameters(['kelas' => 'kelas'])->middleware('periode-aktif');
         Route::get('kelas-import', [KelasController::class, 'importForm'])->name('kelas.import.form');
         Route::get('kelas-import/template', [KelasController::class, 'template'])->name('kelas.template');
-        Route::post('kelas-import', [KelasController::class, 'import'])->name('kelas.import');
-        Route::post('kelas-salin', [KelasController::class, 'salinDariTahunAjaran'])->name('kelas.salin');
+        Route::post('kelas-import', [KelasController::class, 'import'])->name('kelas.import')->middleware('periode-aktif');
+        Route::post('kelas-salin', [KelasController::class, 'salinDariTahunAjaran'])->name('kelas.salin')->middleware('periode-aktif');
 
-        Route::resource('mapel', MataPelajaranController::class)->except(['create', 'edit', 'show']);
+        Route::resource('mapel', MataPelajaranController::class)->except(['create', 'edit', 'show'])->middleware('periode-aktif');
         Route::get('mapel-import', [MataPelajaranController::class, 'importForm'])->name('mapel.import.form');
         Route::get('mapel-import/template', [MataPelajaranController::class, 'template'])->name('mapel.template');
-        Route::post('mapel-import', [MataPelajaranController::class, 'import'])->name('mapel.import');
+        Route::post('mapel-import', [MataPelajaranController::class, 'import'])->name('mapel.import')->middleware('periode-aktif');
 
         Route::resource('tahun-ajaran', TahunAjaranController::class)
             ->except(['create', 'edit', 'show'])
@@ -410,12 +442,19 @@ Route::middleware('auth')->group(function () {
         Route::get('rekap', [RekapController::class, 'index'])->name('rekap.index');
     });
 
-    // Jam pelajaran: input fleksibel oleh Admin, tapi Kurikulum boleh lihat
-    Route::middleware('role:admin')->group(function () {
+    // Jam pelajaran: Kurikulum boleh MELIHAT (jadwal disusun berdasarkan
+    // jam ini), tapi hanya Admin yang boleh mengubah. Dulu seluruh menunya
+    // dikunci ke Admin padahal komentarnya sudah menjanjikan sebaliknya.
+    Route::middleware('role:kurikulum,admin')->group(function () {
+        Route::get('jam-pelajaran', [JamPelajaranController::class, 'index'])->name('jam-pelajaran.index');
+    });
+    Route::middleware(['role:admin', 'periode-aktif'])->group(function () {
         Route::resource('jam-pelajaran', JamPelajaranController::class)
-            ->except(['create', 'edit', 'show'])
+            ->only(['store', 'update', 'destroy'])
             ->parameters(['jam-pelajaran' => 'jamPelajaran']);
         Route::post('jam-pelajaran-salin', [JamPelajaranController::class, 'salin'])->name('jam-pelajaran.salin');
+    });
+    Route::middleware('role:admin')->group(function () {
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
     });
 });

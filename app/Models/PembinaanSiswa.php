@@ -34,6 +34,29 @@ class PembinaanSiswa extends Model
     public const STATUS_BERJALAN = 'Pembinaan';
     public const STATUS_SELESAI = 'Selesai';
 
+    /**
+     * Pilihan jenis pembinaan — HARUS sama persis dengan enum kolom
+     * `jenis_pembinaan` di database.
+     *
+     * (2026-08-28) Dulu daftar ini cuma ditulis di dalam view, sedangkan
+     * validasinya hanya ['required','string']. Nilai di luar daftar lolos
+     * validasi lalu ditolak database ("Data truncated") dan berakhir
+     * sebagai HTTP 500. Sekarang satu daftar dipakai bersama oleh form dan
+     * validasi, jadi tidak mungkin lagi berbeda.
+     */
+    public const JENIS_LIST = [
+        'Teguran lisan',
+        'Teguran tertulis',
+        'Penugasan edukatif',
+        'Konseling individu',
+        'Kontrak perilaku',
+        'Pemanggilan orang tua',
+        'Pembinaan khusus',
+        'Ruang refleksi',
+        'Skorsing edukatif',
+        'Pembinaan lanjutan',
+    ];
+
     public function isSelesai(): bool
     {
         return $this->status === self::STATUS_SELESAI;

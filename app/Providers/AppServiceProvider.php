@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\KonteksPeriode;
 use App\Models\PengaturanSekolah;
 use App\Models\TahunAjaran;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -19,10 +20,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Sediakan Tahun Ajaran aktif ke layout utama, agar bisa ditampilkan
-        // di Top Bar Header tanpa perlu di-passing manual dari tiap controller.
-        View::composer('layouts.app', function ($view) {
+        // Periode yang sedang DILIHAT pengguna dipakai di banyak lembar
+        // cetak (kop surat, judul rekap), jadi disediakan ke SEMUA view —
+        // bukan cuma layouts.app — dengan alasan yang sama seperti
+        // pengaturanSekolahGlobal di bawah: isi @section sudah selesai
+        // dirender sebelum composer layout sempat jalan.
+        //
+        // 'tahunAjaranAktifGlobal' sengaja tetap berisi periode yang
+        // BENAR-BENAR BERJALAN (bukan pilihan), supaya halaman yang perlu
+        // membedakan keduanya bisa melakukannya.
+        View::composer('*', function ($view) {
             $view->with('tahunAjaranAktifGlobal', TahunAjaran::aktif());
+            $view->with('periodePilihanGlobal', KonteksPeriode::pilihan());
         });
 
         // Dipakai di '*' (bukan cuma layouts.app) supaya juga otomatis kebaca
@@ -48,6 +57,12 @@ class AppServiceProvider extends ServiceProvider
         // Dibatasi per kombinasi identitas (email/NIS) + IP, supaya 1 IP
         // tidak bisa mencoba banyak akun sekaligus tanpa batas, sekaligus
         // 1 akun tidak bisa dibrute-force dari banyak IP tanpa batas.
+        // Percobaan aktivasi dibatasi: nomor seri 20 karakter memang tidak
+        // realistis ditebak, tapi membatasi tetap menutup upaya membanjiri.
+        RateLimiter::for('aktivasi', function ($request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
         RateLimiter::for('login', function ($request) {
             $key = Str::lower($request->input('email')) . '|' . $request->ip();
             return Limit::perMinute(5)->by($key)->response(function () {

@@ -23,7 +23,7 @@ class BkDashboardController extends Controller
 
         $kasusQuery = KasusSiswa::aktif()->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds));
         $pembinaanQuery = PembinaanSiswa::when($kelasIds !== null,
-            fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->whereIn('kelas_id', $kelasIds)));
+            fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->diKelasIn($kelasIds)));
 
         // PERBAIKAN PERFORMA — lihat App\Support\RentangBulan.
         [$awalBulanIni, $akhirBulanIni] = RentangBulan::dari((int) now()->year, (int) now()->month);
@@ -51,7 +51,7 @@ class BkDashboardController extends Controller
         $siswaDalamPembinaanIds = (clone $pembinaanQuery)->where('status', 'Pembinaan')->distinct()->pluck('siswa_id');
 
         $siswaMembaikIds = PenguranganPoinSiswa::aktif()
-            ->when($kelasIds !== null, fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->whereIn('kelas_id', $kelasIds)))
+            ->when($kelasIds !== null, fn ($q) => $q->whereHas('siswa', fn ($q2) => $q2->diKelasIn($kelasIds)))
             ->where('tanggal', '>=', now()->subDays(30))
             ->distinct()->pluck('siswa_id');
 

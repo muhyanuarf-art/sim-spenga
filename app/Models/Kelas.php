@@ -5,7 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Support\KonteksPeriode;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Kelas extends Model
 {
@@ -16,7 +19,7 @@ class Kelas extends Model
     public const STATUS_AKTIF = 'aktif';
     public const STATUS_NONAKTIF = 'nonaktif';
 
-    protected $fillable = ['tahun_ajaran_id', 'nama_kelas', 'tingkat', 'wali_kelas_id', 'status'];
+    protected $fillable = ['tahun_ajaran_id', 'nama_kelas', 'tingkat', 'status'];
 
     /**
      * STEP 5 Bagian 4 — setiap baris kelas terikat SATU tahun ajaran.
@@ -28,14 +31,74 @@ class Kelas extends Model
         return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id');
     }
 
-    public function waliKelas(): BelongsTo
+    /** Seluruh penugasan wali kelas untuk kelas ini, lintas semester. */
+    public function penugasanWali(): HasMany
     {
-        return $this->belongsTo(User::class, 'wali_kelas_id');
+        return $this->hasMany(PenugasanWaliKelas::class, 'kelas_id');
     }
 
-    public function siswas(): HasMany
+    /**
+     * WALI KELAS PADA PERIODE AKTIF.
+     *
+     * Dulu ini kolom `kelas.wali_kelas_id`. Karena baris kelas dipakai
+     * bersama Semester Ganjil & Genap, mengganti wali kelas di Semester 2
+     * ikut mengubah Semester 1 — lihat App\Models\PenugasanWaliKelas.
+     *
+     * Bentuknya sengaja tetap "satu relasi yang menghasilkan User", supaya
+     * seluruh pemakaian lama ($kelas->waliKelas->name, with('waliKelas'),
+     * blok tanda tangan pada lembar cetak) tidak perlu diubah sama sekali.
+     * Untuk periode selain yang aktif, pakai waliKelasPada().
+     */
+    public function waliKelas(): HasOneThrough
     {
-        return $this->hasMany(Siswa::class, 'kelas_id');
+        // Periode PILIHAN, bukan periode aktif — lihat App\Support\KonteksPeriode.
+        $aktif = KonteksPeriode::pilihan();
+
+        return $this->hasOneThrough(
+            User::class,
+            PenugasanWaliKelas::class,
+            'kelas_id',  // kunci di penugasan yang menunjuk kelas
+            'id',        // kunci di users
+            'id',        // kunci lokal di kelas
+            'guru_id'    // kunci di penugasan yang menunjuk users
+        )->when(
+            $aktif,
+            fn ($q) => $q->where('penugasan_wali_kelas.tahun_ajaran_id', $aktif->id),
+            fn ($q) => $q->whereRaw('1 = 0')
+        );
+    }
+
+    /** Wali kelas pada SEMESTER tertentu — dipakai laporan periode lampau. */
+    public function waliKelasPada(?TahunAjaran $periode): ?User
+    {
+        if (! $periode) {
+            return null;
+        }
+
+        return PenugasanWaliKelas::where('tahun_ajaran_id', $periode->id)
+            ->where('kelas_id', $this->id)
+            ->first()?->guru;
+    }
+
+    /** Seluruh baris keanggotaan kelas ini. */
+    public function anggota(): HasMany
+    {
+        return $this->hasMany(AnggotaKelas::class, 'kelas_id');
+    }
+
+    /**
+     * SISWA ANGGOTA KELAS INI.
+     *
+     * Sejak 29 Agustus 2026 keanggotaan disimpan per SEMESTER di tabel
+     * anggota_kelas — kelas ini sendiri sudah milik satu semester, jadi
+     * daftarnya tidak perlu disaring periode lagi. Bentuknya dipertahankan
+     * sebagai relasi berisi Siswa supaya pemakaian lama ($kelas->siswas,
+     * withCount('siswas'), with('siswas')) tetap jalan apa adanya.
+     */
+    public function siswas(): BelongsToMany
+    {
+        return $this->belongsToMany(Siswa::class, 'anggota_kelas', 'kelas_id', 'siswa_id')
+            ->withTimestamps();
     }
 
     public function guruMengajar(): HasMany
@@ -81,15 +144,13 @@ class Kelas extends Model
      */
     public function scopeUntukTahunAjaran($query, TahunAjaran $tahunAjaran)
     {
-        $idGanjil = $tahunAjaran->semester === 'Ganjil'
-            ? $tahunAjaran->id
-            : TahunAjaran::idSemesterGanjilUntukNama($tahunAjaran->nama);
-
-        if (! $idGanjil) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->where('tahun_ajaran_id', $idGanjil);
+        // Kelas kini milik SATU SEMESTER (migrasi 2026_08_29_000001),
+        // jadi tidak ada lagi pencarian baris Ganjil.
+        //
+        // Nama tabel ditulis lengkap karena scope ini juga dipakai di dalam
+        // whereHas('kelas', ...) dari Siswa — di sana query-nya ikut
+        // menggabungkan anggota_kelas yang punya kolom tahun_ajaran_id juga.
+        return $query->where('kelas.tahun_ajaran_id', $tahunAjaran->id);
     }
 
     /** Sama seperti scopeUntukTahunAjaran(), tapi menerima ID tahun ajaran (dipakai import Excel). */
@@ -111,7 +172,7 @@ class Kelas extends Model
      */
     public function scopeAktif($query)
     {
-        $periodeAktif = TahunAjaran::aktif();
+        $periodeAktif = KonteksPeriode::pilihan();
         if (! $periodeAktif) {
             return $query->whereRaw('1 = 0');
         }

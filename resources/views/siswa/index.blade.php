@@ -145,7 +145,7 @@
                                 </select>
                                 <select name="kelas_id" required class="input">
                                     @foreach($kelasList as $k)
-                                        <option value="{{ $k->id }}" {{ $s->kelas_id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                                        <option value="{{ $k->id }}" {{ optional($s->kelas)->id == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
                                     @endforeach
                                 </select>
                                 <label class="flex items-center gap-1.5 text-xs text-slate-600 font-semibold">
@@ -176,7 +176,7 @@
                                     <select name="kelas_tujuan_id" required class="input">
                                         <option value="">Pilih Kelas</option>
                                         @foreach($kelasList as $k)
-                                            @if($k->id != $s->kelas_id)
+                                            @if($k->id != optional($s->kelas)->id)
                                                 <option value="{{ $k->id }}">{{ $k->nama_kelas }}</option>
                                             @endif
                                         @endforeach

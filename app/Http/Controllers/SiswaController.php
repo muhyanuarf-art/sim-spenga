@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnggotaKelas;
 use App\Rules\DalamPeriode;
 use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
@@ -26,7 +27,7 @@ class SiswaController extends Controller
         // kelas barunya, siswa kelas 9 yang lulus otomatis tidak muncul
         // lagi di sini — tidak perlu dinonaktifkan satu per satu.
         $query = Siswa::periodeAktif()->with(['kelas', 'orangTua'])
-            ->when($request->kelas_id, fn ($q) => $q->where('kelas_id', $request->kelas_id));
+            ->when($request->kelas_id, fn ($q) => $q->diKelas($request->kelas_id));
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('nama', 'like', "%{$request->search}%")
@@ -61,7 +62,13 @@ class SiswaController extends Controller
                 Rule::exists('kelas', 'id')->where(fn ($q) => $q->whereIn('id', Kelas::aktif()->pluck('id'))),
             ],
         ]);
+        // Keanggotaan kelas TIDAK lagi kolom di tabel siswas — sejak
+        // 2026_08_29_000001 disimpan per SEMESTER di anggota_kelas.
+        $kelasBaru = Kelas::findOrFail($validated['kelas_id']);
+        unset($validated['kelas_id']);
+
         $siswa = Siswa::create($validated);
+        AnggotaKelas::tempatkan($siswa->id, $kelasBaru);
 
         // (2026-08-23) — catat baris riwayat "awal_masuk" saat siswa baru
         // ditambahkan manual lewat sini. Sebelumnya method ini TIDAK
@@ -74,7 +81,7 @@ class SiswaController extends Controller
         // dipakai (dan jaring pengaman tambahan di sana untuk data lama
         // yang sudah kadung tidak punya baris awal_masuk).
         $this->catatMutasiKelas(
-            $siswa, null, (int) $validated['kelas_id'], now()->toDateString(),
+            $siswa, null, $kelasBaru->id, now()->toDateString(),
             null, RiwayatKelasSiswa::JENIS_AWAL_MASUK
         );
 
@@ -103,11 +110,15 @@ class SiswaController extends Controller
         // "Pindah Kelas" di bawah. Supaya Riwayat Kelas TETAP akurat apa
         // pun jalur yang dipakai admin/kurikulum, catat mutasinya di sini
         // juga kalau kelas_id benar-benar berubah.
-        $kelasAsalId = $siswa->kelas_id;
-        $siswa->update($validated);
+        $kelasAsalId = $siswa->kelasIdSekarang();
+        $kelasBaru = Kelas::findOrFail($validated['kelas_id']);
+        unset($validated['kelas_id']);
 
-        if ((int) $validated['kelas_id'] !== (int) $kelasAsalId) {
-            $this->catatMutasiKelas($siswa, $kelasAsalId, (int) $validated['kelas_id'], now()->toDateString(),
+        $siswa->update($validated);
+        AnggotaKelas::tempatkan($siswa->id, $kelasBaru);
+
+        if ($kelasBaru->id !== (int) $kelasAsalId) {
+            $this->catatMutasiKelas($siswa, $kelasAsalId, $kelasBaru->id, now()->toDateString(),
                 'Diubah lewat form Edit Data Siswa.');
         }
 
@@ -138,14 +149,14 @@ class SiswaController extends Controller
         ]);
 
         $kelasTujuanId = (int) $validated['kelas_tujuan_id'];
-        if ($kelasTujuanId === (int) $siswa->kelas_id) {
+        if ($kelasTujuanId === (int) $siswa->kelasIdSekarang()) {
             return back()->with('error', 'Kelas tujuan sama dengan kelas siswa saat ini.');
         }
 
-        $kelasAsalId = $siswa->kelas_id;
+        $kelasAsalId = $siswa->kelasIdSekarang();
         $tanggalMutasi = $validated['tanggal_mutasi'] ?? now()->toDateString();
 
-        $siswa->update(['kelas_id' => $kelasTujuanId]);
+        AnggotaKelas::tempatkan($siswa->id, Kelas::findOrFail($kelasTujuanId));
 
         $this->catatMutasiKelas($siswa, $kelasAsalId, $kelasTujuanId, $tanggalMutasi, $validated['keterangan'] ?? null);
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Models\AbsensiKegiatan;
 use App\Models\AbsensiSiswa;
 use App\Models\Ekstrakurikuler;
@@ -27,7 +28,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
 
         return match ($user->role) {
             'tu' => $this->dashboardTu(),
@@ -305,11 +306,11 @@ class DashboardController extends Controller
                 ->count();
 
             $siswaDalamPembinaan = PembinaanSiswa::where('status', 'Pembinaan')
-                ->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasBkIds))
+                ->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasBkIds))
                 ->distinct()->count('siswa_id');
 
             $pemanggilanMenunggu = PemanggilanOrangTua::where('status', PemanggilanOrangTua::STATUS_MENUNGGU_PERTEMUAN)
-                ->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasBkIds))
+                ->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasBkIds))
                 ->count();
         }
 

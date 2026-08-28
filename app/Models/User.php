@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\KonteksPeriode;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class User extends Authenticatable
 {
@@ -70,23 +71,31 @@ class User extends Authenticatable
      * NotifikasiWhatsappController, dst) otomatis benar tanpa perlu diubah
      * satu per satu.
      *
-     * PERBAIKAN PERFORMA — sebelumnya whereHas('tahunAjaran', ...)
-     * (EXISTS subquery). Sekarang WHERE tahun_ajaran_id = ... langsung
-     * lewat TahunAjaran::idSemesterGanjilUntukNama() (lihat catatan di
-     * method itu) — index biasa, jauh lebih murah, dan method ini
-     * dipanggil di sidebar yang tampil di SETIAP halaman untuk role Guru.
+     * (2026-08-28) Sumbernya pindah dari kolom `kelas.wali_kelas_id` ke
+     * tabel penugasan_wali_kelas, dan penyaringnya kini SEMESTER AKTIF —
+     * bukan lagi tahun ajaran. Guru yang menggantikan wali kelas mulai
+     * Semester 2 tidak ikut tercatat sebagai wali kelas Semester 1.
+     * Lihat App\Models\PenugasanWaliKelas.
      */
-    public function kelasWali(): HasOne
+    public function kelasWali(): HasOneThrough
     {
-        $periodeAktif = TahunAjaran::aktif();
-        $idGanjil = $periodeAktif ? TahunAjaran::idSemesterGanjilUntukNama($periodeAktif->nama) : null;
+        // Periode PILIHAN, bukan periode aktif — guru yang menengok
+        // semester lampau kembali dikenali sebagai wali kelas pada
+        // semester itu (App\Support\KonteksPeriode).
+        $periodeAktif = KonteksPeriode::pilihan();
 
-        return $this->hasOne(Kelas::class, 'wali_kelas_id')
-            ->when(
-                $idGanjil,
-                fn ($q) => $q->where('tahun_ajaran_id', $idGanjil),
-                fn ($q) => $q->whereRaw('1 = 0')
-            );
+        return $this->hasOneThrough(
+            Kelas::class,
+            PenugasanWaliKelas::class,
+            'guru_id',   // kunci di penugasan yang menunjuk users
+            'id',        // kunci di kelas
+            'id',        // kunci lokal di users
+            'kelas_id'   // kunci di penugasan yang menunjuk kelas
+        )->when(
+            $periodeAktif,
+            fn ($q) => $q->where('penugasan_wali_kelas.tahun_ajaran_id', $periodeAktif->id),
+            fn ($q) => $q->whereRaw('1 = 0')
+        );
     }
 
     public function mengajarKelas(): HasMany
@@ -112,7 +121,7 @@ class User extends Authenticatable
             return $this->cachedKelasBk;
         }
 
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
         if (! $tahunAjaran) {
             return $this->cachedKelasBk = collect();
         }

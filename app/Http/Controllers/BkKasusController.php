@@ -81,7 +81,7 @@ class BkKasusController extends Controller
         // siswanya, jadi cukup dropdown per kelas yang relevan.
         $kelasIds = $this->bkKelasIdsUntukUser($request->user());
         $siswaList = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
-            ->when($kelasIds !== null && $kelasIds !== [], fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+            ->when($kelasIds !== null && $kelasIds !== [], fn ($q) => $q->diKelasIn($kelasIds))
             ->orderBy('nama')->get();
 
         return view('bk.kasus.create', compact('jenisList', 'rentangKategori', 'siswaList'));
@@ -122,7 +122,7 @@ class BkKasusController extends Controller
 
         KasusSiswa::create([
             'siswa_id' => $validated['siswa_id'],
-            'kelas_id' => $siswa->kelas_id,
+            'kelas_id' => $siswa->kelasIdSekarang(),
             'jenis_pelanggaran_id' => $jenis->id,
             'tahun_ajaran_id' => $tahunAjaran->id,
             'tanggal_kejadian' => $validated['tanggal_kejadian'],

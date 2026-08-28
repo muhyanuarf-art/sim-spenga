@@ -454,7 +454,8 @@ class Navigasi
                         'route' => 'jam-pelajaran.index',
                         'cocok' => ['jam-pelajaran.*'],
                         'deskripsi' => 'Pengaturan jam ke-1 sampai terakhir beserta rentang waktunya.',
-                        'roles' => ['admin'],
+                        // Kurikulum melihat saja — jadwal disusun berdasarkan jam ini.
+                        'roles' => ['kurikulum', 'admin'],
                     ],
                     [
                         'label' => 'Kelola Pengguna',

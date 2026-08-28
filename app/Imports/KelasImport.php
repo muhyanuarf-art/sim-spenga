@@ -3,6 +3,8 @@
 namespace App\Imports;
 
 use App\Models\Kelas;
+use App\Models\PenugasanWaliKelas;
+use App\Models\TahunAjaran;
 use App\Models\User;
 
 /**
@@ -68,15 +70,26 @@ class KelasImport extends ImportDasar
             }
         }
 
-        $this->catat(Kelas::updateOrCreate(
+        $kelas = Kelas::updateOrCreate(
             [
                 'tahun_ajaran_id' => $this->tahunAjaranId,
                 'nama_kelas' => $namaKelas,
             ],
-            [
-                'tingkat' => $tingkat,
-                'wali_kelas_id' => $waliKelasId,
-            ]
-        ));
+            ['tingkat' => $tingkat]
+        );
+
+        // Wali kelas bukan lagi kolom di tabel kelas — penugasannya per
+        // SEMESTER (lihat App\Models\PenugasanWaliKelas). Kolom NIP yang
+        // dikosongkan pada berkas Excel TIDAK menghapus wali kelas yang
+        // sudah terpasang; untuk mengosongkannya, ubah lewat menu Data Kelas.
+        if ($waliKelasId) {
+            PenugasanWaliKelas::tetapkanLewatFormKelas(
+                $kelas->id,
+                $waliKelasId,
+                TahunAjaran::find($this->tahunAjaranId)
+            );
+        }
+
+        $this->catat($kelas);
     }
 }

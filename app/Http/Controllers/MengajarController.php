@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Rules\DalamPeriode;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
@@ -52,7 +53,7 @@ class MengajarController extends Controller
             $guru = $guruList->firstWhere('id', $guruId);
         }
 
-        $tahunAjaranAktif = TahunAjaran::aktif();
+        $tahunAjaranAktif = KonteksPeriode::pilihan();
         $hari = $request->get('hari', $this->hariIniIndonesia());
 
         $periodeList = collect();

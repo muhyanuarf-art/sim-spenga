@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\KonteksPeriode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Siswa extends Model
 {
@@ -14,7 +16,10 @@ class Siswa extends Model
 
     protected $table = 'siswas';
 
-    protected $fillable = ['nis', 'nisn', 'nama', 'nama_ortu', 'no_wa_ortu', 'jenis_kelamin', 'kelas_id', 'is_active'];
+    // kelas_id TIDAK ada lagi di sini: keanggotaan kelas pindah ke tabel
+    // anggota_kelas karena satu siswa punya kelas BERBEDA tiap semester.
+    // Lihat App\Models\AnggotaKelas.
+    protected $fillable = ['nis', 'nisn', 'nama', 'nama_ortu', 'no_wa_ortu', 'jenis_kelamin', 'is_active'];
 
     protected function casts(): array
     {
@@ -40,9 +45,64 @@ class Siswa extends Model
         });
     }
 
-    public function kelas(): BelongsTo
+    /** Seluruh keanggotaan kelas siswa ini, lintas semester. */
+    public function keanggotaanKelas(): HasMany
     {
-        return $this->belongsTo(Kelas::class, 'kelas_id');
+        return $this->hasMany(AnggotaKelas::class, 'siswa_id');
+    }
+
+    /**
+     * KELAS SISWA INI PADA PERIODE YANG SEDANG DILIHAT.
+     *
+     * Bentuknya sengaja tetap "satu relasi yang menghasilkan Kelas",
+     * supaya seluruh pemakaian lama ($siswa->kelas->nama_kelas,
+     * with('kelas'), kop lembar cetak) tidak perlu diubah.
+     */
+    public function kelas(): HasOneThrough
+    {
+        $periode = KonteksPeriode::pilihan();
+
+        return $this->hasOneThrough(
+            Kelas::class,
+            AnggotaKelas::class,
+            'siswa_id',  // kunci di anggota_kelas yang menunjuk siswa
+            'id',        // kunci di kelas
+            'id',        // kunci lokal di siswas
+            'kelas_id'   // kunci di anggota_kelas yang menunjuk kelas
+        )->when(
+            $periode,
+            fn ($q) => $q->where('anggota_kelas.tahun_ajaran_id', $periode->id),
+            fn ($q) => $q->whereRaw('1 = 0')
+        );
+    }
+
+    /** Kelas siswa ini pada SEMESTER tertentu (dipakai laporan periode lampau). */
+    public function kelasPada(?TahunAjaran $periode): ?Kelas
+    {
+        if (! $periode) {
+            return null;
+        }
+
+        return AnggotaKelas::where('tahun_ajaran_id', $periode->id)
+            ->where('siswa_id', $this->id)->first()?->kelas;
+    }
+
+    /** id kelas siswa ini pada periode yang sedang dilihat — pengganti $siswa->kelas_id. */
+    public function kelasIdSekarang(): ?int
+    {
+        return $this->kelas?->id;
+    }
+
+    /** Penyaring "siswa di kelas ini" — pengganti where('kelas_id', ...). */
+    public function scopeDiKelas($query, $kelasId)
+    {
+        return $query->whereHas('keanggotaanKelas', fn ($q) => $q->where('kelas_id', $kelasId));
+    }
+
+    /** Penyaring "siswa di salah satu kelas ini". */
+    public function scopeDiKelasIn($query, $kelasIds)
+    {
+        return $query->whereHas('keanggotaanKelas', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
     }
 
     public function absensi(): HasMany
@@ -97,12 +157,15 @@ class Siswa extends Model
             return $query;
         }
 
-        return $query->whereIn('kelas_id', Kelas::untukTahunAjaran($tahunAjaran)->select('id'));
+        return $query->whereHas(
+            'keanggotaanKelas',
+            fn ($q) => $q->where('tahun_ajaran_id', $tahunAjaran->id)
+        );
     }
 
     /** Siswa pada periode yang sedang aktif — dipakai semua daftar & pencarian siswa. */
     public function scopePeriodeAktif($query)
     {
-        return $query->untukTahunAjaran(TahunAjaran::aktif());
+        return $query->untukTahunAjaran(KonteksPeriode::pilihan());
     }
 }

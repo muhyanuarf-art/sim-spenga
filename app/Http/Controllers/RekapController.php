@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
@@ -35,7 +36,7 @@ class RekapController extends Controller
         $tahun = (int) $request->get('tahun', now()->year);
         // PERBAIKAN PERFORMA — dihitung SEKALI, dipakai ulang di semua query bulan ini di bawah (lihat App\Support\RentangBulan).
         [$awalBulan, $akhirBulan] = RentangBulan::dari($tahun, $bulan);
-        $tahunAjaran = TahunAjaran::aktif();
+        $tahunAjaran = KonteksPeriode::pilihan();
         $jumlahHari = \Carbon\Carbon::create($tahun, $bulan, 1)->daysInMonth;
 
         // Peta "nama hari Indonesia" -> daftar tanggal (1..N) yang jatuh pada

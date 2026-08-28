@@ -74,7 +74,15 @@ class UserController extends Controller
             return back()->with('error', 'Tidak dapat menghapus admin terakhir yang tersisa.');
         }
 
-        $user->delete();
-        return back()->with('success', 'Pengguna berhasil dihapus.');
+        // (2026-08-28) Sejak penunjuk ke users dijadikan RESTRICT (migrasi
+        // 2026_08_28_000006), menghapus guru yang masih punya jadwal /
+        // mapping / penugasan wali kelas ditolak database. Dulu baris-baris
+        // itu ikut terhapus diam-diam; sekarang ditolak, jadi harus lewat
+        // penjaga yang menerangkan APA yang masih memakainya.
+        return $this->hapusAtauGagalDenganPesan(
+            $user,
+            'Pengguna berhasil dihapus.',
+            'Pengguna ini tidak dapat dihapus karena masih terhubung dengan data akademik. Nonaktifkan saja akunnya lewat tombol Edit agar riwayatnya tetap utuh'
+        );
     }
 }

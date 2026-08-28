@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\GuruMengajarImport;
@@ -26,7 +27,7 @@ class GuruMengajarController extends Controller
      */
     public function index(Request $request)
     {
-        $periodeAktif = TahunAjaran::aktif();
+        $periodeAktif = KonteksPeriode::pilihan();
         $tahunAjaranList = TahunAjaran::orderByDesc('id')->get();
         $periodeDilihat = $request->filled('tahun_ajaran_id')
             ? TahunAjaran::find($request->integer('tahun_ajaran_id'))

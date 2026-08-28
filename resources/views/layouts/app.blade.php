@@ -13,7 +13,9 @@
 @php
     $user = auth()->user();
     $halaman = \App\Support\Navigasi::halamanAktif($user);
-    $periodeAktif = $tahunAjaranAktifGlobal ?? \App\Models\TahunAjaran::aktif();
+    // Periode yang sedang DILIHAT (default: periode berjalan).
+    $periodeAktif = \App\Support\KonteksPeriode::pilihan();
+    $alasanBacaSaja = \App\Support\KonteksPeriode::alasanBacaSaja();
 @endphp
 
 <div class="min-h-screen flex">
@@ -51,22 +53,10 @@
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                {{-- Badge periode akademik aktif --}}
-                @if($periodeAktif)
-                    <span class="badge {{ $periodeAktif->isTerkunci() ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-100' : 'bg-brand-50 text-brand-700 ring-1 ring-brand-100' }}"
-                          title="{{ $periodeAktif->isTerkunci() ? 'Periode terkunci — data tidak bisa diubah' : 'Periode akademik aktif' }}">
-                        <i class="fa-solid {{ $periodeAktif->isTerkunci() ? 'fa-lock' : 'fa-calendar-days' }} mr-1.5"></i>
-                        <span class="hidden sm:inline">{{ $periodeAktif->labelSingkat() }}</span>
-                        <span class="sm:hidden">{{ $periodeAktif->nama }}</span>
-                    </span>
-                @else
-                    <a href="{{ \App\Support\Navigasi::bolehAkses('tahun-ajaran.index', $user) ? route('tahun-ajaran.index') : route('dashboard') }}"
-                       class="badge bg-amber-50 text-amber-700 ring-1 ring-amber-100">
-                        <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
-                        <span class="hidden sm:inline">Belum ada periode aktif</span>
-                        <span class="sm:hidden">Periode?</span>
-                    </a>
-                @endif
+                {{-- Pemilih periode: mengganti Tahun Ajaran + Semester yang
+                     DILIHAT pengguna ini (bukan periode aktif sekolah).
+                     Lihat App\Support\KonteksPeriode. --}}
+                <x-pemilih-periode />
 
                 {{-- Menu pengguna --}}
                 <div class="relative" x-data="{ buka: false }" @click.outside="buka = false">
@@ -104,6 +94,20 @@
         </header>
 
         <main class="flex-1 p-4 lg:p-8">
+            {{-- Spanduk mode lihat-saja: muncul di SETIAP halaman begitu
+                 pengguna menengok periode lampau atau periode berjalannya
+                 sudah ditutup. Diletakkan di layout (bukan per halaman)
+                 supaya tidak ada satu pun halaman yang bisa lupa. --}}
+            @if($alasanBacaSaja)
+                <div class="no-print mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <i class="fa-solid fa-clock-rotate-left mt-0.5 text-amber-600"></i>
+                    <div class="min-w-0 text-sm text-amber-900">
+                        <p class="font-bold">Mode lihat saja</p>
+                        <p class="mt-0.5 text-amber-800">{{ $alasanBacaSaja }}</p>
+                    </div>
+                </div>
+            @endif
+
             {{-- ===== Judul halaman: seragam di SEMUA halaman, diambil dari
                  @section('title') + deskripsi dari registry Navigasi.
                  Halaman boleh menambah tombol aksi lewat @section('aksi'). ===== --}}

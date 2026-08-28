@@ -24,12 +24,17 @@ class KelasSeeder extends Seeder
                     }
                 }
 
-                Kelas::updateOrCreate(
+                $kelas = Kelas::updateOrCreate(
                     ['nama_kelas' => "{$tingkat}{$huruf}"],
-                    [
-                        'tingkat' => $tingkat,
-                        'wali_kelas_id' => $waliKelasId,
-                    ]
+                    ['tingkat' => $tingkat]
+                );
+
+                // Wali kelas kini penugasan per semester, bukan kolom di
+                // tabel kelas — lihat App\Models\PenugasanWaliKelas.
+                \App\Models\PenugasanWaliKelas::tetapkanLewatFormKelas(
+                    $kelas->id,
+                    $waliKelasId,
+                    $kelas->tahunAjaran
                 );
             }
         }

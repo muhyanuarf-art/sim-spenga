@@ -20,8 +20,26 @@ use App\Models\TahunAjaran;
  */
 class PeriodeAkademik
 {
-    /** Tahun Ajaran + Semester yang sedang AKTIF, atau null jika belum ada. */
+    /**
+     * Periode yang sedang DILIHAT pengguna — default & fallback-nya periode
+     * yang benar-benar berjalan.
+     *
+     * (2026-08-28) Sejak ada pemilih periode di kepala halaman, seluruh
+     * PEMBACAAN memakai periode pilihan supaya halaman laporan bisa
+     * menampilkan semester lampau apa adanya — termasuk peran pengguna
+     * pada semester itu. Lihat App\Support\KonteksPeriode.
+     *
+     * PENCATATAN BARU tetap memakai periode yang benar-benar berjalan
+     * (aktifSebenarnya() di bawah), dan menyimpan saat sedang menengok
+     * periode lampau sudah diblokir middleware 'periode-aktif'.
+     */
     public static function aktif(): ?TahunAjaran
+    {
+        return KonteksPeriode::pilihan();
+    }
+
+    /** Periode yang benar-benar BERJALAN — dipakai saat menyimpan & mengunci. */
+    public static function aktifSebenarnya(): ?TahunAjaran
     {
         return TahunAjaran::aktif();
     }
@@ -40,10 +58,18 @@ class PeriodeAkademik
         return $periode ? $periode->labelPeriode() : 'Belum ada periode aktif';
     }
 
-    /** Apakah periode aktif saat ini sedang terkunci untuk aksi tulis. */
+    /**
+     * Apakah data TIDAK boleh ditulis sekarang.
+     *
+     * Memakai periode yang benar-benar berjalan, bukan periode pilihan:
+     * pertanyaannya "boleh menyimpan atau tidak", dan penyimpanan selalu
+     * masuk ke periode berjalan. Kalau yang ditanyakan justru "kenapa
+     * halaman ini baca-saja", pakai KonteksPeriode::alasanBacaSaja() yang
+     * juga memperhitungkan mode menengok periode lampau.
+     */
     public static function terkunci(): bool
     {
-        $periode = static::aktif();
+        $periode = static::aktifSebenarnya();
 
         return $periode ? $periode->isTerkunci() : false;
     }

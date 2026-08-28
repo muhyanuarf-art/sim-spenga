@@ -120,7 +120,9 @@ class SuratController extends Controller
             'jenis_surat_id' => ['required', 'exists:jenis_surats,id'],
             'siswa_id' => ['required', 'exists:siswas,id'],
             'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'surat')],
-            'nomor_urut' => ['required', 'string', 'max:50'],
+            // Kolomnya angka di database. Dulu divalidasi sebagai teks,
+            // sehingga nomor seperti "01A" lolos lalu jadi HTTP 500.
+            'nomor_urut' => ['required', 'integer', 'min:1', 'max:99999'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -206,7 +208,7 @@ class SuratController extends Controller
 
         $validated = $request->validate([
             'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'surat')],
-            'nomor_urut' => ['required', 'string', 'max:50'],
+            'nomor_urut' => ['required', 'integer', 'min:1', 'max:99999'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
         $validated['nomor_surat'] = NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']);
@@ -242,9 +244,15 @@ class SuratController extends Controller
     public function destroy(Request $request, Surat $surat)
     {
         $this->pastikanGuruBk($request);
-        $surat->delete();
 
-        return redirect()->route('surat.index')->with('success', 'Surat berhasil dihapus.');
+        // Surat yang sudah dipakai sebagai dasar Pemanggilan Orang Tua tidak
+        // boleh dihapus (pemanggilan_orangtuas.surat_id NO ACTION) — dulu
+        // percobaannya berakhir HTTP 500 tanpa penjelasan apa pun.
+        return $this->hapusAtauGagalDenganPesan(
+            $surat,
+            'Surat berhasil dihapus.',
+            'Surat ini tidak dapat dihapus karena sudah dipakai di data lain. Lepaskan dulu keterkaitannya, atau arsipkan suratnya saja'
+        );
     }
 
     /**

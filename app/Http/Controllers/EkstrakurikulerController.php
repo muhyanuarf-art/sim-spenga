@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\KonteksPeriode;
 use App\Models\Ekstrakurikuler;
 use App\Models\EkstrakurikulerPembina;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -26,7 +28,11 @@ class EkstrakurikulerController extends Controller
         // tidak perlu dropdown — cukup diketik bebas di form (lihat view).
         $calonPembina = User::whereIn('role', ['guru', 'guru_bk', 'kesiswaan'])->orderBy('name')->get();
 
-        return view('ekstrakurikuler.index', compact('ekstrakurikuler', 'calonPembina'));
+        // Dipakai view untuk menjelaskan bahwa penugasan pembina berlaku
+        // per SEMESTER, bukan setahun penuh.
+        $periodeAktif = KonteksPeriode::pilihan();
+
+        return view('ekstrakurikuler.index', compact('ekstrakurikuler', 'calonPembina', 'periodeAktif'));
     }
 
     public function store(Request $request)

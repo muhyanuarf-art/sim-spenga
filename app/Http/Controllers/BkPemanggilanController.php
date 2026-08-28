@@ -38,7 +38,7 @@ class BkPemanggilanController extends Controller
 
         $kelasIds = $this->bkKelasIdsUntukUser($user);
         if ($kelasIds !== null) {
-            $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
+            $query->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasIds));
         }
 
         if ($request->filled('bulan') && $request->filled('tahun')) {
@@ -57,7 +57,7 @@ class BkPemanggilanController extends Controller
             }
         }
         if ($request->filled('kelas_id')) {
-            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+            $query->whereHas('siswa', fn ($q) => $q->diKelas($request->kelas_id));
         }
 
         // Tanpa pagination — 1 tabel dipakai untuk tampilan layar sekaligus
@@ -93,7 +93,7 @@ class BkPemanggilanController extends Controller
             }
         } elseif ($request->filled('cari')) {
             $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
-                ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->when($kelasIds !== null, fn ($q) => $q->diKelasIn($kelasIds))
                 ->where(function ($q) use ($request) {
                     $q->where('nama', 'like', "%{$request->cari}%")
                       ->orWhere('nis', 'like', "%{$request->cari}%");
@@ -155,7 +155,8 @@ class BkPemanggilanController extends Controller
             'pilihan_surat' => ['required', 'in:tidak_ada,pakai_yang_sudah_ada,buat_baru'],
             'surat_id' => ['nullable', 'required_if:pilihan_surat,pakai_yang_sudah_ada', 'exists:surats,id'],
             'jenis_surat_id' => ['nullable', 'required_if:pilihan_surat,buat_baru', 'exists:jenis_surats,id'],
-            'nomor_urut' => ['nullable', 'required_if:pilihan_surat,buat_baru', 'string', 'max:50'],
+            // Angka, sama seperti di SuratController — kolomnya int.
+            'nomor_urut' => ['nullable', 'required_if:pilihan_surat,buat_baru', 'integer', 'min:1', 'max:99999'],
             'tanggal_acara' => ['nullable', 'date'],
             'waktu_acara' => ['nullable', 'date_format:H:i'],
             'isi_surat' => ['nullable', 'string', 'required_if:pilihan_surat,buat_baru'],

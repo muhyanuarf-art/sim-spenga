@@ -183,5 +183,49 @@
             </button>
         </div>
     </form>
+
+    {{-- Status lisensi — di luar form karena tidak ada yang bisa diubah
+         dari sini. Lihat App\Support\Lisensi. --}}
+    @php($lisensi = \App\Support\Lisensi::catatan())
+    <x-panel judul="Lisensi Aplikasi"
+             deskripsi="Aplikasi ini hanya berjalan pada pemasangan yang sudah diaktifkan dengan nomor seri resmi.">
+        <dl class="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div>
+                <dt class="text-xs font-semibold text-slate-500">Dilisensikan untuk</dt>
+                <dd class="text-slate-700">{{ config('lisensi.pemegang') }}</dd>
+            </div>
+            <div>
+                <dt class="text-xs font-semibold text-slate-500">Status</dt>
+                <dd>
+                    <span class="badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                        <i class="fa-solid fa-circle-check mr-1.5"></i> Aktif
+                    </span>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-xs font-semibold text-slate-500">Diaktifkan pada</dt>
+                <dd class="text-slate-700">
+                    {{ $lisensi?->diaktifkan_at?->translatedFormat('d F Y, H:i') ?? '-' }}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-xs font-semibold text-slate-500">Terikat alamat server</dt>
+                <dd class="text-slate-700 font-mono text-xs">
+                    {{ config('lisensi.terikat_host') ? ($lisensi?->host ?? '-') : 'tidak diikat' }}
+                </dd>
+            </div>
+        </dl>
+
+        <p class="mt-4 text-xs text-slate-500 leading-relaxed">
+            <i class="fa-solid fa-circle-info mr-1"></i>
+            Nomor serinya sendiri tidak disimpan di mana pun — yang tercatat hanya sidiknya, sehingga
+            tidak dapat dibaca balik dari aplikasi maupun database. Simpan nomor seri Anda di tempat aman:
+            @if(config('lisensi.terikat_host'))
+                memindahkan aplikasi ke server atau domain lain menuntut nomor seri itu lagi.
+            @else
+                nomor seri diperlukan lagi setiap kali aplikasi dipasang ulang.
+            @endif
+        </p>
+    </x-panel>
 </div>
 @endsection

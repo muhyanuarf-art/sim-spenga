@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Validation\Rule;
 use App\Rules\DalamPeriode;
 use App\Models\EvaluasiPembinaan;
 use App\Models\KasusSiswa;
@@ -26,13 +27,13 @@ class BkPembinaanController extends Controller
 
         $kelasIds = $this->bkKelasIdsUntukUser($user);
         if ($kelasIds !== null) {
-            $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
+            $query->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasIds));
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
         if ($request->filled('kelas_id')) {
-            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+            $query->whereHas('siswa', fn ($q) => $q->diKelas($request->kelas_id));
         }
         if ($request->filled('bulan') && $request->filled('tahun')) {
             [$awal, $akhir] = RentangBulan::dari((int) $request->tahun, (int) $request->bulan);
@@ -90,7 +91,7 @@ class BkPembinaanController extends Controller
             }
         } elseif ($request->filled('cari')) {
             $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
-                ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->when($kelasIds !== null, fn ($q) => $q->diKelasIn($kelasIds))
                 ->where(function ($q) use ($request) {
                     $q->where('nama', 'like', "%{$request->cari}%")
                       ->orWhere('nis', 'like', "%{$request->cari}%");
@@ -112,7 +113,9 @@ class BkPembinaanController extends Controller
             'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'pembinaan')],
             // Tahap TIDAK diterima dari form — selalu dihitung otomatis di
             // bawah dari poin aktif siswa (App\Services\PoinSiswaService).
-            'jenis_pembinaan' => ['required', 'string'],
+            // Wajib salah satu dari daftar resmi: kolomnya enum, dan
+            // nilai di luar daftar dulu lolos validasi lalu jadi HTTP 500.
+            'jenis_pembinaan' => ['required', Rule::in(PembinaanSiswa::JENIS_LIST)],
             'catatan_bk' => ['required', 'string'],
             'status' => ['required', 'in:Pembinaan,Selesai'],
             'hasil_pembinaan' => ['nullable', 'string'],

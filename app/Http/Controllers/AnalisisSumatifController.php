@@ -257,7 +257,7 @@ class AnalisisSumatifController extends Controller
     /** Sama dengan NilaiController: anggota kelas sekarang + yang sudah punya nilai di sini. */
     private function daftarSiswa(Kelas $kelas, MataPelajaran $mapel, TahunAjaran $periode)
     {
-        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('id');
+        $idSekarang = $kelas->siswas()->where('is_active', true)->pluck('siswas.id');
         $idBernilai = NilaiSiswa::where('kelas_id', $kelas->id)
             ->where('mata_pelajaran_id', $mapel->id)
             ->where('tahun_ajaran_id', $periode->id)

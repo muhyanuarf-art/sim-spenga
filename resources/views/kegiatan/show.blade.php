@@ -95,7 +95,7 @@
         @endif
     </x-panel>
 
-    @if($kelasSasaran->contains(fn ($k) => ! $k->wali_kelas_id))
+    @if($kelasSasaran->contains(fn ($k) => ! $k->waliKelas))
         <div class="alert alert-warning">
             <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
             <span class="flex-1">

@@ -25,7 +25,7 @@ class BkPenguranganPoinController extends Controller
 
         $kelasIds = $this->bkKelasIdsUntukUser($user);
         if ($kelasIds !== null) {
-            $query->whereHas('siswa', fn ($q) => $q->whereIn('kelas_id', $kelasIds));
+            $query->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasIds));
         }
 
         if ($request->filled('bulan') && $request->filled('tahun')) {
@@ -40,7 +40,7 @@ class BkPenguranganPoinController extends Controller
             $request->status === 'Dibatalkan' ? $query->whereNotNull('dibatalkan_at') : $query->whereNull('dibatalkan_at');
         }
         if ($request->filled('kelas_id')) {
-            $query->whereHas('siswa', fn ($q) => $q->where('kelas_id', $request->kelas_id));
+            $query->whereHas('siswa', fn ($q) => $q->diKelas($request->kelas_id));
         }
 
         $data = $query->paginate(20)->withQueryString();
@@ -83,7 +83,7 @@ class BkPenguranganPoinController extends Controller
             }
         } elseif ($request->filled('cari')) {
             $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
-                ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->when($kelasIds !== null, fn ($q) => $q->diKelasIn($kelasIds))
                 ->where(function ($q) use ($request) {
                     $q->where('nama', 'like', "%{$request->cari}%")
                       ->orWhere('nis', 'like', "%{$request->cari}%");
