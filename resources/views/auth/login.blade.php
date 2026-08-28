@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Masuk — SIM-SPENGA</title>
+    <x-ikon-aplikasi />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="font-sans bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 min-h-screen flex items-center justify-center p-4">
@@ -12,7 +13,15 @@
 
 <div class="w-full max-w-md">
     <div class="text-center mb-7">
-        <div class="w-16 h-16 mx-auto rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-white font-extrabold text-2xl mb-4 ring-1 ring-white/20">SP</div>
+        {{-- Logo Aplikasi dari Pengaturan Sekolah; selama belum diunggah
+             dipakai inisial dari Nama Sekolah (dulu "SP" ditulis mati). --}}
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center text-white font-extrabold text-2xl mb-4 ring-1 ring-white/20 overflow-hidden">
+            @if($sekolah?->logoAplikasiUrl())
+                <img src="{{ $sekolah->logoAplikasiUrl() }}" alt="Logo {{ $sekolah->nama_sekolah }}" class="w-full h-full object-contain p-2">
+            @else
+                {{ $sekolah?->inisialAplikasi() ?? 'SIM' }}
+            @endif
+        </div>
         <h1 class="text-white text-2xl font-extrabold tracking-tight">SIM-SPENGA</h1>
         <p class="text-blue-100/80 text-sm mt-1">{{ $sekolah->nama_sekolah ?? 'Sistem Informasi Manajemen Sekolah' }}</p>
         <p class="text-blue-100/60 text-xs mt-0.5">Monitoring & manajemen guru serta siswa</p>

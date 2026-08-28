@@ -19,6 +19,7 @@ use App\Http\Controllers\EkstrakurikulerAnggotaController;
 use App\Http\Controllers\EkstrakurikulerController;
 use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
+use App\Http\Controllers\IkonAplikasiController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
 use App\Http\Controllers\JenisSuratController;
@@ -48,6 +49,12 @@ use App\Http\Controllers\WaliKelasController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
+
+// Ikon aplikasi — sengaja TERBUKA tanpa login, karena peramban meminta
+// keduanya sebelum pengguna sempat masuk (mis. saat membuka halaman login).
+// Isinya mengikuti Logo Aplikasi & Nama Sekolah di menu Pengaturan Sekolah.
+Route::get('favicon.ico', [IkonAplikasiController::class, 'favicon'])->name('favicon');
+Route::get('site.webmanifest', [IkonAplikasiController::class, 'manifest'])->name('site.webmanifest');
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'create'])->name('login');

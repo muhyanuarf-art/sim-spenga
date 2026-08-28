@@ -14,7 +14,17 @@
 
     {{-- Identitas aplikasi --}}
     <div class="h-16 flex items-center gap-3 px-5 border-b border-white/10 shrink-0">
-        <div class="w-10 h-10 rounded-xl bg-white text-brand-800 flex items-center justify-center font-extrabold shadow-lg shadow-black/20">SP</div>
+        {{-- Logo aplikasi dari Pengaturan Sekolah. Sebelumnya kotak ini
+             bertuliskan "SP" yang ditulis mati di sini, jadi sekolah lain
+             yang memakai aplikasi ini tetap melihat inisial bukan miliknya.
+             Kalau logo belum diunggah, dipakai inisial dari Nama Sekolah. --}}
+        <div class="w-10 h-10 rounded-xl bg-white text-brand-800 flex items-center justify-center font-extrabold shadow-lg shadow-black/20 overflow-hidden shrink-0">
+            @if($sekolah?->logoAplikasiUrl())
+                <img src="{{ $sekolah->logoAplikasiUrl() }}" alt="Logo {{ $sekolah->nama_sekolah }}" class="w-full h-full object-contain p-1">
+            @else
+                {{ $sekolah?->inisialAplikasi() ?? 'SIM' }}
+            @endif
+        </div>
         <div class="min-w-0">
             <p class="font-extrabold text-white leading-tight tracking-tight">SIM-SPENGA</p>
             <p class="text-[11px] text-blue-200/70 leading-tight truncate">{{ $sekolah->nama_sekolah ?? 'Sistem Informasi Manajemen' }}</p>

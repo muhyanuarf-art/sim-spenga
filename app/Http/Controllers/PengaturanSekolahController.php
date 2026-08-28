@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PengaturanSekolah;
+use App\Support\IkonAplikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -43,11 +44,23 @@ class PengaturanSekolahController extends Controller
             'format_lokasi_ttd' => ['nullable', 'string', 'max:100'],
             'logo_kiri' => ['nullable', 'image', 'max:2048'],
             'logo_kanan' => ['nullable', 'image', 'max:2048'],
+            'logo_aplikasi' => ['nullable', 'image', 'max:2048'],
             'hapus_logo_kiri' => ['nullable', 'boolean'],
             'hapus_logo_kanan' => ['nullable', 'boolean'],
+            'hapus_logo_aplikasi' => ['nullable', 'boolean'],
+        ], [
+            'logo_kiri.image' => 'Logo Kiri harus berupa berkas gambar (JPG/PNG/SVG).',
+            'logo_kanan.image' => 'Logo Kanan harus berupa berkas gambar (JPG/PNG/SVG).',
+            'logo_aplikasi.image' => 'Logo Aplikasi harus berupa berkas gambar (JPG/PNG/SVG).',
+            'logo_kiri.max' => 'Ukuran Logo Kiri melebihi 2 MB.',
+            'logo_kanan.max' => 'Ukuran Logo Kanan melebihi 2 MB.',
+            'logo_aplikasi.max' => 'Ukuran Logo Aplikasi melebihi 2 MB.',
         ]);
 
-        foreach (['kiri', 'kanan'] as $sisi) {
+        // 'aplikasi' ikut di sini supaya ketiga logo diperlakukan sama
+        // persis: unggah baru menggantikan berkas lama (yang lama dihapus
+        // dari disk supaya tidak menumpuk), dan centang "Hapus" mengosongkan.
+        foreach (['kiri', 'kanan', 'aplikasi'] as $sisi) {
             $kolom = "logo_{$sisi}_path";
             if ($request->hasFile("logo_{$sisi}")) {
                 if ($pengaturan->$kolom) {
@@ -65,6 +78,19 @@ class PengaturanSekolahController extends Controller
         $pengaturan->update($validated);
         PengaturanSekolah::lupakanCache();
 
-        return back()->with('success', 'Pengaturan sekolah berhasil disimpan.');
+        // Set ikon (favicon.ico, apple-touch-icon, ikon manifest) dibuat
+        // ulang dari Logo Aplikasi setiap kali pengaturan disimpan. Peramban
+        // dan ponsel butuh ikon dalam beberapa ukuran yang tajam; memaksa
+        // logo 512px mengecil sendiri jadi 16px di tab browser hasilnya
+        // buram. Lihat App\Support\IkonAplikasi.
+        $ikonRaster = IkonAplikasi::perbarui($pengaturan->logo_aplikasi_path);
+
+        $pesan = 'Pengaturan sekolah berhasil disimpan.';
+        if ($pengaturan->logo_aplikasi_path && ! $ikonRaster && IkonAplikasi::url('favicon.svg')) {
+            $pesan .= ' Logo berformat SVG dipakai langsung sebagai ikon — ukuran lainnya tidak dibuat '
+                .'karena SVG sudah tajam di semua ukuran.';
+        }
+
+        return back()->with('success', $pesan);
     }
 }
