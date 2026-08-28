@@ -57,6 +57,42 @@ class BkPenguranganPoinController extends Controller
      * dan dibungkus DB transaction supaya tidak ada data setengah jadi
      * (Bagian 12 & 25 spec).
      */
+    /**
+     * Form catat pengurangan poin baru.
+     *
+     * Sama seperti Pembinaan: sebelumnya HANYA bisa lewat modal di halaman
+     * Profil Perilaku Siswa (daftar ini bahkan menuliskan "buka profil siswa
+     * terkait"), sehingga pencatatan BK tersebar di dua tempat. Sekarang
+     * berpangkal dari Buku Catatan BK dengan langkah yang seragam.
+     */
+    public function create(Request $request, PoinSiswaService $poinService)
+    {
+        $user = $request->user();
+        $kelasIds = $this->bkKelasIdsUntukUser($user);
+
+        $siswaTerpilih = null;
+        $hasilCari = collect();
+        $ringkasan = null;
+
+        if ($request->filled('siswa_id')) {
+            $siswaTerpilih = Siswa::with('kelas')->find($request->get('siswa_id'));
+            if ($siswaTerpilih) {
+                $this->bkPastikanSiswaSesuaiCakupan($user, $siswaTerpilih);
+                $ringkasan = $poinService->ringkasan($siswaTerpilih);
+            }
+        } elseif ($request->filled('cari')) {
+            $hasilCari = Siswa::with('kelas')->where('is_active', true)
+                ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->where(function ($q) use ($request) {
+                    $q->where('nama', 'like', "%{$request->cari}%")
+                      ->orWhere('nis', 'like', "%{$request->cari}%");
+                })
+                ->orderBy('nama')->limit(20)->get();
+        }
+
+        return view('bk.pengurangan.create', compact('siswaTerpilih', 'hasilCari', 'ringkasan'));
+    }
+
     public function store(Request $request, PoinSiswaService $poinService)
     {
         $tahunAjaran = TahunAjaran::aktif();

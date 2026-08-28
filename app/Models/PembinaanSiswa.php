@@ -28,6 +28,27 @@ class PembinaanSiswa extends Model
         return $this->bukti_file ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->bukti_file) : null;
     }
 
+    // Dua keadaan yang dilihat pengguna — sama seperti KasusSiswa, supaya
+    // guru BK tidak perlu menghafal istilah status yang berbeda-beda antar
+    // halaman. "Pembinaan" ditampilkan sebagai "Belum Selesai".
+    public const STATUS_BERJALAN = 'Pembinaan';
+    public const STATUS_SELESAI = 'Selesai';
+
+    public function isSelesai(): bool
+    {
+        return $this->status === self::STATUS_SELESAI;
+    }
+
+    public function labelStatusRingkas(): string
+    {
+        return $this->isSelesai() ? 'Selesai' : 'Belum Selesai';
+    }
+
+    public function badgeStatusRingkas(): string
+    {
+        return $this->isSelesai() ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700';
+    }
+
     public function siswa(): BelongsTo { return $this->belongsTo(Siswa::class, 'siswa_id'); }
     public function kasus(): BelongsTo { return $this->belongsTo(KasusSiswa::class, 'kasus_siswa_id'); }
     public function petugas(): BelongsTo { return $this->belongsTo(User::class, 'petugas_id'); }

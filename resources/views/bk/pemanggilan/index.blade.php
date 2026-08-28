@@ -3,6 +3,8 @@
 
 @section('content')
 <div class="space-y-6">
+
+    <x-bk-tab-catatan />
     <div class="flex items-center justify-between flex-wrap gap-3 no-print">
         <p class="text-sm text-slate-400">Riwayat pemanggilan orang tua/wali.</p>
         <a href="{{ route('bk.pemanggilan.create') }}" class="btn-primary">+ Catat Pemanggilan</a>

@@ -3,16 +3,26 @@
 
 @section('content')
 <div class="space-y-6">
-    <p class="text-sm text-slate-400 no-print">Riwayat pembinaan yang sudah/sedang dijalankan BK terhadap siswa.</p>
+
+    <x-bk-tab-catatan />
+    <div class="flex items-center justify-between flex-wrap gap-3 no-print">
+        <p class="text-sm text-slate-400">Riwayat pembinaan yang sudah/sedang dijalankan BK terhadap siswa.</p>
+        @if(in_array(auth()->user()->role, ['guru_bk', 'admin']))
+            <a href="{{ route('bk.pembinaan.create') }}" class="btn-primary"><i class="fa-solid fa-plus mr-1.5"></i> Catat Pembinaan</a>
+        @endif
+    </div>
 
     <div class="card p-5 no-print">
         <form method="GET" class="flex flex-wrap items-end gap-3">
             <div>
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
+                {{-- Nilainya tetap 'Pembinaan'/'Selesai' (sesuai isi database),
+                     hanya labelnya diseragamkan dengan istilah dua-keadaan
+                     yang dipakai di seluruh modul BK. --}}
                 <select name="status" class="input" onchange="this.form.submit()">
                     <option value="">Semua Status</option>
-                    @foreach(['Pembinaan','Selesai'] as $s)
-                        <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
+                    @foreach(['Pembinaan' => 'Belum Selesai', 'Selesai' => 'Selesai'] as $nilai => $label)
+                        <option value="{{ $nilai }}" @selected(request('status') === $nilai)>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
@@ -74,12 +84,28 @@
                         <td><span class="badge bg-violet-50 text-violet-700">Tahap {{ $p->tahap }}</span></td>
                         <td class="text-slate-500">{{ $p->jenis_pembinaan }}</td>
                         <td>
-                            <span class="badge {{ $p->status === 'Selesai' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                {{ $p->status }}
-                            </span>
+                            <span class="badge {{ $p->badgeStatusRingkas() }}">{{ $p->labelStatusRingkas() }}</span>
                         </td>
                         <td class="text-slate-500">{{ $p->petugas->name ?? '-' }}</td>
-                        <td class="td-aksi no-print"><a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye mr-1.5"></i> Detail</a></td>
+                        <td class="td-aksi no-print">
+                            <div class="action-buttons">
+                                {{-- Inilah yang paling sering dicari pengguna: menandai
+                                     pembinaan sudah selesai. Sekarang cukup satu klik
+                                     dari daftar ini. --}}
+                                @if(in_array(auth()->user()->role, ['guru_bk', 'admin']))
+                                    <x-bk-tombol-selesai
+                                        :action="route('bk.pembinaan.update', $p)"
+                                        metode="PUT"
+                                        :selesai="$p->isSelesai()"
+                                        status-buka="Pembinaan">
+                                        {{-- Ikut dikirim supaya hasil pembinaan yang sudah
+                                             ditulis tidak terhapus saat status diubah. --}}
+                                        <input type="hidden" name="hasil_pembinaan" value="{{ $p->hasil_pembinaan }}">
+                                    </x-bk-tombol-selesai>
+                                @endif
+                                <a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye mr-1.5"></i> Detail</a>
+                            </div>
+                        </td>
                     </tr>
                     @empty
                     <tr><td colspan="9" class="text-center text-slate-400 py-8">Belum ada pembinaan tercatat.</td></tr>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\OrangTuaLoginController;
 use App\Http\Controllers\BkDashboardController;
 use App\Http\Controllers\BkJenisPelanggaranController;
 use App\Http\Controllers\BkKasusController;
+use App\Http\Controllers\BkLaporanBulananController;
 use App\Http\Controllers\BkPemanggilanController;
 use App\Http\Controllers\BkPembinaanController;
 use App\Http\Controllers\BkPenguranganPoinController;
@@ -87,6 +88,11 @@ Route::middleware('auth')->group(function () {
         Route::get('pengurangan', [BkPenguranganPoinController::class, 'index'])->name('pengurangan.index');
         Route::get('pemanggilan', [BkPemanggilanController::class, 'index'])->name('pemanggilan.index');
 
+        // Laporan Bulanan BK — rekap sebulan yang bisa dicetak untuk Kepala
+        // Sekolah. Baca saja, jadi ikut hak akses yang sama dengan daftar
+        // BK lainnya di grup ini.
+        Route::get('laporan-bulanan', [BkLaporanBulananController::class, 'index'])->name('laporan-bulanan');
+
         // Lapor kasus baru: Guru (semua jenis), Guru BK, Admin — TIDAK Kurikulum/Kepsek.
         // 'periode-aktif' hanya di rute POST (tulis) — GET create tetap bebas dibuka.
         Route::middleware('role:guru,guru_bk,admin')->group(function () {
@@ -99,6 +105,12 @@ Route::middleware('auth')->group(function () {
         // 'periode-aktif' hanya dipasang di aksi TULIS transaksi (bukan di
         // sub-grup jenis-pelanggaran/master data, dan bukan di rute GET).
         Route::middleware('role:guru_bk,admin')->group(function () {
+            // Seluruh pencatatan BK berpangkal dari Buku Catatan BK. Dulu
+            // Pembinaan & Pengurangan Poin TIDAK punya halaman pencatatan
+            // sama sekali — satu-satunya jalan lewat modal di halaman Profil
+            // Perilaku Siswa, sehingga pencatatan tersebar di dua tempat.
+            Route::get('pembinaan/create', [BkPembinaanController::class, 'create'])->name('pembinaan.create');
+            Route::get('pengurangan/create', [BkPenguranganPoinController::class, 'create'])->name('pengurangan.create');
             Route::get('pemanggilan/create', [BkPemanggilanController::class, 'create'])->name('pemanggilan.create');
             Route::get('pemanggilan/{pemanggilan}/hasil', [BkPemanggilanController::class, 'editHasil'])->name('pemanggilan.hasil.edit');
 

@@ -194,3 +194,138 @@ yang sudah ada di server Anda. Perlu diketahui: `.env` yang ikut terkirim di
 arsip sebelumnya memuat token Fonnte dan `APP_KEY` asli. Sebaiknya token
 tersebut dirotasi. Selain itu `APP_DEBUG` masih `true`; di server produksi
 harus `false`.
+
+---
+
+# Penyederhanaan Alur BK (2026-08-28)
+
+Keluhan: menu BK terlalu banyak sehingga pengguna bingung harus mulai dari mana,
+dan mengubah status pembinaan menjadi "Selesai" terlalu berbelit.
+
+## 1. Menu: 7 sub-menu → 3
+
+| Sebelum | Sesudah |
+|---|---|
+| Ringkasan Pelanggaran | **Ringkasan BK** |
+| Kasus & Pelanggaran | **Siswa Bimbingan** — halaman kerja harian |
+| Pembinaan Siswa | **Buku Catatan BK** — 1 halaman, 4 tab |
+| Pengurangan Poin | ↳ tab Kasus & Pelanggaran |
+| Pemanggilan Orang Tua | ↳ tab Pembinaan |
+| Profil Poin Siswa | ↳ tab Pengurangan Poin |
+| Master Jenis Pelanggaran | ↳ tab Pemanggilan Orang Tua |
+| | *(Master pindah ke grup **Pengaturan** › Jenis Pelanggaran)* |
+
+**Rutenya sengaja tidak diubah sama sekali** (`bk.kasus.index`, `bk.pembinaan.index`,
+dst). Yang berubah hanya sidebar + tambahan bar tab lewat komponen
+`<x-bk-tab-catatan />` di keempat halaman. Semua tautan lama, penyaring, dan tombol
+cetak tetap bekerja apa adanya.
+
+Tab yang tampil mengikuti hak akses lama: Guru mapel hanya berkepentingan pada
+Kasus, jadi baginya bar tab disembunyikan (cuma 1 tab yang berhak).
+
+## 2. Status: satu tombol, dua keadaan
+
+Sebelumnya status **hanya bisa diubah dari satu tempat** — dropdown kecil di dalam
+tabel Riwayat pada halaman Profil Perilaku Siswa. Di daftar Kasus & Pembinaan,
+statusnya cuma badge yang tidak bisa diklik. Menandai satu pembinaan selesai perlu
+±8 langkah.
+
+Sekarang:
+
+- Pengguna hanya melihat **dua keadaan**: `Belum Selesai` / `Selesai`.
+  Empat nilai status kasus (Baru/Diproses/Dalam Pembinaan/Selesai) tetap ada di
+  database untuk laporan, tapi **diisi sistem** — otomatis jadi "Dalam Pembinaan"
+  begitu pembinaan dicatat.
+- Tombol `Tandai Selesai` / `Buka Kembali` tersedia di **empat tempat**: Ringkasan
+  BK, daftar Kasus, daftar Pembinaan, dan Profil Perilaku Siswa — lewat satu
+  komponen `<x-bk-tombol-selesai />` supaya bentuk & perilakunya identik.
+- Penyaring status di kedua daftar ikut memakai istilah yang sama.
+
+### Perbaikan bug yang ditemukan sekalian
+
+Kaitan kasus ↔ pembinaan dulu hanya jalan **satu arah**: menandai selesai ikut
+menyelesaikan pasangannya, tapi **membuka kembali tidak**. Akibatnya pembinaan bisa
+berstatus belum selesai sementara kasusnya masih tertulis "Selesai" — dua halaman
+menampilkan hal yang bertentangan. Sekarang dua arah
+(`BkPembinaanController::update`).
+
+## 3. Pencatatan dipermudah
+
+- Tombol **Catat Pelanggaran** kini seragam namanya dan tampil menonjol di
+  Ringkasan BK, Siswa Bimbingan, daftar Kasus, dan Profil siswa (dulu bernama
+  "Tambah Kasus" / "+ Catat Kasus Baru" / "+ Catat Pelanggaran" — tiga istilah
+  untuk satu hal yang sama).
+- **Pencarian di Siswa Bimbingan sekarang menjangkau seluruh siswa aktif.** Dulu
+  daftarnya hanya memuat siswa yang sudah punya kasus, sehingga mencatat
+  pelanggaran *pertama* seorang siswa tidak bisa dimulai dari halaman ini. Daftar
+  bawaannya tetap ringkas (hanya yang punya riwayat); begitu nama diketik,
+  pencarian mencakup semua siswa.
+
+## 4. Berkas
+
+| Berkas | Isi |
+|---|---|
+| `resources/views/components/bk-tab-catatan.blade.php` | Bar tab Buku Catatan BK |
+| `resources/views/components/bk-tombol-selesai.blade.php` | Tombol status satu klik |
+| `app/Models/KasusSiswa.php`, `PembinaanSiswa.php` | Helper dua-keadaan (`isSelesai`, `labelStatusRingkas`, dll) |
+| `app/Support/Navigasi.php` | Struktur menu baru |
+
+## 5. Lanjutan: pencatatan dipusatkan & Laporan Bulanan BK
+
+### Profil Perilaku Siswa jadi halaman BACA saja
+
+Keempat tombol pencatatan (`+ Catat Pelanggaran`, `+ Catat Pembinaan`,
+`+ Kurangi Poin`, `+ Panggil Ortu`) beserta tiga modalnya **dihapus** dari halaman
+Profil Perilaku Siswa. Halaman itu dulu merangkap dua peran — tempat mencatat
+sekaligus tempat membaca riwayat — dan tombolnya juga muncul di menu lain, sehingga
+pengguna bingung harus mencatat dari mana.
+
+Sekarang halaman itu murni untuk **membaca rekam jejak** seorang siswa (ringkasan
+poin, riwayat, tombol status, cetak). Dua query yang dulu hanya dipakai modal
+(`$jenisList`, `$kasusAktifTerbuka`) ikut dibuang.
+
+### Dua halaman pencatatan yang sebelumnya TIDAK ADA
+
+Pembinaan dan Pengurangan Poin ternyata **tidak punya halaman pencatatan sama
+sekali** — satu-satunya jalan adalah modal di Profil Perilaku Siswa (daftar
+Pengurangan bahkan menuliskan "buka profil siswa terkait"). Menghapus tombolnya
+begitu saja akan membuat kedua pencatatan itu mustahil dilakukan. Maka dibuat:
+
+| Route baru | Tombol pemicu |
+|---|---|
+| `bk.pembinaan.create` | Buku Catatan BK › tab Pembinaan › **Catat Pembinaan** |
+| `bk.pengurangan.create` | Buku Catatan BK › tab Pengurangan Poin › **Kurangi Poin** |
+
+Keduanya memakai langkah yang sama dengan Pemanggilan Orang Tua — cari siswa dulu,
+baru isi formulir — lewat komponen bersama `<x-bk-pilih-siswa />`. Jadi keempat
+pencatatan BK kini berpangkal dari satu tempat dengan alur yang seragam.
+
+### Laporan Bulanan BK
+
+Dulu ada tautan "Laporan Bulanan" di Menu Cepat, tapi hanya mengarah ke daftar
+kasus biasa — laporannya sendiri tidak pernah ada. Sekarang tersedia sungguhan
+sebagai **tab kelima** di Buku Catatan BK (`bk.laporan-bulanan`), sehingga jumlah
+menu BK tetap tiga.
+
+Isinya empat bagian, siap dicetak untuk Kepala Sekolah:
+
+- **A. Rekap kegiatan** — kasus, kasus selesai, pembinaan, pengurangan poin,
+  pemanggilan ortu, lengkap dengan keterangan tiap baris.
+- **B. Sebaran pelanggaran** — menurut kategori (Ringan…Sangat Berat) beserta
+  persentasenya, dan lima jenis pelanggaran terbanyak.
+- **C. Rekap per kelas** — kelas mana yang paling perlu perhatian.
+- **D. Peserta didik yang ditangani** — digabung dari keempat jenis catatan, jadi
+  siswa yang bulan itu hanya dibina (tanpa kasus baru) tetap muncul.
+
+Di layar juga ada pembanding dengan bulan sebelumnya (naik/turun berapa kasus).
+Kasus dihitung menurut **tanggal kejadian**; pembinaan/pengurangan/pemanggilan
+menurut **tanggal pelaksanaan**. Semuanya memakai `App\Support\RentangBulan` yang
+sama dengan tab-tab di sebelahnya, jadi angkanya tidak akan pernah berbeda untuk
+bulan yang sama.
+
+| Berkas | Isi |
+|---|---|
+| `app/Http/Controllers/BkLaporanBulananController.php` | Penyusun laporan |
+| `resources/views/bk/laporan-bulanan.blade.php` | Tampilan & cetakan |
+| `resources/views/components/bk-pilih-siswa.blade.php` | Langkah "cari & pilih siswa" bersama |
+| `resources/views/bk/{pembinaan,pengurangan}/create.blade.php` | Form pencatatan baru |

@@ -36,8 +36,14 @@ class BkKasusController extends Controller
             }
         }
 
+        // Penyaring status mengikuti dua keadaan yang dilihat pengguna
+        // (Belum Selesai / Selesai), bukan keempat nilai mentah di database.
+        // Nilai lama tetap diterima supaya tautan/bookmark lama tidak rusak.
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            match ($request->status) {
+                'belum_selesai' => $query->where('status', '!=', KasusSiswa::STATUS_SELESAI),
+                default => $query->where('status', $request->status),
+            };
         }
         if ($request->filled('kelas_id')) {
             $query->where('kelas_id', $request->kelas_id);
@@ -173,6 +179,8 @@ class BkKasusController extends Controller
             }
         });
 
-        return back()->with('success', 'Status kasus diperbarui.');
+        return back()->with('success', $validated['status'] === 'Selesai'
+            ? 'Kasus ditandai selesai, termasuk pembinaan yang terkait.'
+            : 'Kasus dibuka kembali.');
     }
 }

@@ -116,14 +116,23 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge
-                                        @if($k->status === 'Selesai') bg-emerald-50 text-emerald-700
-                                        @elseif($k->status === 'Diproses') bg-amber-50 text-amber-700
-                                        @else bg-slate-100 text-slate-500
-                                        @endif">{{ $k->status }}</span>
+                                    <span class="badge {{ $k->badgeStatusRingkas() }}">{{ $k->labelStatusRingkas() }}</span>
                                 </td>
                                 <td class="td-aksi">
-                                    <a href="{{ route('bk.siswa.show', $k->siswa) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye"></i></a>
+                                    <div class="action-buttons">
+                                        {{-- Ringkasan BK adalah halaman pertama yang dibuka
+                                             guru BK, jadi tindak lanjut paling umum —
+                                             menandai kasus selesai — bisa dilakukan langsung
+                                             di sini tanpa berpindah halaman. --}}
+                                        @if(in_array(auth()->user()->role, ['guru_bk', 'admin']))
+                                            <x-bk-tombol-selesai
+                                                :action="route('bk.kasus.update-status', $k)"
+                                                metode="PATCH"
+                                                :selesai="$k->isSelesai()"
+                                                :status-buka="$k->statusSaatDibukaKembali()" />
+                                        @endif
+                                        <a href="{{ route('bk.siswa.show', $k->siswa) }}" class="btn-chip btn-chip-edit" title="Buka profil siswa"><i class="fa-solid fa-eye"></i></a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -198,24 +207,27 @@
             </div>
 
             <div class="card p-5">
+                {{-- Menu Cepat disamakan dengan struktur menu yang baru: satu
+                     tindakan utama (catat pelanggaran) + tiga tujuan yang ada
+                     di sidebar, bukan campuran istilah lama seperti "Siswa
+                     Aktif" dan "Laporan Bulanan" yang tidak ada menunya. --}}
                 <p class="font-bold text-slate-800 mb-3">Menu Cepat</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <a href="{{ route('bk.kasus.create') }}" class="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition">
-                        <i class="fa-solid fa-file-pen text-blue-600"></i>
-                        <span class="text-xs font-semibold text-blue-700">Tambah Kasus</span>
+                <div class="space-y-2">
+                    <a href="{{ route('bk.kasus.create') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span class="text-sm font-bold">Catat Pelanggaran</span>
                     </a>
-                    <a href="{{ route('bk.pemanggilan.index') }}" class="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition">
-                        <i class="fa-solid fa-phone text-emerald-600"></i>
-                        <span class="text-xs font-semibold text-emerald-700">Panggilan Ortu</span>
-                    </a>
-                    <a href="{{ route('bk.siswa.index') }}" class="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl bg-violet-50 hover:bg-violet-100 transition">
-                        <i class="fa-solid fa-user-group text-violet-600"></i>
-                        <span class="text-xs font-semibold text-violet-700">Siswa Aktif</span>
-                    </a>
-                    <a href="{{ route('bk.kasus.index') }}" class="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition">
-                        <i class="fa-solid fa-file-lines text-amber-600"></i>
-                        <span class="text-xs font-semibold text-amber-700">Laporan Bulanan</span>
-                    </a>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="{{ route('bk.siswa.index') }}" class="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl bg-violet-50 hover:bg-violet-100 transition">
+                            <i class="fa-solid fa-user-group text-violet-600"></i>
+                            <span class="text-xs font-semibold text-violet-700">Siswa Bimbingan</span>
+                        </a>
+                        <a href="{{ route('bk.kasus.index') }}" class="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition">
+                            <i class="fa-solid fa-book text-amber-600"></i>
+                            <span class="text-xs font-semibold text-amber-700">Buku Catatan BK</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 

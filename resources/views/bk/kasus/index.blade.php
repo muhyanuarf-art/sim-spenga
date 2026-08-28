@@ -4,10 +4,12 @@
 @section('content')
 @php $user = auth()->user(); @endphp
 <div class="space-y-6">
+
+    <x-bk-tab-catatan />
     <div class="flex items-center justify-between flex-wrap gap-3 no-print">
         <p class="text-sm text-slate-400">Riwayat kasus/pelanggaran siswa. Riwayat tidak pernah dihapus — hanya bisa dibatalkan (tetap tercatat).</p>
         @if(in_array($user->role, ['guru','guru_bk','admin']))
-            <a href="{{ route('bk.kasus.create') }}" class="btn-primary bg-rose-600 hover:bg-rose-700">+ Catat Kasus Baru</a>
+            <a href="{{ route('bk.kasus.create') }}" class="btn-primary bg-rose-600 hover:bg-rose-700"><i class="fa-solid fa-plus mr-1.5"></i> Catat Pelanggaran</a>
         @endif
     </div>
 
@@ -17,8 +19,8 @@
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
                 <select name="status" class="input" onchange="this.form.submit()">
                     <option value="">Semua Status</option>
-                    @foreach(['Baru','Diproses','Dalam Pembinaan','Selesai'] as $s)
-                        <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
+                    @foreach(['belum_selesai' => 'Belum Selesai', 'Selesai' => 'Selesai'] as $nilai => $label)
+                        <option value="{{ $nilai }}" @selected(request('status') === $nilai)>{{ $label }}</option>
                     @endforeach
                 </select>
             </div>
@@ -83,15 +85,22 @@
                         <td><span class="badge bg-slate-100 text-slate-600">{{ $k->kategori }}</span></td>
                         <td class="font-bold text-rose-600">+{{ $k->poin }}</td>
                         <td>
-                            @if($k->dibatalkan_at)
-                                <span class="badge bg-slate-100 text-slate-400">Dibatalkan</span>
-                            @else
-                                <span class="badge bg-sky-50 text-sky-700">{{ $k->status }}</span>
-                            @endif
+                            <span class="badge {{ $k->badgeStatusRingkas() }}">{{ $k->labelStatusRingkas() }}</span>
                         </td>
                         <td class="text-slate-500">{{ $k->guruPelapor->name ?? '-' }}</td>
                         <td class="td-aksi no-print">
-                            <a href="{{ route('bk.siswa.show', $k->siswa_id) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye mr-1.5"></i> Detail</a>
+                            <div class="action-buttons">
+                                {{-- Ubah status langsung dari daftar ini — dulu harus
+                                     masuk ke profil siswa dulu untuk sekadar menandai selesai. --}}
+                                @if(! $k->dibatalkan_at && in_array($user->role, ['guru_bk', 'admin']))
+                                    <x-bk-tombol-selesai
+                                        :action="route('bk.kasus.update-status', $k)"
+                                        metode="PATCH"
+                                        :selesai="$k->isSelesai()"
+                                        :status-buka="$k->statusSaatDibukaKembali()" />
+                                @endif
+                                <a href="{{ route('bk.siswa.show', $k->siswa_id) }}" class="btn-chip btn-chip-edit"><i class="fa-solid fa-eye mr-1.5"></i> Detail</a>
+                            </div>
                         </td>
                     </tr>
                     @empty

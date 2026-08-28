@@ -5,10 +5,9 @@
 @php
     $user = auth()->user();
     $bisaKelolaPoin = in_array($user->role, ['guru_bk', 'admin']);
-    $bisaLaporKasus = in_array($user->role, ['guru', 'guru_bk', 'admin']);
     $tahapLabel = fn ($t) => $t ? "Tahap {$t}" : 'Belum ada';
 @endphp
-<div class="space-y-6" x-data="{ modal: null }">
+<div class="space-y-6">
 
     <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -23,16 +22,18 @@
                 </div>
             </div>
         </div>
-        <div class="flex flex-wrap gap-2">
-            @if($bisaLaporKasus)
-                <button @click="modal = 'kasus'" class="btn-primary bg-rose-600 hover:bg-rose-700">+ Catat Pelanggaran</button>
-            @endif
-            @if($bisaKelolaPoin)
-                <button @click="modal = 'pembinaan'" class="btn-outline">+ Catat Pembinaan</button>
-                <button @click="modal = 'pengurangan'" class="btn-outline">+ Kurangi Poin</button>
-                <a href="{{ route('bk.pemanggilan.create', ['siswa_id' => $siswa->id]) }}" class="btn-outline">+ Panggil Ortu</a>
-            @endif
-        </div>
+        {{-- Tombol pencatatan (Catat Pelanggaran / Pembinaan / Kurangi Poin /
+             Panggil Ortu) SENGAJA tidak ada lagi di sini. Dulu halaman ini
+             merangkap dua peran — tempat mencatat sekaligus tempat membaca
+             riwayat — dan tombolnya juga muncul di menu lain, sehingga
+             pengguna bingung harus mencatat dari mana.
+
+             Sekarang halaman ini MURNI untuk membaca rekam jejak seorang
+             siswa. Seluruh pencatatan berpangkal dari satu tempat: menu
+             Buku Catatan BK. --}}
+        <a href="{{ route('bk.kasus.index') }}" class="btn-outline">
+            <i class="fa-solid fa-book mr-1.5"></i> Buku Catatan BK
+        </a>
     </div>
 
     {{-- Ringkasan --}}
@@ -212,27 +213,15 @@
                             @if($dibatalkan)
                                 <span class="badge bg-slate-100 text-slate-400">Dibatalkan</span>
 
+                            {{-- Dulu berupa dropdown 4 pilihan status yang harus
+                                 dipahami dulu. Sekarang cukup badge keadaan +
+                                 satu tombol, sama persis dengan yang ada di
+                                 daftar Kasus & Pembinaan. --}}
                             @elseif($item['jenis'] === 'kasus' && $bisaKelolaPoin)
-                                <form method="POST" action="{{ route('bk.kasus.update-status', $d) }}">
-                                    @csrf @method('PATCH')
-                                    <select name="status" onchange="this.form.submit()"
-                                            class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
-                                        @foreach(['Baru','Diproses','Dalam Pembinaan','Selesai'] as $st)
-                                            <option value="{{ $st }}" @selected($d->status === $st)>{{ $st }}</option>
-                                        @endforeach
-                                    </select>
-                                </form>
+                                <span class="badge {{ $d->badgeStatusRingkas() }}">{{ $d->labelStatusRingkas() }}</span>
 
                             @elseif($item['jenis'] === 'pembinaan' && $bisaKelolaPoin)
-                                <form method="POST" action="{{ route('bk.pembinaan.update', $d) }}">
-                                    @csrf @method('PUT')
-                                    <input type="hidden" name="hasil_pembinaan" value="{{ $d->hasil_pembinaan }}">
-                                    <select name="status" onchange="this.form.submit()"
-                                            class="text-xs rounded-lg border border-slate-200 px-2 py-1 bg-white">
-                                        <option value="Pembinaan" @selected($d->status === 'Pembinaan')>Pembinaan</option>
-                                        <option value="Selesai" @selected($d->status === 'Selesai')>Selesai</option>
-                                    </select>
-                                </form>
+                                <span class="badge {{ $d->badgeStatusRingkas() }}">{{ $d->labelStatusRingkas() }}</span>
 
                             @elseif($item['jenis'] === 'pemanggilan')
                                 @if(! $d->sudahAdaHasil())
@@ -253,6 +242,24 @@
 
                         <td class="td-aksi no-print">
                             <div class="action-buttons">
+                                @if($item['jenis'] === 'kasus' && $bisaKelolaPoin && ! $dibatalkan)
+                                    <x-bk-tombol-selesai
+                                        :action="route('bk.kasus.update-status', $d)"
+                                        metode="PATCH"
+                                        :selesai="$d->isSelesai()"
+                                        :status-buka="$d->statusSaatDibukaKembali()" />
+                                @endif
+
+                                @if($item['jenis'] === 'pembinaan' && $bisaKelolaPoin)
+                                    <x-bk-tombol-selesai
+                                        :action="route('bk.pembinaan.update', $d)"
+                                        metode="PUT"
+                                        :selesai="$d->isSelesai()"
+                                        status-buka="Pembinaan">
+                                        <input type="hidden" name="hasil_pembinaan" value="{{ $d->hasil_pembinaan }}">
+                                    </x-bk-tombol-selesai>
+                                @endif
+
                                 @if($item['jenis'] === 'pemanggilan' && $d->surat)
                                     <a href="{{ route('surat.show', $d->surat) }}" target="_blank" class="btn-chip btn-chip-edit"
                                        title="Surat {{ $d->surat->nomor_surat ?: 'belum bernomor' }}">
@@ -296,181 +303,5 @@
         @endif
     </div>
 
-    {{-- ===== MODAL: Catat Pelanggaran ===== --}}
-    @if($bisaLaporKasus)
-    <div x-show="modal === 'kasus'" x-cloak class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @keydown.escape.window="modal=null">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" @click.outside="modal=null"
-             x-data="{ jenisData: {{ $jenisList->map(fn($j) => ['id'=>$j->id,'nama'=>$j->nama,'kategori'=>$j->kategori,'poin'=>$j->poin_default])->values() }},
-                       jenisId: '', nama: '', kategori: '', poin: '',
-                       pilihJenis(id) {
-                           const j = this.jenisData.find(x => x.id == id);
-                           if (j) { this.nama = j.nama; this.kategori = j.kategori; this.poin = j.poin; }
-                           else { this.nama = ''; this.kategori = ''; this.poin = ''; }
-                       } }">
-            <p class="font-bold text-lg text-slate-800 mb-4">Catat Pelanggaran — {{ $siswa->nama }}</p>
-            <form method="POST" action="{{ route('bk.kasus.store') }}" enctype="multipart/form-data" class="space-y-3">
-                @csrf
-                <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Kejadian</label>
-                    <input type="date" name="tanggal_kejadian" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" required class="input">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Jenis Pelanggaran</label>
-                    <select x-model="jenisId" @change="pilihJenis(jenisId)" name="jenis_pelanggaran_id" required class="input">
-                        <option value="">-- Pilih Jenis Pelanggaran --</option>
-                        @foreach($jenisList as $j)
-                            <option value="{{ $j->id }}">{{ $j->nama }} ({{ $j->kategori }}, {{ $j->poin_default }} poin)</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Pelanggaran</label>
-                    <input type="text" name="nama_pelanggaran" x-model="nama" required class="input" placeholder="Mis. Terlambat masuk kelas">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Kategori <span class="text-slate-300 font-normal">(otomatis)</span></label>
-                        <div class="input bg-slate-50 text-slate-500 flex items-center" x-text="kategori || '-'"></div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Poin <span class="text-slate-300 font-normal">(otomatis)</span></label>
-                        <div class="input bg-slate-50 text-slate-500 flex items-center font-bold" x-text="poin ? poin + ' poin' : '-'"></div>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Kronologi <span class="text-rose-500">*</span></label>
-                    <textarea name="kronologi" required minlength="10" rows="3" class="input" placeholder="Ceritakan kejadiannya... (wajib diisi)"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Catatan Pendukung (opsional)</label>
-                    <textarea name="bukti_catatan" rows="2" class="input" placeholder="Boleh dikosongkan"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Upload Bukti — Foto/PDF (opsional)</label>
-                    <input type="file" name="bukti_file" accept=".jpg,.jpeg,.png,.pdf" class="input">
-                    <p class="text-xs text-slate-400 mt-1">Format JPG/PNG/PDF, maksimal 5MB. Boleh dikosongkan.</p>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="modal=null" class="btn-outline">Batal</button>
-                    <button type="submit" class="btn-primary bg-rose-600 hover:bg-rose-700">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    @endif
-
-    {{-- ===== MODAL: Catat Pembinaan ===== --}}
-    @if($bisaKelolaPoin)
-    <div x-show="modal === 'pembinaan'" x-cloak class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @keydown.escape.window="modal=null">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto" @click.outside="modal=null" x-data="{ status: 'Pembinaan' }">
-            <p class="font-bold text-lg text-slate-800 mb-1">Catat Pembinaan — {{ $siswa->nama }}</p>
-            <p class="text-xs text-slate-400 mb-4">
-                Tahap ditentukan otomatis oleh sistem dari poin aktif saat ini:
-                <b class="text-violet-600">{{ $ringkasan['rekomendasi_tahap'] ? 'Tahap '.$ringkasan['rekomendasi_tahap'] : 'Tahap 1' }}</b>
-            </p>
-            <form method="POST" action="{{ route('bk.pembinaan.store') }}" enctype="multipart/form-data" class="space-y-3">
-                @csrf
-                <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Terkait Kasus (opsional)</label>
-                    <select name="kasus_siswa_id" class="input">
-                        <option value="">-- Tidak terkait kasus tertentu --</option>
-                        @foreach($kasusAktifTerbuka as $k)
-                            <option value="{{ $k->id }}">{{ $k->tanggal_kejadian->format('d/m/Y') }} — {{ $k->nama_pelanggaran }} (+{{ $k->poin }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal</label>
-                        <input type="date" name="tanggal" value="{{ now()->toDateString() }}" required class="input">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tahap <span class="text-slate-300 font-normal">(otomatis)</span></label>
-                        <div class="input bg-slate-50 text-slate-500 flex items-center font-bold">
-                            Tahap {{ $ringkasan['rekomendasi_tahap'] ?? 1 }}
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Jenis Pembinaan</label>
-                    <select name="jenis_pembinaan" required class="input">
-                        @foreach(['Teguran lisan','Teguran tertulis','Penugasan edukatif','Konseling individu','Kontrak perilaku','Pemanggilan orang tua','Pembinaan khusus','Ruang refleksi','Skorsing edukatif','Pembinaan lanjutan'] as $jp)
-                            <option value="{{ $jp }}">{{ $jp }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Catatan BK</label>
-                    <textarea name="catatan_bk" required rows="2" class="input"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Status</label>
-                    <select name="status" x-model="status" required class="input">
-                        <option value="Pembinaan">Pembinaan</option>
-                        <option value="Selesai">Selesai</option>
-                    </select>
-                </div>
-                <div x-show="status === 'Selesai'">
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Hasil Pembinaan</label>
-                    <textarea name="hasil_pembinaan" rows="2" class="input"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Upload Bukti — Foto/PDF (opsional)</label>
-                    <input type="file" name="bukti_file" accept=".jpg,.jpeg,.png,.pdf" class="input">
-                    <p class="text-xs text-slate-400 mt-1">Format JPG/PNG/PDF, maksimal 5MB. Boleh dikosongkan.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Evaluasi Berikutnya (opsional)</label>
-                    <input type="date" name="tanggal_evaluasi_berikutnya" class="input">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="modal=null" class="btn-outline">Batal</button>
-                    <button type="submit" class="btn-primary">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- ===== MODAL: Kurangi Poin ===== --}}
-    <div x-show="modal === 'pengurangan'" x-cloak class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" @keydown.escape.window="modal=null">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6" @click.outside="modal=null">
-            <p class="font-bold text-lg text-slate-800 mb-1">Kurangi Poin — {{ $siswa->nama }}</p>
-            <p class="text-xs text-slate-400 mb-4">Poin aktif saat ini: <b>{{ $ringkasan['poin_aktif'] }}</b> (maksimal pengurangan)</p>
-            <form method="POST" action="{{ route('bk.pengurangan.store') }}" class="space-y-3">
-                @csrf
-                <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Tanggal</label>
-                        <input type="date" name="tanggal" value="{{ now()->toDateString() }}" required class="input">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 mb-1">Jumlah Pengurangan</label>
-                        <input type="number" name="jumlah" required min="1" max="{{ $ringkasan['poin_aktif'] }}" class="input">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Alasan</label>
-                    <textarea name="alasan" required rows="2" class="input" placeholder="Mis. Menunjukkan perubahan perilaku konsisten selama 2 minggu"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Dasar/Rekomendasi (opsional)</label>
-                    <textarea name="dasar_rekomendasi" rows="2" class="input"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 mb-1">Catatan (opsional)</label>
-                    <textarea name="catatan" rows="2" class="input"></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="modal=null" class="btn-outline">Batal</button>
-                    <button type="submit" class="btn-primary bg-emerald-600 hover:bg-emerald-700">Simpan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    @endif
 </div>
 @endsection

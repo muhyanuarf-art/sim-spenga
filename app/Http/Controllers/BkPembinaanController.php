@@ -55,6 +55,51 @@ class BkPembinaanController extends Controller
         return view('bk.pembinaan.index', compact('data', 'kelasList', 'guruBk'));
     }
 
+    /**
+     * Form catat pembinaan baru.
+     *
+     * Sebelumnya pembinaan HANYA bisa dicatat lewat modal di halaman Profil
+     * Perilaku Siswa — halaman profil jadi menanggung tugas pencatatan
+     * sekaligus penyajian riwayat, dan pengguna kebingungan karena tombol
+     * pencatatan tersebar di dua tempat. Sekarang seluruh pencatatan BK
+     * berpangkal dari Buku Catatan BK, dengan langkah yang seragam:
+     * cari siswa dulu, baru isi formulirnya.
+     */
+    public function create(Request $request, PoinSiswaService $poinService)
+    {
+        $user = $request->user();
+        $kelasIds = $this->bkKelasIdsUntukUser($user);
+
+        $siswaTerpilih = null;
+        $hasilCari = collect();
+        $kasusAktifTerbuka = collect();
+        $ringkasan = null;
+
+        if ($request->filled('siswa_id')) {
+            $siswaTerpilih = Siswa::with('kelas')->find($request->get('siswa_id'));
+            if ($siswaTerpilih) {
+                $this->bkPastikanSiswaSesuaiCakupan($user, $siswaTerpilih);
+
+                $kasusAktifTerbuka = KasusSiswa::aktif()
+                    ->where('siswa_id', $siswaTerpilih->id)
+                    ->where('status', '!=', KasusSiswa::STATUS_SELESAI)
+                    ->orderByDesc('tanggal_kejadian')->get();
+
+                $ringkasan = $poinService->ringkasan($siswaTerpilih);
+            }
+        } elseif ($request->filled('cari')) {
+            $hasilCari = Siswa::with('kelas')->where('is_active', true)
+                ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
+                ->where(function ($q) use ($request) {
+                    $q->where('nama', 'like', "%{$request->cari}%")
+                      ->orWhere('nis', 'like', "%{$request->cari}%");
+                })
+                ->orderBy('nama')->limit(20)->get();
+        }
+
+        return view('bk.pembinaan.create', compact('siswaTerpilih', 'hasilCari', 'kasusAktifTerbuka', 'ringkasan'));
+    }
+
     public function store(Request $request, PoinSiswaService $poinService)
     {
         $tahunAjaran = TahunAjaran::aktif();
@@ -122,14 +167,31 @@ class BkPembinaanController extends Controller
 
         $pembinaan->update($validated);
 
-        // Sama seperti di store(): kalau pembinaan ini diubah jadi "Selesai"
-        // dan terkait 1 kasus, kasus itu ikut ditandai "Selesai" — otomatis
-        // hilang dari daftar "Kasus Belum Selesai" di Dashboard BK.
-        if ($pembinaan->kasus_siswa_id && $pembinaan->status === 'Selesai') {
-            KasusSiswa::where('id', $pembinaan->kasus_siswa_id)->update(['status' => 'Selesai']);
+        // Kasus terkait ikut mengikuti, DUA ARAH — supaya pengguna tidak
+        // pernah perlu mengubah status di dua tempat terpisah:
+        //
+        // - Ditandai "Selesai"  → kasusnya ikut "Selesai" (hilang dari
+        //   daftar Kasus Belum Selesai di Ringkasan BK).
+        // - Dibuka kembali      → kasusnya ikut dibuka lagi menjadi
+        //   "Dalam Pembinaan". Sebelumnya arah ini TIDAK ditangani, jadi
+        //   pembinaan bisa berstatus belum selesai sementara kasusnya
+        //   masih tertulis "Selesai" — dua halaman menampilkan hal yang
+        //   saling bertentangan.
+        if ($pembinaan->kasus_siswa_id) {
+            $kasus = KasusSiswa::find($pembinaan->kasus_siswa_id);
+
+            if ($kasus) {
+                $kasus->update([
+                    'status' => $pembinaan->isSelesai()
+                        ? KasusSiswa::STATUS_SELESAI
+                        : KasusSiswa::STATUS_DALAM_PEMBINAAN,
+                ]);
+            }
         }
 
-        return back()->with('success', 'Pembinaan berhasil diperbarui.');
+        return back()->with('success', $pembinaan->isSelesai()
+            ? 'Pembinaan ditandai selesai.'
+            : 'Pembinaan dibuka kembali.');
     }
 
     /** Catat evaluasi harian untuk pembinaan jenis "Ruang refleksi" (maks 7 hari). */

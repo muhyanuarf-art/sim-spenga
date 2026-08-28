@@ -220,55 +220,44 @@ class Navigasi
                         'label' => 'Bimbingan Konseling',
                         'icon' => 'fa-hand-holding-heart',
                         'roles' => ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
+                        // PENYEDERHANAAN ALUR BK — dari 7 sub-menu jadi 3.
+                        //
+                        // Empat menu lama (Kasus, Pembinaan, Pengurangan Poin,
+                        // Pemanggilan Orang Tua) sebenarnya laporan dari data
+                        // yang sama; deretan menunya membuat pengguna bingung
+                        // harus mulai dari mana. Keempatnya kini jadi SATU menu
+                        // "Buku Catatan BK" dengan tab di dalam halamannya
+                        // (lihat komponen <x-bk-tab-catatan />). Rutenya tidak
+                        // diubah sama sekali, jadi tautan lama tetap bekerja —
+                        // 'cocok' di bawah mencakup keempatnya supaya menu ini
+                        // tetap tersorot di tab mana pun pengguna berada.
+                        //
+                        // "Master Jenis Pelanggaran" pindah ke bagian
+                        // Pengaturan: itu data master yang diisi sekali di awal
+                        // tahun, bukan pekerjaan harian BK.
                         'anak' => [
                             [
-                                'label' => 'Ringkasan Pelanggaran',
+                                'label' => 'Ringkasan BK',
                                 'route' => 'bk.dashboard',
                                 'cocok' => ['bk.dashboard'],
-                                'deskripsi' => 'Ringkasan kasus, tahap pembinaan, dan siswa yang perlu perhatian.',
+                                'deskripsi' => 'Ringkasan kasus, tahap pembinaan, dan siswa yang perlu ditindaklanjuti.',
                                 'roles' => ['guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
                             ],
                             [
-                                'label' => 'Kasus & Pelanggaran',
-                                'route' => 'bk.kasus.index',
-                                'cocok' => ['bk.kasus.*'],
-                                'deskripsi' => 'Catatan pelanggaran siswa beserta poin dan status penanganannya.',
-                                'roles' => ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
-                            ],
-                            [
-                                'label' => 'Pembinaan Siswa',
-                                'route' => 'bk.pembinaan.index',
-                                'cocok' => ['bk.pembinaan.*'],
-                                'deskripsi' => 'Proses pembinaan bertahap untuk siswa yang melanggar.',
-                                'roles' => ['guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
-                            ],
-                            [
-                                'label' => 'Pengurangan Poin',
-                                'route' => 'bk.pengurangan.index',
-                                'cocok' => ['bk.pengurangan.*'],
-                                'deskripsi' => 'Pengurangan poin pelanggaran bagi siswa yang menunjukkan perbaikan.',
-                                'roles' => ['guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
-                            ],
-                            [
-                                'label' => 'Pemanggilan Orang Tua',
-                                'route' => 'bk.pemanggilan.index',
-                                'cocok' => ['bk.pemanggilan.*'],
-                                'deskripsi' => 'Agenda dan hasil pertemuan dengan orang tua siswa.',
-                                'roles' => ['guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
-                            ],
-                            [
-                                'label' => 'Profil Poin Siswa',
+                                // Halaman kerja harian BK: cari siswa, lalu catat
+                                // pelanggaran/pembinaan/pengurangan dari satu tempat.
+                                'label' => 'Siswa Bimbingan',
                                 'route' => 'bk.siswa.index',
                                 'cocok' => ['bk.siswa.*'],
-                                'deskripsi' => 'Rekam jejak perilaku dan poin pelanggaran tiap siswa.',
+                                'deskripsi' => 'Cari siswa, lalu catat pelanggaran, pembinaan, pengurangan poin, dan pemanggilan orang tua dari satu halaman.',
                                 'roles' => ['guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
                             ],
                             [
-                                'label' => 'Master Jenis Pelanggaran',
-                                'route' => 'bk.jenis-pelanggaran.index',
-                                'cocok' => ['bk.jenis-pelanggaran.*'],
-                                'deskripsi' => 'Daftar jenis pelanggaran beserta kategori dan bobot poinnya.',
-                                'roles' => ['guru_bk', 'admin'],
+                                'label' => 'Buku Catatan BK',
+                                'route' => 'bk.kasus.index',
+                                'cocok' => ['bk.kasus.*', 'bk.pembinaan.*', 'bk.pengurangan.*', 'bk.pemanggilan.*', 'bk.laporan-bulanan'],
+                                'deskripsi' => 'Seluruh catatan BK dalam satu halaman: kasus, pembinaan, pengurangan poin, dan pemanggilan orang tua.',
+                                'roles' => ['guru', 'guru_bk', 'kurikulum', 'kepala_sekolah', 'kesiswaan', 'admin'],
                             ],
                         ],
                     ],
@@ -441,6 +430,17 @@ class Navigasi
                         'cocok' => ['pengaturan-sekolah.*'],
                         'deskripsi' => 'Identitas sekolah & kepala sekolah yang dipakai di semua dokumen cetak.',
                         'roles' => ['kurikulum', 'admin'],
+                    ],
+                    [
+                        // Dipindah ke sini dari grup Bimbingan Konseling: ini
+                        // data master yang diisi sekali di awal tahun ajaran,
+                        // bukan pekerjaan harian BK.
+                        'label' => 'Jenis Pelanggaran',
+                        'icon' => 'fa-list-check',
+                        'route' => 'bk.jenis-pelanggaran.index',
+                        'cocok' => ['bk.jenis-pelanggaran.*'],
+                        'deskripsi' => 'Daftar jenis pelanggaran beserta kategori dan bobot poinnya.',
+                        'roles' => ['guru_bk', 'admin'],
                     ],
                     [
                         'label' => 'Pengaturan Penilaian',

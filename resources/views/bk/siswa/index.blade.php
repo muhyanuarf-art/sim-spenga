@@ -1,5 +1,15 @@
 @extends('layouts.app')
-@section('title', 'Profil Poin Siswa')
+@section('title', 'Siswa Bimbingan')
+
+@section('aksi')
+    {{-- Pekerjaan BK yang paling sering: mencatat pelanggaran. Tombolnya
+         sengaja ditaruh paling menonjol di halaman kerja harian ini. --}}
+    @if(in_array(auth()->user()->role, ['guru', 'guru_bk', 'admin']))
+        <a href="{{ route('bk.kasus.create') }}" class="btn-primary bg-rose-600 hover:bg-rose-700">
+            <i class="fa-solid fa-plus mr-1.5"></i> Catat Pelanggaran
+        </a>
+    @endif
+@endsection
 
 @section('content')
 <div class="space-y-6">
@@ -7,7 +17,11 @@
         <form method="GET" class="flex flex-wrap gap-3 items-end">
             <div class="flex-1 min-w-[180px]">
                 <label class="block text-xs font-semibold text-slate-500 mb-1">Cari Nama Siswa</label>
-                <input type="text" name="cari" value="{{ request('cari') }}" class="input" placeholder="Ketik nama...">
+                <input type="text" name="cari" value="{{ request('cari') }}" class="input"
+                       placeholder="Ketik nama siswa mana pun...">
+                <p class="text-xs text-slate-400 mt-1">
+                    Pencarian menjangkau <b>seluruh siswa aktif</b> — termasuk yang belum pernah punya catatan BK.
+                </p>
             </div>
             @if($kelasList->isNotEmpty())
             <div>
@@ -25,8 +39,19 @@
     </div>
 
     <div class="card p-5">
-        <p class="font-bold text-slate-800 mb-1">Siswa dengan Riwayat Kasus</p>
-        <p class="text-xs text-slate-400 mb-4">Diurutkan dari poin aktif tertinggi. Siswa tanpa riwayat kasus tidak ditampilkan di sini.</p>
+        @if($sedangMencari)
+            <p class="font-bold text-slate-800 mb-1">Hasil Pencarian &ldquo;{{ request('cari') }}&rdquo;</p>
+            <p class="text-xs text-slate-400 mb-4">
+                Seluruh siswa aktif yang cocok. Klik barisnya untuk membuka profil &mdash;
+                di sana Anda bisa langsung mencatat pelanggaran, pembinaan, pengurangan poin, dan pemanggilan orang tua.
+            </p>
+        @else
+            <p class="font-bold text-slate-800 mb-1">Siswa dengan Riwayat Kasus</p>
+            <p class="text-xs text-slate-400 mb-4">
+                Diurutkan dari poin aktif tertinggi. Siswa yang belum pernah punya catatan BK tidak ditampilkan di sini &mdash;
+                ketik namanya di kotak pencarian di atas untuk menemukannya.
+            </p>
+        @endif
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
                 <thead><tr><th>Nama</th><th>Kelas</th><th>Poin Aktif</th><th>Tahap</th><th>Status</th><th>Kasus</th></tr></thead>
@@ -57,7 +82,13 @@
                         <td class="text-slate-500">{{ $r['jumlah_kasus'] }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada siswa dengan riwayat kasus.</td></tr>
+                    <tr><td colspan="6" class="text-center text-slate-400 py-8">
+                        @if($sedangMencari)
+                            Tidak ada siswa aktif bernama &ldquo;{{ request('cari') }}&rdquo;.
+                        @else
+                            Belum ada siswa dengan riwayat kasus. Ketik nama siswa di kotak pencarian untuk mulai mencatat.
+                        @endif
+                    </td></tr>
                     @endforelse
                 </tbody>
             </table>

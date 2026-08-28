@@ -4,7 +4,16 @@
 @section('content')
 @php $user = auth()->user(); @endphp
 <div class="space-y-6">
-    <p class="text-sm text-slate-400">Riwayat pengurangan poin (penghargaan atas perubahan perilaku). Untuk mencatat pengurangan baru, buka profil siswa terkait.</p>
+
+    <x-bk-tab-catatan />
+    <div class="flex items-center justify-between flex-wrap gap-3 no-print">
+        <p class="text-sm text-slate-400">Riwayat pengurangan poin — penghargaan atas perubahan perilaku siswa.</p>
+        @if(in_array($user->role, ['guru_bk', 'admin']))
+            <a href="{{ route('bk.pengurangan.create') }}" class="btn-primary bg-emerald-600 hover:bg-emerald-700">
+                <i class="fa-solid fa-plus mr-1.5"></i> Kurangi Poin
+            </a>
+        @endif
+    </div>
 
     <div class="card p-5">
         <form method="GET" class="flex flex-wrap gap-3 mb-4">

@@ -37,9 +37,18 @@ class BkSiswaController extends Controller
             $query->where('nama', 'like', '%' . $request->cari . '%');
         }
 
-        // Hanya tampilkan siswa yang PERNAH punya kasus (supaya listing tidak
-        // penuh 471 siswa yang tidak relevan sama sekali untuk BK).
-        $query->whereHas('kasusBk');
+        // Daftar bawaan hanya memuat siswa yang PERNAH punya kasus, supaya
+        // tidak penuh ratusan siswa yang tidak relevan untuk BK.
+        //
+        // TAPI begitu pengguna MENCARI NAMA, pencariannya menjangkau SEMUA
+        // siswa aktif. Dulu tidak begitu, dan itu menyulitkan pekerjaan yang
+        // paling sering dilakukan: mencatat pelanggaran PERTAMA seorang
+        // siswa — namanya tidak ketemu di sini karena belum punya kasus,
+        // jadi pengguna harus menempuh jalur lain lewat menu terpisah.
+        $sedangMencari = $request->filled('cari');
+        if (! $sedangMencari) {
+            $query->whereHas('kasusBk');
+        }
 
         // PERBAIKAN PERFORMA (N+1) — sebelumnya ->ringkasan($siswa) dipanggil
         // di dalam map() per baris siswa (~9 query PER SISWA). Sekarang
@@ -56,7 +65,7 @@ class BkSiswaController extends Controller
             ? Kelas::aktif()->orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 
-        return view('bk.siswa.index', compact('siswas', 'kelasList'));
+        return view('bk.siswa.index', compact('siswas', 'kelasList', 'sedangMencari'));
     }
 
     /**
@@ -138,16 +147,14 @@ class BkSiswaController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        $jenisList = JenisPelanggaran::where('is_active', true)->orderBy('kategori')->orderBy('nama')->get();
-        $kasusAktifTerbuka = $kasus->whereNull('dibatalkan_at')->whereNotIn('status', ['Selesai'])->values();
-
-        // (2026-08-26) — pencatatan Pemanggilan Orang Tua (+ pemilihan/
-        // pembuatan Surat Panggilan) dipindah jadi halaman tersendiri
-        // (bk.pemanggilan.create) supaya sederhana & tidak menumpuk di
-        // halaman detail siswa ini — lihat BkPemanggilanController.
+        // Halaman ini sekarang MURNI untuk membaca rekam jejak siswa —
+        // seluruh pencatatan BK berpangkal dari menu Buku Catatan BK. Daftar
+        // jenis pelanggaran & kasus terbuka yang dulu dikirim ke sini hanya
+        // dipakai oleh modal pencatatan yang sudah dihapus, jadi query-nya
+        // ikut dibuang (dua query yang tidak lagi ada gunanya).
 
         return view('bk.siswa.show', compact(
-            'siswa', 'ringkasan', 'timeline', 'jenisList', 'kasusAktifTerbuka',
+            'siswa', 'ringkasan', 'timeline',
             'jumlahPerJenis', 'jenisFilter', 'perPage'
         ));
     }
