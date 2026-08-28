@@ -34,7 +34,7 @@ class EkskulAbsensiController extends Controller
     {
         $user = $request->user();
 
-        $query = Ekstrakurikuler::with('pembinas.user')->where('is_aktif', true)->orderBy('nama_ekstrakurikuler');
+        $query = Ekstrakurikuler::periodeAktif()->with('pembinas.user')->where('is_aktif', true)->orderBy('nama_ekstrakurikuler');
 
         if (in_array($user->role, ['guru', 'guru_bk'])) {
             $query->whereHas('pembinas', fn ($q) => $q->where('user_id', $user->id));
@@ -149,6 +149,16 @@ class EkskulAbsensiController extends Controller
      */
     private function otorisasiPengisi(Request $request, Ekstrakurikuler $ekstrakurikuler): void
     {
+        // Ekstrakurikuler milik tahun ajaran lain hanya bisa dibaca lewat
+        // laporannya, tidak bisa diisi absensi baru — kalau tidak, absensi
+        // periode berjalan bisa nyangkut di kegiatan tahun sebelumnya
+        // (tautan/bookmark lama masih menunjuk id yang lama).
+        abort_unless(
+            Ekstrakurikuler::periodeAktif()->whereKey($ekstrakurikuler->id)->exists(),
+            403,
+            'Kegiatan ini milik tahun ajaran lain. Salin dulu ke periode aktif lewat menu Tahun Ajaran → Salin Data, atau buat kegiatan baru.'
+        );
+
         $user = $request->user();
         if (in_array($user->role, ['kesiswaan', 'admin'])) {
             return;

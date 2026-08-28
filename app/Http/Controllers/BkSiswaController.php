@@ -26,7 +26,7 @@ class BkSiswaController extends Controller
 
         abort_if($kelasIds === [], 403, 'Anda belum di-mapping ke kelas manapun. Hubungi Kurikulum/Admin.');
 
-        $query = Siswa::with('kelas')->where('is_active', true);
+        $query = Siswa::periodeAktif()->with('kelas')->where('is_active', true);
         if ($kelasIds !== null) {
             $query->whereIn('kelas_id', $kelasIds);
         }

@@ -48,7 +48,7 @@ class EkstrakurikulerAnggotaController extends Controller
         $idSudahAnggota = $ekstrakurikuler->anggotas->pluck('siswa_id');
         $hasilCari = collect();
         if ($request->filled('cari')) {
-            $hasilCari = Siswa::with('kelas')
+            $hasilCari = Siswa::periodeAktif()->with('kelas')
                 ->where('is_active', true)
                 ->whereNotIn('id', $idSudahAnggota)
                 ->where(function ($q) use ($request) {

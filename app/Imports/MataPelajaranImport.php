@@ -38,8 +38,10 @@ class MataPelajaranImport extends ImportDasar
             return;
         }
 
+        // Dicari HANYA di periode aktif — kode yang sama pada tahun ajaran
+        // sebelumnya adalah baris tersendiri dan tidak boleh ikut tertimpa.
         $this->catat(MataPelajaran::updateOrCreate(
-            ['kode' => $kode],
+            ['kode' => $kode, 'tahun_ajaran_id' => MataPelajaran::idPeriodeAktif()],
             ['nama_mapel' => $nama]
         ));
     }

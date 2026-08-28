@@ -82,7 +82,7 @@ class BkPenguranganPoinController extends Controller
                 $ringkasan = $poinService->ringkasan($siswaTerpilih);
             }
         } elseif ($request->filled('cari')) {
-            $hasilCari = Siswa::with('kelas')->where('is_active', true)
+            $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
                 ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
                 ->where(function ($q) use ($request) {
                     $q->where('nama', 'like', "%{$request->cari}%")

@@ -50,9 +50,9 @@ class DashboardController extends Controller
      */
     private function dashboardTu()
     {
-        $totalJenis = JenisSurat::count();
-        $totalJenisAktif = JenisSurat::where('is_aktif', true)->count();
-        $jenisTerbaru = JenisSurat::orderByDesc('id')->limit(8)->get();
+        $totalJenis = JenisSurat::periodeAktif()->count();
+        $totalJenisAktif = JenisSurat::periodeAktif()->where('is_aktif', true)->count();
+        $jenisTerbaru = JenisSurat::periodeAktif()->orderByDesc('id')->limit(8)->get();
 
         // Jumlah pemakaian tiap jenis surat — 1 query GROUP BY, bukan
         // 1 query per jenis.
@@ -65,9 +65,9 @@ class DashboardController extends Controller
     /** Admin & Kepala Sekolah: ringkasan sekolah menyeluruh. */
     private function dashboardSekolah(User $user, ?TahunAjaran $tahunAjaran)
     {
-        $totalSiswa = Siswa::where('is_active', true)->count();
-        $totalSiswaLaki = Siswa::where('is_active', true)->where('jenis_kelamin', 'L')->count();
-        $totalSiswaPerempuan = Siswa::where('is_active', true)->where('jenis_kelamin', 'P')->count();
+        $totalSiswa = Siswa::periodeAktif()->where('is_active', true)->count();
+        $totalSiswaLaki = Siswa::periodeAktif()->where('is_active', true)->where('jenis_kelamin', 'L')->count();
+        $totalSiswaPerempuan = Siswa::periodeAktif()->where('is_active', true)->where('jenis_kelamin', 'P')->count();
 
         $totalGuru = User::where('role', 'guru')->count();
         $totalGuruAktif = User::where('role', 'guru')->where('is_active', true)->count();
@@ -168,7 +168,7 @@ class DashboardController extends Controller
                     'ikon' => 'fa-triangle-exclamation',
                     'warna' => 'rose',
                 ]))
-            ->merge(Siswa::latest('created_at')->limit(3)->get()
+            ->merge(Siswa::periodeAktif()->latest('created_at')->limit(3)->get()
                 ->map(fn ($s) => [
                     'teks' => "Data siswa {$s->nama} ditambahkan",
                     'waktu' => $s->created_at,
@@ -252,7 +252,7 @@ class DashboardController extends Controller
             ]);
 
         $kelasBermasalah = $rekapPerKelas->where('alfa_hari_ini', '>', 0)->count();
-        $totalEkskulAktif = Ekstrakurikuler::where('is_aktif', true)->count();
+        $totalEkskulAktif = Ekstrakurikuler::periodeAktif()->where('is_aktif', true)->count();
         $kasusBulanIni = KasusSiswa::aktif()
             ->whereBetween('tanggal_kejadian', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
             ->count();

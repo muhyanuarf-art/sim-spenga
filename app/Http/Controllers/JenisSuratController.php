@@ -15,7 +15,7 @@ class JenisSuratController extends Controller
 {
     public function index()
     {
-        $jenisSurat = JenisSurat::withCount('surats')->orderBy('nama_jenis')->paginate(25);
+        $jenisSurat = JenisSurat::periodeAktif()->withCount('surats')->orderBy('nama_jenis')->paginate(25);
         $placeholder = SuratMerge::DAFTAR_PLACEHOLDER;
 
         return view('surat.jenis-index', compact('jenisSurat', 'placeholder'));

@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GuruBkKelas;
-use App\Models\GuruMengajarKelas;
-use App\Models\JadwalPelajaran;
-use App\Models\Kelas;
 use App\Models\TahunAjaran;
 use App\Support\PeriodeAkademik;
 use App\Support\RentangPeriode;
+use App\Support\SalinDataPeriode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -280,111 +277,17 @@ class TahunAjaranController extends Controller
     // menggabungkan keduanya secara otomatis.
 
     /**
-     * STEP 9 (permintaan admin) — "Salin Data" TERPADU: Kelas + Wali Kelas
-     * + Guru Mengajar + Jadwal dalam SATU alur, bukan lagi fitur terpisah
-     * (sebelumnya "Salin Struktur Kelas" di menu Data Kelas dan "Salin
-     * Mapping Guru/Jadwal" di menu Tahun Ajaran adalah 2 tombol berbeda —
-     * sekarang digabung jadi 1 "Salin Data" per baris semester).
+     * "SALIN DATA" — memindahkan seluruh pengaturan satu periode ke periode
+     * lain dalam satu aksi: Mata Pelajaran, Jam Pelajaran, Jenis
+     * Pelanggaran, Jenis Surat, Ekstrakurikuler (+pembina), Kelas & Wali
+     * Kelas, Mapping Guru Mengajar, Mapping Guru BK, dan Jadwal Pelajaran.
      *
-     * Hitung APA SAJA yang akan disalin dari $sumber ke $tujuan, TANPA
-     * menulis apa pun ke database. Dipakai BERSAMA oleh preview (GET,
-     * tampil ke admin) dan eksekusi (POST) — supaya keduanya selalu
-     * konsisten.
+     * Perhitungannya seluruhnya ada di App\Support\SalinDataPeriode —
+     * dipakai bersama oleh pratinjau (GET, tidak menulis apa pun) dan
+     * eksekusi (POST), supaya apa yang dijanjikan di layar persis sama
+     * dengan yang tersimpan.
      *
-     * Kalau $sumber & $tujuan TAHUN AJARANNYA SAMA (cuma beda semester,
-     * mis. Ganjil→Genap): kelas TIDAK disalin sama sekali karena memang
-     * SUDAH kelas yang sama persis (STEP5 — kelas melekat ke tahun
-     * ajaran, dipakai lintas semester). Kalau BEDA tahun ajaran: kelas
-     * (+ wali_kelas_id sebagai titik awal) ikut disalin, dicari lewat
-     * (tingkat, nama_kelas) — TIDAK PERNAH memakai kelas_id sumber apa
-     * adanya.
-     */
-    private function resolveRencanaSalin(TahunAjaran $sumber, TahunAjaran $tujuan): array
-    {
-        $rencana = [
-            'kelas' => ['disalin' => [], 'sudah_ada' => []],
-            'mengajar' => ['disalin' => [], 'sudah_ada' => []],
-            'guru_bk' => ['disalin' => [], 'sudah_ada' => []],
-            'jadwal' => ['disalin' => [], 'sudah_ada' => []],
-        ];
-
-        $tahunSama = $sumber->nama === $tujuan->nama;
-
-        $kelasSumberMap = [];
-        foreach (Kelas::untukTahunAjaran($sumber)->orderBy('tingkat')->orderBy('nama_kelas')->get() as $k) {
-            $kelasSumberMap[$k->tingkat.'|'.$k->nama_kelas] = $k;
-        }
-        $kelasTujuanMap = [];
-        foreach (Kelas::untukTahunAjaran($tujuan)->get() as $k) {
-            $kelasTujuanMap[$k->tingkat.'|'.$k->nama_kelas] = $k;
-        }
-
-        if (! $tahunSama) {
-            foreach ($kelasSumberMap as $key => $kelasSumber) {
-                if (isset($kelasTujuanMap[$key])) {
-                    $rencana['kelas']['sudah_ada'][] = ['sumber' => $kelasSumber, 'tujuan' => $kelasTujuanMap[$key]];
-                } else {
-                    $rencana['kelas']['disalin'][] = ['sumber' => $kelasSumber];
-                }
-            }
-        }
-
-        foreach (GuruMengajarKelas::with(['guru', 'kelas', 'mapel'])->where('tahun_ajaran_id', $sumber->id)->get() as $m) {
-            if (! $m->kelas) {
-                continue;
-            }
-            $key = $m->kelas->tingkat.'|'.$m->kelas->nama_kelas;
-            $kelasTujuanReal = $kelasTujuanMap[$key] ?? null;
-            $kelasLabel = $kelasTujuanReal ?? $m->kelas; // untuk tampilan preview kalau belum ada
-            $sudahAda = $kelasTujuanReal && GuruMengajarKelas::where('tahun_ajaran_id', $tujuan->id)
-                ->where('guru_id', $m->guru_id)->where('kelas_id', $kelasTujuanReal->id)
-                ->where('mata_pelajaran_id', $m->mata_pelajaran_id)->exists();
-
-            $rencana['mengajar'][$sudahAda ? 'sudah_ada' : 'disalin'][] = [
-                'sumber' => $m, 'kelas_tujuan' => $kelasLabel, 'kelas_baru' => is_null($kelasTujuanReal),
-            ];
-        }
-
-        foreach (GuruBkKelas::with(['guru', 'kelas'])->where('tahun_ajaran_id', $sumber->id)->get() as $gb) {
-            if (! $gb->kelas) {
-                continue;
-            }
-            $key = $gb->kelas->tingkat.'|'.$gb->kelas->nama_kelas;
-            $kelasTujuanReal = $kelasTujuanMap[$key] ?? null;
-            $kelasLabel = $kelasTujuanReal ?? $gb->kelas;
-            $sudahAda = $kelasTujuanReal && GuruBkKelas::where('tahun_ajaran_id', $tujuan->id)
-                ->where('guru_id', $gb->guru_id)->where('kelas_id', $kelasTujuanReal->id)->exists();
-
-            $rencana['guru_bk'][$sudahAda ? 'sudah_ada' : 'disalin'][] = [
-                'sumber' => $gb, 'kelas_tujuan' => $kelasLabel, 'kelas_baru' => is_null($kelasTujuanReal),
-            ];
-        }
-
-        foreach (JadwalPelajaran::with(['guru', 'kelas', 'mapel', 'jamPelajaran'])->where('tahun_ajaran_id', $sumber->id)->get() as $j) {
-            if (! $j->kelas) {
-                continue;
-            }
-            $key = $j->kelas->tingkat.'|'.$j->kelas->nama_kelas;
-            $kelasTujuanReal = $kelasTujuanMap[$key] ?? null;
-            $kelasLabel = $kelasTujuanReal ?? $j->kelas;
-            $sudahAda = $kelasTujuanReal && JadwalPelajaran::where('tahun_ajaran_id', $tujuan->id)
-                ->where('hari', $j->hari)->where('kelas_id', $kelasTujuanReal->id)
-                ->where('jam_pelajaran_id', $j->jam_pelajaran_id)->exists();
-
-            $rencana['jadwal'][$sudahAda ? 'sudah_ada' : 'disalin'][] = [
-                'sumber' => $j, 'kelas_tujuan' => $kelasLabel, 'kelas_baru' => is_null($kelasTujuanReal),
-            ];
-        }
-
-        return $rencana;
-    }
-
-    /**
-     * PREVIEW sebelum menyalin apa pun (GET, tidak mengubah database sama
-     * sekali). Menampilkan persis: kelas apa yang akan dibuat, mapping
-     * guru mengajar & jadwal apa yang akan disalin (termasuk yang kelasnya
-     * BELUM ADA — karena sekarang otomatis akan dibuat lebih dulu dalam
-     * aksi yang sama), dan apa yang dilewati karena sudah ada.
+     * PRATINJAU sebelum menyalin apa pun.
      */
     public function previewDuplikasiMapping(Request $request)
     {
@@ -396,19 +299,12 @@ class TahunAjaranController extends Controller
         $sumber = TahunAjaran::findOrFail($validated['dari_tahun_ajaran_id']);
         $tujuan = TahunAjaran::findOrFail($validated['tahun_ajaran_tujuan']);
 
-        $rencana = $this->resolveRencanaSalin($sumber, $tujuan);
+        $rencana = SalinDataPeriode::hitung($sumber, $tujuan);
 
         return view('tahun-ajaran.preview-duplikasi', compact('sumber', 'tujuan', 'rencana'));
     }
 
-    /**
-     * Eksekusi "Salin Data" (POST), dibungkus 1 DB::transaction supaya
-     * tidak pernah tersalin sebagian saja kalau terjadi error di tengah
-     * proses. Urutan PENTING: Kelas (+Wali Kelas) disalin LEBIH DULU,
-     * baru KEMUDIAN rencana Guru Mengajar & Jadwal dihitung ULANG (kelas
-     * tujuannya sekarang sudah pasti ada) — supaya tidak ada lagi baris
-     * yang "dilewati karena kelas belum tersedia" seperti sebelumnya.
-     */
+    /** Eksekusi "Salin Data" (POST). */
     public function duplikasiMapping(Request $request, TahunAjaran $tahunAjaran)
     {
         $validated = $request->validate([
@@ -424,74 +320,25 @@ class TahunAjaranController extends Controller
         // STEP 5/8 Bagian 8/26 — cek lock berdasarkan periode TUJUAN.
         PeriodeAkademik::pastikanTidakTerkunci($tahunAjaran);
 
-        $kelasDisalin = 0;
-        $mengajarDisalin = 0;
-        $guruBkDisalin = 0;
-        $jadwalDisalin = 0;
+        $jumlah = SalinDataPeriode::jalankan($sumber, $tahunAjaran);
+        $total = array_sum($jumlah);
 
-        DB::transaction(function () use ($sumber, $tahunAjaran, &$kelasDisalin, &$mengajarDisalin, &$guruBkDisalin, &$jadwalDisalin) {
-            $rencanaAwal = $this->resolveRencanaSalin($sumber, $tahunAjaran);
+        if ($total === 0) {
+            return redirect()->route('tahun-ajaran.index')->with(
+                'error',
+                "Tidak ada data baru yang disalin — semua data dari {$sumber->labelPeriode()} sudah ada di {$tahunAjaran->labelPeriode()}."
+            );
+        }
 
-            foreach ($rencanaAwal['kelas']['disalin'] as $baris) {
-                $k = $baris['sumber'];
-                $baru = Kelas::firstOrCreate(
-                    ['tahun_ajaran_id' => $tahunAjaran->id, 'tingkat' => $k->tingkat, 'nama_kelas' => $k->nama_kelas],
-                    ['wali_kelas_id' => $k->wali_kelas_id]
-                );
-                if ($baru->wasRecentlyCreated) {
-                    $kelasDisalin++;
-                }
-            }
+        $rincian = collect(SalinDataPeriode::KATEGORI)
+            ->filter(fn ($label, $kunci) => ($jumlah[$kunci] ?? 0) > 0)
+            ->map(fn ($label, $kunci) => $jumlah[$kunci].' '.mb_strtolower($label))
+            ->implode(', ');
 
-            // Hitung ulang SETELAH kelas dibuat — kelas_tujuan sekarang selalu baris nyata.
-            $rencana = $this->resolveRencanaSalin($sumber, $tahunAjaran);
-
-            foreach ($rencana['mengajar']['disalin'] as $baris) {
-                $baru = GuruMengajarKelas::firstOrCreate([
-                    'tahun_ajaran_id' => $tahunAjaran->id,
-                    'guru_id' => $baris['sumber']->guru_id,
-                    'kelas_id' => $baris['kelas_tujuan']->id,
-                    'mata_pelajaran_id' => $baris['sumber']->mata_pelajaran_id,
-                ]);
-                if ($baru->wasRecentlyCreated) {
-                    $mengajarDisalin++;
-                }
-            }
-
-            foreach ($rencana['guru_bk']['disalin'] as $baris) {
-                $baru = GuruBkKelas::firstOrCreate([
-                    'tahun_ajaran_id' => $tahunAjaran->id,
-                    'guru_id' => $baris['sumber']->guru_id,
-                    'kelas_id' => $baris['kelas_tujuan']->id,
-                ]);
-                if ($baru->wasRecentlyCreated) {
-                    $guruBkDisalin++;
-                }
-            }
-
-            foreach ($rencana['jadwal']['disalin'] as $baris) {
-                $baru = JadwalPelajaran::firstOrCreate([
-                    'tahun_ajaran_id' => $tahunAjaran->id,
-                    'hari' => $baris['sumber']->hari,
-                    'kelas_id' => $baris['kelas_tujuan']->id,
-                    'jam_pelajaran_id' => $baris['sumber']->jam_pelajaran_id,
-                ], [
-                    'mata_pelajaran_id' => $baris['sumber']->mata_pelajaran_id,
-                    'guru_id' => $baris['sumber']->guru_id,
-                ]);
-                if ($baru->wasRecentlyCreated) {
-                    $jadwalDisalin++;
-                }
-            }
-        });
-
-        $totalDisalin = $kelasDisalin + $mengajarDisalin + $guruBkDisalin + $jadwalDisalin;
-        $pesan = "Berhasil disalin dari {$sumber->labelPeriode()} ke {$tahunAjaran->labelPeriode()}: "
-            ."{$kelasDisalin} kelas (+wali kelas), {$mengajarDisalin} mapping guru-mengajar, {$guruBkDisalin} mapping guru BK, {$jadwalDisalin} jadwal.";
-
-        return redirect()->route('tahun-ajaran.index')
-            ->with($totalDisalin > 0 ? 'success' : 'error',
-                $totalDisalin > 0 ? $pesan : "Tidak ada data baru yang disalin — semua data dari {$sumber->labelPeriode()} sudah ada di {$tahunAjaran->labelPeriode()}.");
+        return redirect()->route('tahun-ajaran.index')->with(
+            'success',
+            "Berhasil disalin dari {$sumber->labelPeriode()} ke {$tahunAjaran->labelPeriode()}: {$rincian}."
+        );
     }
 
     // NOTE (revisi permintaan admin): halaman "Persiapan Tahun Ajaran"

@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MilikTahunAjaran;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class JamPelajaran extends Model
 {
     use HasFactory;
+    // Master data per tahun ajaran — lihat trait & migrasi 2026_08_28_000003.
+    use MilikTahunAjaran;
 
-    protected $fillable = ['hari', 'jam_ke', 'jam_mulai', 'jam_selesai', 'is_active'];
+    protected $fillable = ['tahun_ajaran_id', 'hari', 'jam_ke', 'jam_mulai', 'jam_selesai', 'is_active'];
 
     protected function casts(): array
     {

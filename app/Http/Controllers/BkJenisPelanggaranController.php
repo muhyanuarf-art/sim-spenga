@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JenisPelanggaran;
 use App\Services\PoinSiswaService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Master jenis pelanggaran — configurable, TIDAK hardcode (Bagian 9 spec).
@@ -14,7 +15,7 @@ class BkJenisPelanggaranController extends Controller
 {
     public function index(Request $request, PoinSiswaService $poinService)
     {
-        $data = JenisPelanggaran::orderBy('kategori')->orderBy('nama')->get();
+        $data = JenisPelanggaran::periodeAktif()->orderBy('kategori')->orderBy('nama')->get();
         $rentangKategori = PoinSiswaService::RENTANG_KATEGORI;
         return view('bk.jenis-pelanggaran.index', compact('data', 'rentangKategori'));
     }
@@ -22,7 +23,14 @@ class BkJenisPelanggaranController extends Controller
     public function store(Request $request, PoinSiswaService $poinService)
     {
         $validated = $request->validate([
-            'kode' => ['required', 'string', 'max:20', 'unique:jenis_pelanggarans,kode'],
+            'kode' => [
+                'required', 'string', 'max:20',
+                // Keunikan kode dihitung PER TAHUN AJARAN — kode yang sama
+                // pada periode lain adalah baris tersendiri (lihat migrasi
+                // 2026_08_28_000003_add_tahun_ajaran_to_master_tables).
+                Rule::unique('jenis_pelanggarans', 'kode')
+                    ->where(fn ($q) => $q->where('tahun_ajaran_id', JenisPelanggaran::idPeriodeAktif())),
+            ],
             'nama' => ['required', 'string', 'max:255'],
             'kategori' => ['required', 'in:Ringan,Sedang,Berat,Sangat Berat'],
             'poin_default' => ['required', 'integer', 'min:1', 'max:100'],
@@ -42,7 +50,12 @@ class BkJenisPelanggaranController extends Controller
     public function update(Request $request, JenisPelanggaran $jenisPelanggaran, PoinSiswaService $poinService)
     {
         $validated = $request->validate([
-            'kode' => ['required', 'string', 'max:20', 'unique:jenis_pelanggarans,kode,' . $jenisPelanggaran->id],
+            'kode' => [
+                'required', 'string', 'max:20',
+                Rule::unique('jenis_pelanggarans', 'kode')
+                    ->where(fn ($q) => $q->where('tahun_ajaran_id', $jenisPelanggaran->tahun_ajaran_id))
+                    ->ignore($jenisPelanggaran->id),
+            ],
             'nama' => ['required', 'string', 'max:255'],
             'kategori' => ['required', 'in:Ringan,Sedang,Berat,Sangat Berat'],
             'poin_default' => ['required', 'integer', 'min:1', 'max:100'],

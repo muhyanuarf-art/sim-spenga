@@ -148,7 +148,8 @@
                                 <input type="hidden" name="dari_tahun_ajaran_id" value="{{ $t->id }}">
                                 <div class="sm:col-span-2">
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">
-                                        Salin Kelas, Wali Kelas, Guru Mengajar, Guru BK & Jadwal dari {{ $t->nama }} - Semester {{ $t->semester }} ke:
+                                        Salin Mata Pelajaran, Jam Pelajaran, Jenis Pelanggaran, Jenis Surat, Ekstrakurikuler,
+                                        Kelas &amp; Wali Kelas, Guru Mengajar, Guru BK &amp; Jadwal dari {{ $t->nama }} - Semester {{ $t->semester }} ke:
                                     </label>
                                     <select name="tahun_ajaran_tujuan" required class="input">
                                         <option value="">Pilih tujuan...</option>
@@ -258,7 +259,7 @@
                             </tr>
                             <tr>
                                 <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data</td>
-                                <td>Menyalin Kelas, Wali Kelas, Guru Mengajar, Guru BK, dan Jadwal dari periode ini ke periode lain yang dipilih. Menampilkan halaman Preview (daftar lengkap apa yang akan disalin) sebelum benar-benar tersimpan.</td>
+                                <td>Menyalin SELURUH pengaturan periode ini ke periode lain: Mata Pelajaran, Jam Pelajaran, Jenis Pelanggaran, Jenis Surat, Ekstrakurikuler (beserta pembinanya), Kelas &amp; Wali Kelas, Guru Mengajar, Guru BK, dan Jadwal. Menampilkan halaman Preview (daftar lengkap apa yang akan disalin) sebelum benar-benar tersimpan. Data siswa &amp; seluruh data transaksi TIDAK ikut disalin.</td>
                             </tr>
                             <tr>
                                 <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan</td>
@@ -299,12 +300,18 @@
                 <ol class="text-sm text-slate-600 list-decimal list-inside space-y-1">
                     <li>Pastikan Semester Genap tahun ajaran LAMA sudah ditutup: klik "<i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester" pada baris itu (kalau belum).</li>
                     <li>Buat Tahun Ajaran BARU: klik "+ Buat Tahun Ajaran [nama]" (otomatis membuat Semester Ganjil & Genap).</li>
-                    <li>Klik "<i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data" pada baris Semester GENAP tahun LAMA → pilih tujuan Semester GANJIL tahun BARU → cek halaman Preview (Kelas & Wali Kelas, Guru Mengajar, Guru BK, Jadwal) → "Salin Sekarang".</li>
-                    <li>Buka menu Data Kelas (tahun baru) → sesuaikan Wali Kelas kalau ada pergantian.</li>
-                    <li>Buka menu Kenaikan Kelas → Tahun Ajaran Asal pilih tahun LAMA → proses kenaikan kelas per kelas.</li>
-                    <li>Periksa menu Guru Mengajar & Jadwal untuk tahun baru — lengkapi kalau ada yang masih kurang.</li>
-                    <li>Kembali ke halaman ini → klik "<i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan" pada Semester Ganjil tahun BARU.</li>
+                    <li>Klik "<i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data" pada baris Semester GENAP tahun LAMA → pilih tujuan Semester GANJIL tahun BARU → cek halaman Preview → "Salin Sekarang". Seluruh master data (Mata Pelajaran, Jam Pelajaran, Jenis Pelanggaran, Jenis Surat, Ekstrakurikuler) ikut tersalin di langkah ini.</li>
+                    <li>Klik "<i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan" pada Semester Ganjil tahun BARU. Mulai detik ini seluruh menu menampilkan data tahun baru.</li>
+                    <li>Buka menu Data Kelas → sesuaikan Wali Kelas kalau ada pergantian. Periksa juga Guru Mengajar & Jadwal.</li>
+                    <li>Import Excel Data Siswa dengan <span class="font-semibold">kode_kelas kelas barunya</span> (kelas 7 lama → 8, kelas 8 lama → 9, ditambah siswa baru kelas 7). Riwayat kelas tiap siswa otomatis tercatat.</li>
+                    <li>Buka menu Ekstrakurikuler → isi kembali daftar anggotanya (pembinanya sudah ikut tersalin).</li>
                 </ol>
+                <p class="text-xs text-slate-500 mt-2">
+                    <i class="fa-solid fa-circle-info mr-1.5"></i>
+                    Siswa kelas 9 yang LULUS cukup tidak diikutkan pada file import di langkah 6 — karena setiap menu
+                    hanya menampilkan siswa yang kelasnya milik periode aktif, mereka otomatis berhenti muncul.
+                    Tidak perlu dinonaktifkan satu per satu, dan seluruh riwayatnya tetap tersimpan.
+                </p>
                 <p class="text-xs text-amber-600 mt-2">
                     <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Kalau tombol Aktifkan ditolak: masih ada semester (Ganjil atau Genap) tahun lama yang belum di-"Tutup Semester". Tutup dulu semuanya, baru coba Aktifkan lagi.
                 </p>

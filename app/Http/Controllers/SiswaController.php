@@ -21,7 +21,12 @@ class SiswaController extends Controller
         // 'orangTua' di-eager-load supaya kolom "Akun Ortu" di tabel tidak
         // memicu query per baris (akun portal orang tua dikelola dari sini
         // sejak menunya digabung — lihat OrangTuaController).
-        $query = Siswa::with(['kelas', 'orangTua'])->when($request->kelas_id, fn ($q) => $q->where('kelas_id', $request->kelas_id));
+        // periodeAktif(): hanya siswa yang kelasnya milik tahun ajaran
+        // aktif. Begitu tahun ajaran berganti dan siswa dipindahkan ke
+        // kelas barunya, siswa kelas 9 yang lulus otomatis tidak muncul
+        // lagi di sini — tidak perlu dinonaktifkan satu per satu.
+        $query = Siswa::periodeAktif()->with(['kelas', 'orangTua'])
+            ->when($request->kelas_id, fn ($q) => $q->where('kelas_id', $request->kelas_id));
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('nama', 'like', "%{$request->search}%")
@@ -35,7 +40,7 @@ class SiswaController extends Controller
         // Untuk tombol "Buatkan Akun Ortu" — dihitung untuk SELURUH siswa
         // aktif, bukan cuma yang tampil di halaman ini, karena tombolnya
         // memang memproses semuanya sekaligus.
-        $siswaTanpaAkunOrtu = Siswa::where('is_active', true)->whereDoesntHave('orangTua')->count();
+        $siswaTanpaAkunOrtu = Siswa::periodeAktif()->where('is_active', true)->whereDoesntHave('orangTua')->count();
 
         return view('siswa.index', compact('siswas', 'kelasList', 'siswaTanpaAkunOrtu'));
     }

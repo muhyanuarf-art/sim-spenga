@@ -55,7 +55,7 @@ class JadwalController extends Controller
         // STEP 5 Bagian 17/23 — untuk FORM TAMBAH (hanya berlaku di periode
         // aktif), kelas yang boleh dipilih HANYA kelas tahun ajaran aktif.
         $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
-        $jamPerHari = JamPelajaran::where('is_active', true)
+        $jamPerHari = JamPelajaran::periodeAktif()->where('is_active', true)
             ->orderBy('jam_ke')
             ->get()
             ->groupBy('hari')

@@ -4,15 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\MilikTahunAjaran;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ekstrakurikuler extends Model
 {
     use HasFactory;
+    // Master data per tahun ajaran — lihat trait & migrasi 2026_08_28_000003.
+    use MilikTahunAjaran;
 
     protected $table = 'ekstrakurikulers';
 
-    protected $fillable = ['nama_ekstrakurikuler', 'keterangan', 'is_aktif'];
+    protected $fillable = ['tahun_ajaran_id', 'nama_ekstrakurikuler', 'keterangan', 'is_aktif'];
 
     protected function casts(): array
     {

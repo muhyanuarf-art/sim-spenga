@@ -37,7 +37,9 @@ class OrangTuaController extends Controller
      */
     public function generate(Request $request)
     {
-        $belumPunyaAkun = Siswa::where('is_active', true)
+        // Dibatasi siswa periode aktif — akun tidak dibuatkan untuk
+        // siswa angkatan lama yang sudah tidak bersekolah di sini.
+        $belumPunyaAkun = Siswa::periodeAktif()->where('is_active', true)
             ->whereDoesntHave('orangTua')
             ->get();
 

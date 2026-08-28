@@ -51,7 +51,7 @@ class JadwalImport extends ImportDasar
             return;
         }
 
-        $mapel = MataPelajaran::where('kode', $kodeMapel)->first();
+        $mapel = MataPelajaran::periodeAktif()->where('kode', $kodeMapel)->first();
         if (! $mapel) {
             $this->hasil->lewati($baris, 'Kode mata pelajaran "'.$kodeMapel.'" tidak ada di menu Mata Pelajaran.', $penanda);
 
@@ -65,7 +65,7 @@ class JadwalImport extends ImportDasar
             return;
         }
 
-        $jam = JamPelajaran::where('hari', $hari)->where('jam_ke', $jamKe)->first();
+        $jam = JamPelajaran::periodeAktif()->where('hari', $hari)->where('jam_ke', $jamKe)->first();
         if (! $jam) {
             $this->hasil->lewati(
                 $baris,

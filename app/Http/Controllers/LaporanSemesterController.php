@@ -79,7 +79,7 @@ class LaporanSemesterController extends Controller
 
         $kehadiran = $this->rekapKehadiran($kelas, $siswaIds, $mulai, $selesai);
         $poin = $poinService->ringkasanBanyak($siswaIds);
-        $ekskul = $this->rekapEkstrakurikuler($siswaIds, $mulai, $selesai);
+        $ekskul = $this->rekapEkstrakurikuler($siswaIds, $mulai, $selesai, $periode);
 
         // ===== Satu baris per peserta didik =====
         $baris = $siswas->map(function (Siswa $siswa) use ($nilaiPerSiswa, $mapels, $skema, $kehadiran, $poin, $ekskul) {
@@ -192,13 +192,17 @@ class LaporanSemesterController extends Controller
      * terikat tahun ajaran di aplikasi ini, jadi yang dibatasi rentang
      * waktunya adalah SESI ABSENSI-nya (absensi_ekskuls.tanggal).
      */
-    private function rekapEkstrakurikuler($siswaIds, Carbon $mulai, Carbon $selesai): array
+    private function rekapEkstrakurikuler($siswaIds, Carbon $mulai, Carbon $selesai, TahunAjaran $periode): array
     {
         if ($siswaIds->isEmpty()) {
             return [];
         }
 
+        // Keanggotaan disaring lewat ekstrakurikulernya, yang sejak
+        // 2026-08-28 sudah terikat tahun ajaran. Tanpa ini, keanggotaan
+        // tahun-tahun sebelumnya ikut terbawa ke laporan semester ini.
         $keanggotaan = EkstrakurikulerSiswa::with('ekstrakurikuler')
+            ->whereHas('ekstrakurikuler', fn ($q) => $q->untukTahunAjaran($periode))
             ->whereIn('siswa_id', $siswaIds)
             ->get()
             ->groupBy('siswa_id');

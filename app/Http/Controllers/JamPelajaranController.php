@@ -11,7 +11,7 @@ class JamPelajaranController extends Controller
 {
     public function index()
     {
-        $jamPelajaranPerHari = JamPelajaran::orderBy('jam_ke')->get()->groupBy('hari');
+        $jamPelajaranPerHari = JamPelajaran::periodeAktif()->orderBy('jam_ke')->get()->groupBy('hari');
         $hariList = JamPelajaran::HARI_LIST();
 
         return view('jam-pelajaran.index', compact('jamPelajaranPerHari', 'hariList'));
@@ -23,7 +23,10 @@ class JamPelajaranController extends Controller
             'hari' => ['required', Rule::in(JamPelajaran::HARI_LIST())],
             'jam_ke' => [
                 'required', 'integer', 'min:1', 'max:10',
-                Rule::unique('jam_pelajarans', 'jam_ke')->where(fn ($q) => $q->where('hari', $request->hari)),
+                // Hari + jam ke dihitung PER TAHUN AJARAN.
+                Rule::unique('jam_pelajarans', 'jam_ke')->where(fn ($q) => $q
+                    ->where('hari', $request->hari)
+                    ->where('tahun_ajaran_id', JamPelajaran::idPeriodeAktif())),
             ],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
@@ -41,7 +44,9 @@ class JamPelajaranController extends Controller
             'jam_ke' => [
                 'required', 'integer', 'min:1', 'max:10',
                 Rule::unique('jam_pelajarans', 'jam_ke')
-                    ->where(fn ($q) => $q->where('hari', $request->hari))
+                    ->where(fn ($q) => $q
+                        ->where('hari', $request->hari)
+                        ->where('tahun_ajaran_id', $jamPelajaran->tahun_ajaran_id))
                     ->ignore($jamPelajaran->id),
             ],
             'jam_mulai' => ['required', 'date_format:H:i'],
@@ -80,7 +85,7 @@ class JamPelajaranController extends Controller
             return back()->with('error', 'Hari tujuan tidak boleh sama dengan hari sumber.');
         }
 
-        $sumberList = JamPelajaran::where('hari', $hariSumber)->orderBy('jam_ke')->get();
+        $sumberList = JamPelajaran::periodeAktif()->where('hari', $hariSumber)->orderBy('jam_ke')->get();
 
         if ($sumberList->isEmpty()) {
             return back()->with('error', "Belum ada jam pelajaran di hari {$hariSumber} untuk disalin.");
@@ -94,13 +99,16 @@ class JamPelajaranController extends Controller
                 // supaya Jadwal Pelajaran/Jurnal Mengajar/Absensi yang sudah terekam di jam
                 // tersebut TIDAK ikut terhapus. Hanya slot jam ke yang tidak ada di sumber
                 // (kelebihan) yang akan dihapus dari hari tujuan.
-                JamPelajaran::where('hari', $hari)
+                JamPelajaran::periodeAktif()->where('hari', $hari)
                     ->whereNotIn('jam_ke', $jamKeSumber)
                     ->delete();
 
                 foreach ($sumberList as $jam) {
+                    // tahun_ajaran_id ikut jadi kunci pencarian: tanpa ini
+                    // penyalinan hari bisa menimpa jam pelajaran milik tahun
+                    // ajaran lain yang hari & jam ke-nya kebetulan sama.
                     JamPelajaran::updateOrCreate(
-                        ['hari' => $hari, 'jam_ke' => $jam->jam_ke],
+                        ['hari' => $hari, 'jam_ke' => $jam->jam_ke, 'tahun_ajaran_id' => JamPelajaran::idPeriodeAktif()],
                         [
                             'jam_mulai' => $jam->jam_mulai,
                             'jam_selesai' => $jam->jam_selesai,

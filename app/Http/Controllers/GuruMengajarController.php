@@ -47,7 +47,7 @@ class GuruMengajarController extends Controller
         // selalu ditulis ke tahun_ajaran_id = aktif(), lihat store()).
         $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
         $guruList = User::where('role', 'guru')->orderBy('name')->get();
-        $mapelList = MataPelajaran::orderBy('nama_mapel')->get();
+        $mapelList = MataPelajaran::periodeAktif()->orderBy('nama_mapel')->get();
 
         return view('kurikulum.guru-mengajar.index', compact('data', 'kelasList', 'guruList', 'mapelList', 'periodeAktif', 'periodeDilihat', 'tahunAjaranList'));
     }

@@ -20,7 +20,7 @@ class EkstrakurikulerController extends Controller
 {
     public function index()
     {
-        $ekstrakurikuler = Ekstrakurikuler::with('pembinas.user')->orderBy('nama_ekstrakurikuler')->paginate(25);
+        $ekstrakurikuler = Ekstrakurikuler::periodeAktif()->with('pembinas.user')->orderBy('nama_ekstrakurikuler')->paginate(25);
         // Calon pembina INTERNAL: biasanya guru/guru BK, tapi kesiswaan
         // sendiri kadang jadi pembina juga. Untuk pembina LUAR SEKOLAH,
         // tidak perlu dropdown — cukup diketik bebas di form (lihat view).

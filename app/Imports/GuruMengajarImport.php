@@ -55,7 +55,7 @@ class GuruMengajarImport extends ImportDasar
             return;
         }
 
-        $mapel = MataPelajaran::where('kode', $kodeMapel)->first();
+        $mapel = MataPelajaran::periodeAktif()->where('kode', $kodeMapel)->first();
         if (! $mapel) {
             $this->hasil->lewati($baris, 'Kode mata pelajaran "'.$kodeMapel.'" tidak ada di menu Mata Pelajaran.', $penanda);
 

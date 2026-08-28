@@ -47,7 +47,7 @@ class SuratController extends Controller
         }
 
         $surat = $query->orderByDesc('tanggal')->orderByDesc('id')->paginate(20)->withQueryString();
-        $jenisSuratList = JenisSurat::where('is_aktif', true)->orderBy('nama_jenis')->get();
+        $jenisSuratList = JenisSurat::periodeAktif()->where('is_aktif', true)->orderBy('nama_jenis')->get();
 
         $judul = match ($request->get('status')) {
             'draft' => 'Draft',
@@ -70,7 +70,7 @@ class SuratController extends Controller
     {
         $this->pastikanGuruBk($request);
 
-        $jenisSuratList = JenisSurat::where('is_aktif', true)->orderBy('nama_jenis')->get();
+        $jenisSuratList = JenisSurat::periodeAktif()->where('is_aktif', true)->orderBy('nama_jenis')->get();
         $jenisSurat = $jenisSuratList->firstWhere('id', (int) $request->get('jenis_surat_id'));
 
         $siswaTerpilih = null;
@@ -78,7 +78,7 @@ class SuratController extends Controller
         if ($request->filled('siswa_id')) {
             $siswaTerpilih = Siswa::with('kelas')->find($request->get('siswa_id'));
         } elseif ($request->filled('cari')) {
-            $hasilCari = Siswa::with('kelas')->where('is_active', true)
+            $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
                 ->where(function ($q) use ($request) {
                     $q->where('nama', 'like', "%{$request->cari}%")
                       ->orWhere('nis', 'like', "%{$request->cari}%");

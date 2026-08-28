@@ -74,13 +74,13 @@ class BkKasusController extends Controller
 
     public function create(Request $request)
     {
-        $jenisList = JenisPelanggaran::where('is_active', true)->orderBy('kategori')->orderBy('nama')->get();
+        $jenisList = JenisPelanggaran::periodeAktif()->where('is_active', true)->orderBy('kategori')->orderBy('nama')->get();
         $rentangKategori = PoinSiswaService::RENTANG_KATEGORI;
 
         // Untuk pencarian siswa: guru mapel/wali kelas biasanya sudah tahu
         // siswanya, jadi cukup dropdown per kelas yang relevan.
         $kelasIds = $this->bkKelasIdsUntukUser($request->user());
-        $siswaList = Siswa::with('kelas')->where('is_active', true)
+        $siswaList = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
             ->when($kelasIds !== null && $kelasIds !== [], fn ($q) => $q->whereIn('kelas_id', $kelasIds))
             ->orderBy('nama')->get();
 

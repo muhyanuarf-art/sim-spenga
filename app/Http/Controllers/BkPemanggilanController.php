@@ -92,7 +92,7 @@ class BkPemanggilanController extends Controller
                 $this->bkPastikanSiswaSesuaiCakupan($user, $siswaTerpilih);
             }
         } elseif ($request->filled('cari')) {
-            $hasilCari = Siswa::with('kelas')->where('is_active', true)
+            $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
                 ->when($kelasIds !== null, fn ($q) => $q->whereIn('kelas_id', $kelasIds))
                 ->where(function ($q) use ($request) {
                     $q->where('nama', 'like', "%{$request->cari}%")
@@ -116,7 +116,7 @@ class BkPemanggilanController extends Controller
 
             // Dicocokkan lewat kode_jenis 'SP' ATAU nama yang mengandung
             // "panggilan" — tetap ketemu meski kode_jenis diisi manual beda.
-            $jenisSuratPanggilan = JenisSurat::where('kode_jenis', 'SP')
+            $jenisSuratPanggilan = JenisSurat::periodeAktif()->where('kode_jenis', 'SP')
                 ->orWhere('nama_jenis', 'like', '%panggilan%')
                 ->first();
 
