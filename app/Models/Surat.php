@@ -18,6 +18,43 @@ class Surat extends Model
         'isi', 'data_formulir', 'keterangan', 'dibuat_oleh_id',
     ];
 
+    // `nomor_kunci` SENGAJA tidak ikut $fillable — nilainya tidak pernah
+    // boleh datang dari form, selalu dihitung sendiri di booted() di bawah.
+
+    /**
+     * `nomor_kunci` selalu diturunkan dari `nomor_surat` tepat sebelum
+     * disimpan, jadi mustahil lepas sinkron — termasuk kalau surat dibuat
+     * dari import, seeder, atau tinker, bukan cuma lewat SuratController.
+     * Kolom inilah yang diberi unique index sebagai penjaga terakhir nomor
+     * surat kembar (lihat migrasi 2026_08_28_000001 & NomorSuratBk::kunci()).
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $surat) {
+            $surat->nomor_kunci = \App\Support\NomorSuratBk::kunci($surat->nomor_surat);
+        });
+    }
+
+    /**
+     * Apakah nomor surat ini sudah dipakai surat LAIN? Dipakai validasi
+     * SuratController saat menyimpan & mengubah surat. $kecualikanId diisi
+     * saat mengubah, supaya surat tidak dianggap bentrok dengan dirinya
+     * sendiri.
+     */
+    public static function nomorSudahDipakai(?string $nomorSurat, ?int $kecualikanId = null): ?self
+    {
+        $kunci = \App\Support\NomorSuratBk::kunci($nomorSurat);
+
+        if ($kunci === null) {
+            return null;
+        }
+
+        return static::with('siswa')
+            ->where('nomor_kunci', $kunci)
+            ->when($kecualikanId, fn ($q) => $q->whereKeyNot($kecualikanId))
+            ->first();
+    }
+
     protected function casts(): array
     {
         return [

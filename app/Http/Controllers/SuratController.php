@@ -123,6 +123,9 @@ class SuratController extends Controller
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $nomorSurat = NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']);
+        NomorSuratBk::pastikanBelumDipakai($nomorSurat);
+
         $jenisSurat = JenisSurat::findOrFail($validated['jenis_surat_id']);
         $siswa = Siswa::with('kelas')->findOrFail($validated['siswa_id']);
 
@@ -166,7 +169,7 @@ class SuratController extends Controller
             'tahun_ajaran_id' => TahunAjaran::aktif()?->id,
             'arah' => 'keluar',
             'status' => 'selesai',
-            'nomor_surat' => NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']),
+            'nomor_surat' => $nomorSurat,
             'nomor_urut' => $validated['nomor_urut'],
             'tanggal' => $validated['tanggal'],
             'tanggal_acara' => $validated['tanggal_acara'] ?? null,
@@ -206,6 +209,9 @@ class SuratController extends Controller
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
         $validated['nomor_surat'] = NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']);
+        // Dikecualikan dari dirinya sendiri — mengubah surat tanpa mengganti
+        // nomornya tidak boleh dianggap bentrok.
+        NomorSuratBk::pastikanBelumDipakai($validated['nomor_surat'], $surat->id);
 
         if ($surat->jenisSurat->tipe_formulir === JenisSurat::TIPE_BEBAS) {
             $validated = [...$validated, ...$request->validate([

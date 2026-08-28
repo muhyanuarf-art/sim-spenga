@@ -175,6 +175,9 @@ class BkPemanggilanController extends Controller
             } elseif ($validated['pilihan_surat'] === 'buat_baru') {
                 $jenisSurat = JenisSurat::findOrFail($validated['jenis_surat_id']);
                 $nomorSurat = NomorSuratBk::buat($validated['nomor_urut'], $validated['tanggal']);
+                // Surat BK bisa dibuat dari dua pintu (menu Surat & di sini),
+                // jadi keduanya harus sama-sama menolak nomor yang kembar.
+                NomorSuratBk::pastikanBelumDipakai($nomorSurat);
 
                 $surat = Surat::create([
                     'jenis_surat_id' => $jenisSurat->id,
