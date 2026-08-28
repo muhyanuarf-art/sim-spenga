@@ -8,6 +8,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
 use App\Support\PeriodeAkademik;
+use App\Support\RentangPeriode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -52,9 +53,16 @@ class TahunAjaranController extends Controller
      * "hanya satu periode aktif" (Bagian 8) tidak bisa dilanggar lewat
      * jalan pintas edit form.
      *
-     * (Revisi permintaan admin) tanggal_mulai/tanggal_selesai DIHAPUS dari
-     * form — kolomnya tetap ada di database tapi tidak dipakai validasi
-     * apa pun, jadi tidak lagi ditanyakan di UI supaya lebih sederhana.
+     * (2026-08-28) tanggal_mulai/tanggal_selesai DIKEMBALIKAN ke form,
+     * tetapi OPSIONAL. Dulu keduanya dihilangkan supaya form lebih ringkas
+     * — waktu itu memang tidak dipakai apa pun. Sekarang berbeda: kedua
+     * tanggal ini menentukan rentang yang dipakai App\Rules\DalamPeriode
+     * (menolak tanggal di luar periode saat menyimpan) DAN Laporan Akhir
+     * Semester. Kalau dibiarkan kosong, rentangnya diturunkan otomatis
+     * dari nama + semester (Ganjil = Juli–Desember, Genap = Januari–Juni,
+     * dengan kelonggaran 21 hari) — lihat App\Support\RentangPeriode.
+     * Jadi isian ini hanya perlu diisi kalau kalender sekolah menyimpang
+     * dari pola umum tersebut.
      *
      * STEP 4 — ditambah validasi unique(nama, semester): tanpa ini,
      * admin bisa tidak sengaja membuat dua baris "2027/2028 Ganjil" yang
@@ -73,12 +81,26 @@ class TahunAjaranController extends Controller
                     ->ignore($ignoreId),
             ],
             'status' => ['nullable', 'in:akan_datang,selesai'],
+            // Opsional — kosongkan saja bila kalender sekolah mengikuti
+            // pola umum (lihat catatan di atas).
+            'tanggal_mulai' => ['nullable', 'date', 'required_with:tanggal_selesai'],
+            'tanggal_selesai' => ['nullable', 'date', 'required_with:tanggal_mulai', 'after_or_equal:tanggal_mulai'],
+        ];
+    }
+
+    /** Pesan khusus rentang tanggal periode. */
+    private function pesanValidasi(): array
+    {
+        return [
+            'tanggal_mulai.required_with' => 'Tanggal mulai harus diisi bila tanggal selesai diisi (atau kosongkan keduanya).',
+            'tanggal_selesai.required_with' => 'Tanggal selesai harus diisi bila tanggal mulai diisi (atau kosongkan keduanya).',
+            'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.',
         ];
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate($this->aturanValidasi());
+        $validated = $request->validate($this->aturanValidasi(), $this->pesanValidasi());
         $validated['status'] = $validated['status'] ?? TahunAjaran::STATUS_AKAN_DATANG;
         TahunAjaran::create($validated);
         return back()->with('success', 'Tahun ajaran berhasil ditambahkan.');
@@ -122,7 +144,7 @@ class TahunAjaranController extends Controller
 
     public function update(Request $request, TahunAjaran $tahunAjaran)
     {
-        $validated = $request->validate($this->aturanValidasi($tahunAjaran->id));
+        $validated = $request->validate($this->aturanValidasi($tahunAjaran->id), $this->pesanValidasi());
 
         // Periode yang sedang AKTIF tidak boleh "dijatuhkan" statusnya lewat
         // form edit biasa — status aktif hanya boleh berubah lewat aktifkan().
@@ -133,6 +155,11 @@ class TahunAjaranController extends Controller
         }
 
         $tahunAjaran->update($validated);
+
+        // Rentang periode dipakai validasi & laporan — cache-nya dilupakan
+        // supaya perubahan langsung berlaku, termasuk pada request ini.
+        RentangPeriode::lupakanCache();
+
         return back()->with('success', 'Tahun ajaran berhasil diperbarui.');
     }
 

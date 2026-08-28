@@ -14,6 +14,7 @@ use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\PeriodeAkademik;
 use App\Support\PeringkatKelas;
+use App\Support\RentangPeriode;
 use App\Support\SkemaPenilaian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -328,14 +329,20 @@ class LaporanSemesterController extends Controller
      */
     private function rentangSemester(TahunAjaran $periode, Request $request): array
     {
-        $diturunkan = false;
+        // Rentangnya diambil dari App\Support\RentangPeriode — SUMBER YANG
+        // SAMA dipakai App\Rules\DalamPeriode saat data disimpan. Ini
+        // disengaja: apa pun yang boleh disimpan pada periode ini pasti
+        // ikut terhitung di laporan ini, sehingga tidak mungkin lagi ada
+        // data yang "tersimpan tapi tidak pernah muncul di laporan".
+        $rentang = RentangPeriode::untuk($periode);
 
-        $mulai = $periode->tanggal_mulai ? $periode->tanggal_mulai->copy() : null;
-        $selesai = $periode->tanggal_selesai ? $periode->tanggal_selesai->copy() : null;
-
-        if (! $mulai || ! $selesai) {
+        if ($rentang !== null) {
+            [$mulai, $selesai, $diturunkan] = [$rentang[0]->copy(), $rentang[1]->copy(), $rentang[2]];
+        } else {
+            // Nama tahun ajarannya tidak berpola "YYYY/YYYY" — ambil enam
+            // bulan terakhir supaya halaman ini tetap berguna.
             $diturunkan = true;
-            [$mulai, $selesai] = $this->rentangDariNamaPeriode($periode);
+            [$mulai, $selesai] = [now()->copy()->subMonths(6)->startOfDay(), now()->copy()->endOfDay()];
         }
 
         if ($request->filled('dari')) {
@@ -355,17 +362,6 @@ class LaporanSemesterController extends Controller
     }
 
     /** Cadangan kalau tanggal periode belum diisi admin. */
-    private function rentangDariNamaPeriode(TahunAjaran $periode): array
-    {
-        if (preg_match('/^(\d{4})\/(\d{4})$/', $periode->nama, $m)) {
-            return $periode->semester === 'Genap'
-                ? [Carbon::create((int) $m[2], 1, 1), Carbon::create((int) $m[2], 6, 30)]
-                : [Carbon::create((int) $m[1], 7, 1), Carbon::create((int) $m[1], 12, 31)];
-        }
-
-        // Nama tahun ajarannya tidak sesuai pola — ambil enam bulan terakhir.
-        return [now()->copy()->subMonths(6)->startOfDay(), now()->copy()->endOfDay()];
-    }
 
     private function mapelKelas(Kelas $kelas, TahunAjaran $periode)
     {

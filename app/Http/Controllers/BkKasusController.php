@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\JenisPelanggaran;
 use App\Models\KasusSiswa;
 use App\Models\Kelas;
@@ -93,7 +94,7 @@ class BkKasusController extends Controller
 
         $validated = $request->validate([
             'siswa_id' => ['required', 'exists:siswas,id'],
-            'tanggal_kejadian' => ['required', 'date', 'before_or_equal:today'],
+            'tanggal_kejadian' => ['required', 'date', 'before_or_equal:today', new DalamPeriode(sebutan: 'kasus')],
             // Jenis pelanggaran WAJIB dipilih dari master — Kategori & Poin
             // TIDAK diterima dari form sama sekali (lihat di bawah), supaya
             // tidak bisa diakali lewat DevTools/request manual. Keduanya
@@ -103,6 +104,11 @@ class BkKasusController extends Controller
             'kronologi' => ['required', 'string', 'min:10'],
             'bukti_catatan' => ['nullable', 'string'],
             'bukti_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'], // maks 5MB
+        ], [
+            // Pesan bawaan untuk before_or_equal menyisipkan kata kuncinya
+            // apa adanya ("...tanggal today atau sebelumnya"), jadi kalimat
+            // ini ditulis sendiri.
+            'tanggal_kejadian.before_or_equal' => 'Tanggal kejadian tidak boleh melewati hari ini.',
         ]);
 
         $jenis = JenisPelanggaran::findOrFail($validated['jenis_pelanggaran_id']);

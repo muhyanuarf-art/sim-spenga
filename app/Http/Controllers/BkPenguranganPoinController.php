@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\Kelas;
 use App\Models\PenguranganPoinSiswa;
 use App\Models\Siswa;
@@ -100,7 +101,7 @@ class BkPenguranganPoinController extends Controller
 
         $validated = $request->validate([
             'siswa_id' => ['required', 'exists:siswas,id'],
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'pengurangan poin')],
             'jumlah' => ['required', 'integer', 'min:1'],
             'alasan' => ['required', 'string'],
             'dasar_rekomendasi' => ['nullable', 'string'],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\AbsensiKegiatan;
 use App\Models\KegiatanSekolah;
 use App\Models\Kelas;
@@ -164,8 +165,8 @@ class KegiatanSekolahController extends Controller
         return $request->validate([
             'nama' => ['required', 'string', 'max:150'],
             'jenis' => ['required', Rule::in(array_keys(KegiatanSekolah::JENIS))],
-            'tanggal_mulai' => ['required', 'date'],
-            'tanggal_selesai' => ['required', 'date', 'after_or_equal:tanggal_mulai'],
+            'tanggal_mulai' => ['required', 'date', new DalamPeriode(sebutan: 'kegiatan')],
+            'tanggal_selesai' => ['required', 'date', 'after_or_equal:tanggal_mulai', new DalamPeriode(sebutan: 'kegiatan')],
             'hari_aktif' => ['nullable', 'array'],
             'hari_aktif.*' => [Rule::in(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'])],
             'cakupan' => ['required', Rule::in(array_keys(KegiatanSekolah::CAKUPAN))],

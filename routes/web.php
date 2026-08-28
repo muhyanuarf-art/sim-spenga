@@ -275,7 +275,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru,guru_bk,kesiswaan,admin')->group(function () {
         Route::get('ekstrakurikuler-absensi', [EkskulAbsensiController::class, 'pilihKegiatan'])->name('ekstrakurikuler.absensi.pilih');
         Route::get('ekstrakurikuler/{ekstrakurikuler}/absensi', [EkskulAbsensiController::class, 'form'])->name('ekstrakurikuler.absensi.form');
-        Route::post('ekstrakurikuler/{ekstrakurikuler}/absensi', [EkskulAbsensiController::class, 'store'])->name('ekstrakurikuler.absensi.store');
+        Route::post('ekstrakurikuler/{ekstrakurikuler}/absensi', [EkskulAbsensiController::class, 'store'])
+            ->name('ekstrakurikuler.absensi.store')->middleware('periode-aktif');
 
         // Rekap bulanan: sama, guru/guru_bk hanya kegiatan yang dibina
         // (dicek lagi di controller), Kesiswaan/Admin bebas.
@@ -294,10 +295,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru_bk,admin')->group(function () {
         Route::get('surat-dashboard', [SuratDashboardController::class, 'index'])->name('surat.dashboard');
         Route::get('surat/create', [SuratController::class, 'create'])->name('surat.create');
-        Route::post('surat', [SuratController::class, 'store'])->name('surat.store');
+        Route::post('surat', [SuratController::class, 'store'])->name('surat.store')->middleware('periode-aktif');
         Route::get('surat/{surat}/edit', [SuratController::class, 'edit'])->name('surat.edit');
-        Route::put('surat/{surat}', [SuratController::class, 'update'])->name('surat.update');
-        Route::delete('surat/{surat}', [SuratController::class, 'destroy'])->name('surat.destroy');
+        Route::put('surat/{surat}', [SuratController::class, 'update'])->name('surat.update')->middleware('periode-aktif');
+        Route::delete('surat/{surat}', [SuratController::class, 'destroy'])->name('surat.destroy')->middleware('periode-aktif');
     });
     // Baca saja — Kesiswaan/Kurikulum/Kepala Sekolah/Guru BK/Admin.
     Route::middleware('role:guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
@@ -322,8 +323,8 @@ Route::middleware('auth')->group(function () {
         Route::prefix('kurikulum/guru-mengajar')->name('kurikulum.guru-mengajar.')->group(function () {
             Route::get('/', [GuruMengajarController::class, 'index'])->name('index');
             Route::post('/', [GuruMengajarController::class, 'store'])->name('store')->middleware('periode-aktif');
-            Route::put('/{guruMengajar}', [GuruMengajarController::class, 'update'])->name('update');
-            Route::delete('/{guruMengajar}', [GuruMengajarController::class, 'destroy'])->name('destroy');
+            Route::put('/{guruMengajar}', [GuruMengajarController::class, 'update'])->name('update')->middleware('periode-aktif');
+            Route::delete('/{guruMengajar}', [GuruMengajarController::class, 'destroy'])->name('destroy')->middleware('periode-aktif');
             Route::get('/import', [GuruMengajarController::class, 'importForm'])->name('import.form');
             Route::get('/template', [GuruMengajarController::class, 'template'])->name('template');
             Route::post('/import', [GuruMengajarController::class, 'import'])->name('import')->middleware('periode-aktif');
@@ -331,15 +332,15 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('kurikulum/guru-bk')->name('kurikulum.guru-bk.')->group(function () {
             Route::get('/', [GuruBkController::class, 'index'])->name('index');
-            Route::post('/', [GuruBkController::class, 'store'])->name('store');
-            Route::delete('/{guruBk}', [GuruBkController::class, 'destroy'])->name('destroy');
+            Route::post('/', [GuruBkController::class, 'store'])->name('store')->middleware('periode-aktif');
+            Route::delete('/{guruBk}', [GuruBkController::class, 'destroy'])->name('destroy')->middleware('periode-aktif');
         });
 
         Route::prefix('jadwal')->name('jadwal.')->group(function () {
             Route::get('/', [JadwalController::class, 'index'])->name('index');
             Route::post('/', [JadwalController::class, 'store'])->name('store')->middleware('periode-aktif');
-            Route::put('/{jadwal}', [JadwalController::class, 'update'])->name('update');
-            Route::delete('/{jadwal}', [JadwalController::class, 'destroy'])->name('destroy');
+            Route::put('/{jadwal}', [JadwalController::class, 'update'])->name('update')->middleware('periode-aktif');
+            Route::delete('/{jadwal}', [JadwalController::class, 'destroy'])->name('destroy')->middleware('periode-aktif');
             Route::get('/import', [JadwalController::class, 'importForm'])->name('import.form');
             Route::get('/template', [JadwalController::class, 'template'])->name('template');
             Route::post('/import', [JadwalController::class, 'import'])->name('import')->middleware('periode-aktif');
@@ -349,7 +350,7 @@ Route::middleware('auth')->group(function () {
         // (2026-08-23) — aksi khusus untuk siswa pindah kelas DI TENGAH tahun
         // ajaran berjalan (beda dengan siswa.update yang untuk koreksi data
         // biasa). Lihat SiswaController::pindahKelas().
-        Route::post('siswa/{siswa}/pindah-kelas', [SiswaController::class, 'pindahKelas'])->name('siswa.pindah-kelas');
+        Route::post('siswa/{siswa}/pindah-kelas', [SiswaController::class, 'pindahKelas'])->name('siswa.pindah-kelas')->middleware('periode-aktif');
         Route::get('siswa-import', [SiswaController::class, 'importForm'])->name('siswa.import.form');
         Route::get('siswa-import/template', [SiswaController::class, 'template'])->name('siswa.template');
         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');

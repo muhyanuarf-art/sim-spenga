@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\JenisSurat;
 use App\Models\KasusSiswa;
 use App\Models\Kelas;
@@ -144,7 +145,7 @@ class BkPemanggilanController extends Controller
         $validated = $request->validate([
             'siswa_id' => ['required', 'exists:siswas,id'],
             'kasus_siswa_id' => ['nullable', 'exists:kasus_siswas,id'],
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'pemanggilan')],
             // (2026-08-26, revisi) — form "Detail Pemanggilan" dihilangkan.
             // "alasan" cuma diminta manual kalau "Tanpa surat" dipilih
             // (tidak ada teks surat untuk diambil alasannya). Kalau pakai/

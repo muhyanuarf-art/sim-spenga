@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\AnalisisSumatif;
 use App\Models\GuruMengajarKelas;
 use App\Models\Kelas;
@@ -187,9 +188,9 @@ class ProgramPerbaikanController extends Controller
         $validated = $request->validate([
             'lingkup_materi' => ['required', 'integer', 'min:1', 'max:20'],
             'bentuk_perbaikan' => ['nullable', 'string', 'max:2000'],
-            'tanggal_perbaikan' => ['nullable', 'date'],
+            'tanggal_perbaikan' => ['nullable', 'date', new DalamPeriode($periode, 'pelaksanaan perbaikan')],
             'bentuk_pengayaan' => ['nullable', 'string', 'max:2000'],
-            'tanggal_pengayaan' => ['nullable', 'date'],
+            'tanggal_pengayaan' => ['nullable', 'date', new DalamPeriode($periode, 'pelaksanaan pengayaan')],
         ], [], [
             'bentuk_perbaikan' => 'Bentuk Pelaksanaan Perbaikan',
             'tanggal_perbaikan' => 'Tanggal Pelaksanaan Perbaikan',

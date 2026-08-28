@@ -54,13 +54,29 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th class="w-12 text-center">No</th><th>Tahun Ajaran</th><th>Semester</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Tahun Ajaran</th><th>Semester</th><th>Rentang Tanggal</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($tahunAjaran as $t)
                 <tbody x-data="{ editing: false, salin: false }">
                     <tr x-show="!editing && !salin">
                         <td class="text-center text-slate-400">{{ $loop->iteration }}</td>
                         <td class="font-semibold">{{ $t->nama }}</td>
                         <td>{{ $t->semester }}</td>
+                        {{-- Rentang tanggal yang BERLAKU: batas tanggal yang boleh
+                             disimpan pada periode ini, sekaligus batas data yang
+                             masuk Laporan Akhir Semester. --}}
+                        <td class="text-xs">
+                            @php
+                                $rentang = \App\Support\RentangPeriode::untuk($t);
+                            @endphp
+                            @if($rentang)
+                                <div class="text-slate-600">{{ \App\Support\RentangPeriode::label($t) }}</div>
+                                @if($rentang[2])
+                                    <span class="text-amber-600" title="Belum diisi admin — diturunkan otomatis dari nama tahun ajaran & semester. Isi lewat tombol Edit bila kalender sekolah berbeda."><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> otomatis</span>
+                                @endif
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
                         <td>
                             <span class="badge {{ $t->statusBadgeClass() }}">{{ $t->statusLabel() }}</span>
                         </td>
@@ -126,7 +142,7 @@
 
                     {{-- poin 6: Salin Data — pilih tujuan, lalu ke halaman Preview (checklist) sebelum benar-benar menyalin --}}
                     <tr x-show="salin" x-cloak>
-                        <td colspan="6" class="bg-brand-50/40">
+                        <td colspan="7" class="bg-brand-50/40">
                             <form method="GET" action="{{ route('tahun-ajaran.duplikasi.preview') }}" class="grid sm:grid-cols-3 gap-3 items-end py-2"
                                   onsubmit="return confirm('Anda akan menyalin data dari {{ $t->nama }} - Semester {{ $t->semester }} ke periode tujuan yang dipilih. Lanjutkan?')">
                                 <input type="hidden" name="dari_tahun_ajaran_id" value="{{ $t->id }}">
@@ -152,31 +168,55 @@
                     </tr>
 
                     <tr x-show="editing" x-cloak>
-                        <td colspan="6" class="bg-brand-50/40">
+                        <td colspan="7" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('tahun-ajaran.update', $t) }}" class="grid sm:grid-cols-3 gap-3 items-end py-2">
                                 @csrf @method('PUT')
-                                <input type="text" name="nama" value="{{ $t->nama }}" required class="input">
-                                <select name="semester" required class="input">
-                                    <option value="Ganjil" {{ $t->semester === 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
-                                    <option value="Genap" {{ $t->semester === 'Genap' ? 'selected' : '' }}>Genap</option>
-                                </select>
+                                <div>
+                                    <label class="label">Tahun Ajaran</label>
+                                    <input type="text" name="nama" value="{{ $t->nama }}" required class="input">
+                                </div>
+                                <div>
+                                    <label class="label">Semester</label>
+                                    <select name="semester" required class="input">
+                                        <option value="Ganjil" {{ $t->semester === 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
+                                        <option value="Genap" {{ $t->semester === 'Genap' ? 'selected' : '' }}>Genap</option>
+                                    </select>
+                                </div>
                                 @unless($t->is_active)
-                                <select name="status" class="input">
-                                    <option value="akan_datang" {{ $t->status === 'akan_datang' ? 'selected' : '' }}>Akan Datang</option>
-                                    <option value="selesai" {{ $t->status === 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                </select>
+                                <div>
+                                    <label class="label">Status</label>
+                                    <select name="status" class="input">
+                                        <option value="akan_datang" {{ $t->status === 'akan_datang' ? 'selected' : '' }}>Akan Datang</option>
+                                        <option value="selesai" {{ $t->status === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                                    </select>
+                                </div>
                                 @endunless
+                                <div>
+                                    <label class="label">Tanggal Mulai <span class="font-normal text-slate-400">(opsional)</span></label>
+                                    <input type="date" name="tanggal_mulai" value="{{ optional($t->tanggal_mulai)->format('Y-m-d') }}" class="input">
+                                </div>
+                                <div>
+                                    <label class="label">Tanggal Selesai <span class="font-normal text-slate-400">(opsional)</span></label>
+                                    <input type="date" name="tanggal_selesai" value="{{ optional($t->tanggal_selesai)->format('Y-m-d') }}" class="input">
+                                </div>
                                 <div class="flex gap-2">
                                     <button type="submit" class="btn-primary h-[38px]">Simpan</button>
                                     <button type="button" @click="editing = false" class="btn-outline h-[38px]">Batal</button>
                                 </div>
+                                <p class="sm:col-span-3 -mt-1 text-xs text-slate-500">
+                                    <i class="fa-solid fa-circle-info mr-1"></i>
+                                    Kedua tanggal ini menentukan tanggal yang boleh disimpan pada periode ini
+                                    (jurnal, absensi, BK, surat, kegiatan) sekaligus batas data pada Laporan Akhir Semester.
+                                    <strong>Kosongkan saja</strong> bila kalender sekolah mengikuti pola umum —
+                                    sistem otomatis memakai Juli–Desember untuk Ganjil dan Januari–Juni untuk Genap.
+                                </p>
                             </form>
                         </td>
                     </tr>
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
+                    <tr><td colspan="7" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
                 </tbody>
                 @endforelse
             </table>
@@ -214,7 +254,7 @@
                             </tr>
                             <tr>
                                 <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-pen mr-1.5"></i> Edit</td>
-                                <td>Mengubah nama tahun ajaran, semester, atau status (Akan Datang/Selesai) satu baris. Tidak bisa dipakai untuk mengaktifkan — pakai tombol Aktifkan.</td>
+                                <td>Mengubah nama tahun ajaran, semester, status (Akan Datang/Selesai), serta Tanggal Mulai &amp; Tanggal Selesai periode. Kedua tanggal itu OPSIONAL — kalau dikosongkan sistem memakai Juli–Desember (Ganjil) dan Januari–Juni (Genap). Tidak bisa dipakai untuk mengaktifkan — pakai tombol Aktifkan.</td>
                             </tr>
                             <tr>
                                 <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-clipboard-list mr-1.5"></i> Salin Data</td>

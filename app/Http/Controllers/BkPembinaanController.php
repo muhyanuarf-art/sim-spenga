@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\EvaluasiPembinaan;
 use App\Models\KasusSiswa;
 use App\Models\Kelas;
@@ -108,7 +109,7 @@ class BkPembinaanController extends Controller
         $validated = $request->validate([
             'siswa_id' => ['required', 'exists:siswas,id'],
             'kasus_siswa_id' => ['nullable', 'exists:kasus_siswas,id'],
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'pembinaan')],
             // Tahap TIDAK diterima dari form — selalu dihitung otomatis di
             // bawah dari poin aktif siswa (App\Services\PoinSiswaService).
             'jenis_pembinaan' => ['required', 'string'],
@@ -201,7 +202,7 @@ class BkPembinaanController extends Controller
 
         $validated = $request->validate([
             'hari_ke' => ['required', 'integer', 'min:1', 'max:7'],
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode($pembinaan->tahunAjaran, 'evaluasi harian')],
             'kondisi' => ['required', 'in:Baik,Perlu Perhatian,Kurang Baik'],
             'catatan' => ['required', 'string'],
         ]);

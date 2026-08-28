@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Support\JalankanImport;
 use App\Exports\TemplateExport;
 use App\Imports\SiswaImport;
@@ -127,7 +128,7 @@ class SiswaController extends Controller
                 'required',
                 Rule::exists('kelas', 'id')->where(fn ($q) => $q->whereIn('id', Kelas::aktif()->pluck('id'))),
             ],
-            'tanggal_mutasi' => ['nullable', 'date'],
+            'tanggal_mutasi' => ['nullable', 'date', new DalamPeriode(sebutan: 'perpindahan kelas')],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
 

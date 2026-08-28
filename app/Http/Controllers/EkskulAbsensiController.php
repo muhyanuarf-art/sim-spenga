@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\AbsensiEkskul;
 use App\Models\AbsensiEkskulPeserta;
 use App\Models\Ekstrakurikuler;
@@ -88,7 +89,7 @@ class EkskulAbsensiController extends Controller
         $this->otorisasiPengisi($request, $ekstrakurikuler);
 
         $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'absensi ekstrakurikuler')],
             'kegiatan' => ['nullable', 'string', 'max:255'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
             'siswa' => ['nullable', 'array'],

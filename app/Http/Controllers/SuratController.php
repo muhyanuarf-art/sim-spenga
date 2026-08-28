@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\JenisSurat;
 use App\Models\Siswa;
 use App\Models\Surat;
@@ -118,7 +119,7 @@ class SuratController extends Controller
         $validated = $request->validate([
             'jenis_surat_id' => ['required', 'exists:jenis_surats,id'],
             'siswa_id' => ['required', 'exists:siswas,id'],
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'surat')],
             'nomor_urut' => ['required', 'string', 'max:50'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -204,7 +205,7 @@ class SuratController extends Controller
         $this->pastikanGuruBk($request);
 
         $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'surat')],
             'nomor_urut' => ['required', 'string', 'max:50'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ]);

@@ -27,7 +27,7 @@ class JamPelajaranController extends Controller
             ],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
-        ]);
+        ], $this->pesanValidasi());
 
         JamPelajaran::create($validated);
 
@@ -47,7 +47,7 @@ class JamPelajaranController extends Controller
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
             'is_active' => ['nullable', 'boolean'],
-        ]);
+        ], $this->pesanValidasi());
         $validated['is_active'] = $request->boolean('is_active', true);
         $jamPelajaran->update($validated);
 
@@ -112,5 +112,20 @@ class JamPelajaranController extends Controller
         });
 
         return back()->with('success', "Jam pelajaran hari {$hariSumber} berhasil disalin ke " . implode(', ', $hariTujuan) . '.');
+    }
+
+    /**
+     * Pesan yang dipakai bersama store() & update().
+     *
+     * Aturan 'after' pesannya berbicara soal TANGGAL ("harus berisi tanggal
+     * setelah Jam Mulai"), padahal yang divalidasi di sini jam. Karena itu
+     * kalimatnya ditulis sendiri.
+     */
+    private function pesanValidasi(): array
+    {
+        return [
+            'jam_selesai.after' => 'Jam selesai harus lebih dari jam mulai.',
+            'jam_ke.unique' => 'Jam ke-:input untuk hari tersebut sudah ada. Gunakan nomor jam yang lain.',
+        ];
     }
 }

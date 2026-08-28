@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\AnalisisSumatif;
 use App\Models\GuruMengajarKelas;
 use App\Models\Kelas;
@@ -155,7 +156,7 @@ class AnalisisSumatifController extends Controller
             'materi_ajar' => ['nullable', 'string', 'max:255'],
             // Dibatasi 50 supaya tabelnya tetap terbaca & muat saat dicetak.
             'jumlah_soal' => ['required', 'integer', 'min:1', 'max:50'],
-            'tanggal_pelaksanaan' => ['nullable', 'date'],
+            'tanggal_pelaksanaan' => ['nullable', 'date', new DalamPeriode(sebutan: 'pelaksanaan tes')],
         ], [], [
             'materi_ajar' => 'Materi Ajar',
             'jumlah_soal' => 'Banyak Soal',

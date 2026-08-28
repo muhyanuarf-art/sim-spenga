@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\DalamPeriode;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\JurnalMengajar;
@@ -176,7 +177,7 @@ class MengajarController extends Controller
         PeriodeAkademik::pastikanTidakTerkunci($slotJadwal->first()->tahunAjaran);
 
         $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'jurnal & absensi')],
             'materi' => ['required', 'string'],
             'kegiatan' => ['nullable', 'string'],
             'keterangan' => ['nullable', 'string'],
