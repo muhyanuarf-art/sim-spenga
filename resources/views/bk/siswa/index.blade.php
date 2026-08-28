@@ -54,10 +54,11 @@
         @endif
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Nama</th><th>Kelas</th><th>Poin Aktif</th><th>Tahap</th><th>Status</th><th>Kasus</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Nama</th><th>Kelas</th><th>Poin Aktif</th><th>Tahap</th><th>Status</th><th>Kasus</th></tr></thead>
                 <tbody>
                     @forelse($siswas as $r)
                     <tr class="cursor-pointer hover:bg-slate-50" onclick="location.href='{{ route('bk.siswa.show', $r['siswa']) }}'">
+                        <td class="text-center text-slate-400">{{ $loop->iteration }}</td>
                         <td class="font-medium">
                             <div class="flex items-center gap-2">
                                 <x-initial-avatar :nama="$r['siswa']->nama" /> {{ $r['siswa']->nama }}
@@ -82,7 +83,7 @@
                         <td class="text-slate-500">{{ $r['jumlah_kasus'] }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">
+                    <tr><td colspan="7" class="text-center text-slate-400 py-8">
                         @if($sedangMencari)
                             Tidak ada siswa aktif bernama &ldquo;{{ request('cari') }}&rdquo;.
                         @else

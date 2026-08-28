@@ -381,18 +381,16 @@ class Navigasi
                         'label' => 'Data Siswa',
                         'icon' => 'fa-user-graduate',
                         'route' => 'siswa.index',
-                        'cocok' => ['siswa.index', 'siswa.store', 'siswa.update', 'siswa.destroy', 'siswa.import*', 'siswa.template', 'siswa.pindah-kelas', 'siswa.riwayat-kelas'],
-                        'deskripsi' => 'Data induk siswa, kelas, dan nomor WhatsApp orang tua.',
+                        'cocok' => ['siswa.index', 'siswa.store', 'siswa.update', 'siswa.destroy', 'siswa.import*', 'siswa.template', 'siswa.pindah-kelas', 'siswa.riwayat-kelas', 'akun-ortu.*'],
+                        'deskripsi' => 'Data induk siswa, kelas, nomor WhatsApp, dan akun Portal Orang Tua.',
                         'roles' => ['kurikulum', 'admin'],
                     ],
-                    [
-                        'label' => 'Akun Orang Tua',
-                        'icon' => 'fa-users',
-                        'route' => 'orangtua-akun.index',
-                        'cocok' => ['orangtua-akun.*'],
-                        'deskripsi' => 'Akun portal orang tua untuk memantau kehadiran anaknya.',
-                        'roles' => ['kurikulum', 'admin'],
-                    ],
+                    // Menu "Akun Orang Tua" DIHAPUS (2026-08-28). Tabel akunnya
+                    // hanya berisi kredensial — nama & nomor WhatsApp orang tua
+                    // justru ada di Data Siswa — jadi tidak ada data yang perlu
+                    // dikelola tersendiri. Statusnya kini jadi satu kolom di
+                    // menu Data Siswa, lengkap dengan tombol Buatkan Akun dan
+                    // Reset Password. Lihat App\Http\Controllers\OrangTuaController.
                     [
                         'label' => 'Data Kelas',
                         'icon' => 'fa-school',

@@ -85,10 +85,11 @@
         </p>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Kelas</th><th>Tingkat</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Kelas</th><th>Tingkat</th><th>Wali Kelas</th><th>Jumlah Siswa</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($kelas as $k)
                 <tbody x-data="{ editing: false }">
                     <tr x-show="!editing">
+                        <td class="text-center text-slate-400">{{ $kelas->firstItem() + $loop->index }}</td>
                         <td class="font-semibold">{{ $k->nama_kelas }}</td>
                         <td>{{ $k->tingkat }}</td>
                         <td>{{ $k->waliKelas->name ?? '-' }}</td>
@@ -104,7 +105,7 @@
                         </td>
                     </tr>
                     <tr x-show="editing" x-cloak>
-                        <td colspan="5" class="bg-brand-50/40">
+                        <td colspan="6" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('kelas.update', $k) }}" class="grid sm:grid-cols-5 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <input type="text" name="nama_kelas" value="{{ $k->nama_kelas }}" required class="input">
@@ -127,7 +128,7 @@
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="5" class="text-center text-slate-400 py-8">Belum ada kelas untuk Tahun Ajaran {{ $tahunAjaranDipilih->nama }}.</td></tr>
+                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada kelas untuk Tahun Ajaran {{ $tahunAjaranDipilih->nama }}.</td></tr>
                 </tbody>
                 @endforelse
             </table>

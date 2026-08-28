@@ -95,10 +95,11 @@
         <p class="font-bold text-slate-800 mb-3">Daftar Anggota Saat Ini</p>
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>Tanggal Gabung</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>NIS</th><th>Nama</th><th>Kelas</th><th>Tanggal Gabung</th><th class="th-aksi">Aksi</th></tr></thead>
                 <tbody>
                 @forelse($ekstrakurikuler->anggotas->sortBy('siswa.nama') as $a)
                     <tr>
+                        <td class="text-center text-slate-400">{{ $loop->iteration }}</td>
                         <td>{{ $a->siswa->nis }}</td>
                         <td class="font-medium">{{ $a->siswa->nama }}</td>
                         <td>{{ $a->siswa->kelas->nama_kelas ?? '—' }}</td>
@@ -111,7 +112,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center text-slate-400 py-8">Belum ada anggota.</td></tr>
+                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada anggota.</td></tr>
                 @endforelse
                 </tbody>
             </table>

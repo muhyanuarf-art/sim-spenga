@@ -86,6 +86,7 @@
                 <table class="table-clean w-full">
                     <thead>
                         <tr>
+                            <th class="w-12 text-center">No</th>
                             <th>Tanggal</th>
                             <th>Nama Siswa</th>
                             <th>Kelas</th>
@@ -97,6 +98,7 @@
                     <tbody>
                         @forelse($data as $n)
                         <tr>
+                            <td class="text-center text-slate-400">{{ $data->firstItem() + $loop->index }}</td>
                             <td class="text-slate-500 whitespace-nowrap">{{ $n->tanggal->translatedFormat('d M Y') }}</td>
                             <td class="font-medium">
                                 <div class="flex items-center gap-2">
@@ -128,7 +130,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-emerald-600 py-8"><i class="fa-solid fa-circle-check mr-1.5"></i> Tidak ada notifikasi Alfa bulan ini.</td></tr>
+                        <tr><td colspan="7" class="text-center text-emerald-600 py-8"><i class="fa-solid fa-circle-check mr-1.5"></i> Tidak ada notifikasi Alfa bulan ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

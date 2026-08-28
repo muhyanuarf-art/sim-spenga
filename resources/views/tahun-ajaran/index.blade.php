@@ -54,10 +54,11 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Tahun Ajaran</th><th>Semester</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Tahun Ajaran</th><th>Semester</th><th>Status</th><th>Kunci</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($tahunAjaran as $t)
                 <tbody x-data="{ editing: false, salin: false }">
                     <tr x-show="!editing && !salin">
+                        <td class="text-center text-slate-400">{{ $loop->iteration }}</td>
                         <td class="font-semibold">{{ $t->nama }}</td>
                         <td>{{ $t->semester }}</td>
                         <td>
@@ -125,7 +126,7 @@
 
                     {{-- poin 6: Salin Data — pilih tujuan, lalu ke halaman Preview (checklist) sebelum benar-benar menyalin --}}
                     <tr x-show="salin" x-cloak>
-                        <td colspan="5" class="bg-brand-50/40">
+                        <td colspan="6" class="bg-brand-50/40">
                             <form method="GET" action="{{ route('tahun-ajaran.duplikasi.preview') }}" class="grid sm:grid-cols-3 gap-3 items-end py-2"
                                   onsubmit="return confirm('Anda akan menyalin data dari {{ $t->nama }} - Semester {{ $t->semester }} ke periode tujuan yang dipilih. Lanjutkan?')">
                                 <input type="hidden" name="dari_tahun_ajaran_id" value="{{ $t->id }}">
@@ -151,7 +152,7 @@
                     </tr>
 
                     <tr x-show="editing" x-cloak>
-                        <td colspan="5" class="bg-brand-50/40">
+                        <td colspan="6" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('tahun-ajaran.update', $t) }}" class="grid sm:grid-cols-3 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <input type="text" name="nama" value="{{ $t->nama }}" required class="input">
@@ -175,7 +176,7 @@
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="5" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
+                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
                 </tbody>
                 @endforelse
             </table>

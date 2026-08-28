@@ -21,6 +21,25 @@ class Siswa extends Model
         return ['is_active' => 'boolean'];
     }
 
+    /**
+     * Orang tua login memakai NIS anaknya (lihat OrangTua & guard
+     * 'orangtua'), dan NIS itu DISALIN ke tabel orang_tuas saat akun
+     * dibuat. Kalau NIS siswa dikoreksi di menu Data Siswa — hal yang wajar
+     * terjadi — salinannya jadi basi dan orang tua TIDAK BISA LOGIN LAGI
+     * tanpa ada pesan apa pun yang menjelaskan kenapa.
+     *
+     * Disinkronkan lewat event model (bukan di controller) supaya berlaku
+     * untuk SEMUA jalur perubahan: form Edit, Import Excel, maupun tinker.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (self $siswa) {
+            if ($siswa->wasChanged('nis')) {
+                OrangTua::where('siswa_id', $siswa->id)->update(['nis' => $siswa->nis]);
+            }
+        });
+    }
+
     public function kelas(): BelongsTo
     {
         return $this->belongsTo(Kelas::class, 'kelas_id');

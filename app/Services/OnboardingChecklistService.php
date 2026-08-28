@@ -113,10 +113,13 @@ class OnboardingChecklistService
                 'route' => route('jadwal.index'),
             ],
             [
+                // Sejak menu "Akun Orang Tua" digabung ke Data Siswa, akunnya
+                // dibuat dari sana lewat tombol "Buatkan Akun Ortu" — bukan
+                // lagi lewat import berkas terpisah.
                 'key' => 'akun-orang-tua',
-                'label' => 'Import Akun Orang Tua',
+                'label' => 'Buatkan Akun Portal Orang Tua',
                 'selesai' => OrangTua::exists(),
-                'route' => route('orangtua-akun.index'),
+                'route' => route('siswa.index'),
             ],
         ];
 

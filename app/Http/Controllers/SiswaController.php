@@ -16,7 +16,10 @@ class SiswaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Siswa::with('kelas')->when($request->kelas_id, fn ($q) => $q->where('kelas_id', $request->kelas_id));
+        // 'orangTua' di-eager-load supaya kolom "Akun Ortu" di tabel tidak
+        // memicu query per baris (akun portal orang tua dikelola dari sini
+        // sejak menunya digabung — lihat OrangTuaController).
+        $query = Siswa::with(['kelas', 'orangTua'])->when($request->kelas_id, fn ($q) => $q->where('kelas_id', $request->kelas_id));
         if ($request->search) {
             $query->where(function ($q) use ($request) {
                 $q->where('nama', 'like', "%{$request->search}%")
@@ -26,7 +29,13 @@ class SiswaController extends Controller
         $siswas = $query->orderBy('nama')->paginate(25)->withQueryString();
         // STEP 5 Bagian 23 — dropdown filter default kelas TAHUN AJARAN AKTIF.
         $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
-        return view('siswa.index', compact('siswas', 'kelasList'));
+
+        // Untuk tombol "Buatkan Akun Ortu" — dihitung untuk SELURUH siswa
+        // aktif, bukan cuma yang tampil di halaman ini, karena tombolnya
+        // memang memproses semuanya sekaligus.
+        $siswaTanpaAkunOrtu = Siswa::where('is_active', true)->whereDoesntHave('orangTua')->count();
+
+        return view('siswa.index', compact('siswas', 'kelasList', 'siswaTanpaAkunOrtu'));
     }
 
     public function store(Request $request)

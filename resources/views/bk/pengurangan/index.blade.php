@@ -47,10 +47,11 @@
 
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Jumlah</th><th>Alasan</th><th>Petugas</th><th>Status</th>@if(in_array($user->role,['guru_bk','admin']))<th class="th-aksi">Aksi</th>@endif</tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Jumlah</th><th>Alasan</th><th>Petugas</th><th>Status</th>@if(in_array($user->role,['guru_bk','admin']))<th class="th-aksi">Aksi</th>@endif</tr></thead>
                 <tbody>
                     @forelse($data as $p)
                     <tr class="{{ $p->dibatalkan_at ? 'opacity-40' : '' }}">
+                        <td class="text-center text-slate-400">{{ $data->firstItem() + $loop->index }}</td>
                         <td class="text-slate-500 whitespace-nowrap">{{ $p->tanggal->translatedFormat('d M Y') }}</td>
                         <td class="font-medium"><a href="{{ route('bk.siswa.show', $p->siswa_id) }}" class="hover:underline">{{ $p->siswa->nama ?? '-' }}</a></td>
                         <td><x-kelas-badge :nama="$p->siswa->kelas->nama_kelas ?? '-'" /></td>
@@ -77,7 +78,7 @@
                         @endif
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="text-center text-slate-400 py-8">Belum ada pengurangan poin tercatat.</td></tr>
+                    <tr><td colspan="9" class="text-center text-slate-400 py-8">Belum ada pengurangan poin tercatat.</td></tr>
                     @endforelse
                 </tbody>
             </table>

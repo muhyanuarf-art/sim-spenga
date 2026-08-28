@@ -55,10 +55,11 @@
 
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Guru BK</th><th>Kelas</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Guru BK</th><th>Kelas</th><th class="th-aksi">Aksi</th></tr></thead>
                 <tbody>
                     @forelse($data as $d)
                     <tr>
+                        <td class="text-center text-slate-400">{{ $data->firstItem() + $loop->index }}</td>
                         <td class="font-medium">
                             <div class="flex items-center gap-2">
                                 <x-initial-avatar :nama="$d->guru->name ?? '-'" />
@@ -74,7 +75,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="3" class="text-center text-slate-400 py-8">Belum ada mapping Guru BK.</td></tr>
+                    <tr><td colspan="4" class="text-center text-slate-400 py-8">Belum ada mapping Guru BK.</td></tr>
                     @endforelse
                 </tbody>
             </table>

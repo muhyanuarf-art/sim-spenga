@@ -21,10 +21,11 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Kode</th><th>Nama Mata Pelajaran</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Kode</th><th>Nama Mata Pelajaran</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($mapel as $m)
                 <tbody x-data="{ editing: false }">
                     <tr x-show="!editing">
+                        <td class="text-center text-slate-400">{{ $mapel->firstItem() + $loop->index }}</td>
                         <td class="font-semibold">{{ $m->kode }}</td>
                         <td>{{ $m->nama_mapel }}</td>
                         <td class="td-aksi">
@@ -38,7 +39,7 @@
                         </td>
                     </tr>
                     <tr x-show="editing" x-cloak>
-                        <td colspan="3" class="bg-brand-50/40">
+                        <td colspan="4" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('mapel.update', $m) }}" class="grid sm:grid-cols-3 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <input type="text" name="kode" value="{{ $m->kode }}" required class="input">
@@ -53,7 +54,7 @@
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="3" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
+                    <tr><td colspan="4" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
                 </tbody>
                 @endforelse
             </table>

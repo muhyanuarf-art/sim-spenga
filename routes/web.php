@@ -347,12 +347,16 @@ Route::middleware('auth')->group(function () {
         Route::get('siswa-import/template', [SiswaController::class, 'template'])->name('siswa.template');
         Route::post('siswa-import', [SiswaController::class, 'import'])->name('siswa.import');
 
-        Route::get('data-orangtua', [OrangTuaController::class, 'index'])->name('orangtua-akun.index');
-        Route::get('data-orangtua/import', [OrangTuaController::class, 'importForm'])->name('orangtua-akun.import.form');
-        Route::post('data-orangtua/import', [OrangTuaController::class, 'import'])->name('orangtua-akun.import');
-        Route::get('data-orangtua/template', [OrangTuaController::class, 'template'])->name('orangtua-akun.template');
-        Route::post('data-orangtua/{orangTua}/reset-password', [OrangTuaController::class, 'resetPassword'])->name('orangtua-akun.reset-password');
-        Route::delete('data-orangtua/{orangTua}', [OrangTuaController::class, 'destroy'])->name('orangtua-akun.destroy');
+        // ===== AKUN PORTAL ORANG TUA =====
+        // (2026-08-28) Menu tersendiri dihapus — pengelolaannya kini menyatu
+        // di menu Data Siswa (lihat catatan lengkap di OrangTuaController).
+        // Rute lama 'orangtua-akun.index/import/import.form/template' DIBUANG:
+        // ketiganya menunjuk method yang sudah tidak ada di controller,
+        // sehingga selama ini menghasilkan error 500.
+        Route::post('akun-ortu/buat-semua', [OrangTuaController::class, 'generate'])->name('akun-ortu.buat-semua');
+        Route::post('akun-ortu/siswa/{siswa}', [OrangTuaController::class, 'buatSatu'])->name('akun-ortu.buat-satu');
+        Route::post('akun-ortu/{orangTua}/reset-password', [OrangTuaController::class, 'resetPassword'])->name('akun-ortu.reset-password');
+        Route::delete('akun-ortu/{orangTua}', [OrangTuaController::class, 'destroy'])->name('akun-ortu.destroy');
 
         Route::resource('kelas', KelasController::class)->except(['create', 'edit', 'show'])->parameters(['kelas' => 'kelas']);
         Route::get('kelas-import', [KelasController::class, 'importForm'])->name('kelas.import.form');

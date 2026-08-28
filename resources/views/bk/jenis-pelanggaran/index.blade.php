@@ -29,11 +29,12 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Poin Default</th><th>Status</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Kode</th><th>Nama</th><th>Kategori</th><th>Poin Default</th><th>Status</th><th class="th-aksi">Aksi</th></tr></thead>
                 <tbody>
                     @forelse($data as $j)
                     <tbody x-data="{ editing: false }">
                         <tr x-show="!editing">
+                            <td class="text-center text-slate-400">{{ $loop->iteration }}</td>
                             <td class="font-mono text-xs">{{ $j->kode }}</td>
                             <td class="font-medium">{{ $j->nama }}</td>
                             <td><span class="badge bg-slate-100 text-slate-600">{{ $j->kategori }}</span></td>
@@ -48,7 +49,7 @@
                             <td class="td-aksi"><button @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button></td>
                         </tr>
                         <tr x-show="editing" x-cloak>
-                            <td colspan="6" class="bg-brand-50/40">
+                            <td colspan="7" class="bg-brand-50/40">
                                 <form method="POST" action="{{ route('bk.jenis-pelanggaran.update', $j) }}" class="grid sm:grid-cols-6 gap-3 items-end py-2">
                                     @csrf @method('PUT')
                                     <input type="text" name="kode" value="{{ $j->kode }}" required class="input">
@@ -73,7 +74,7 @@
                     </tbody>
                     @empty
                     <tbody>
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada master jenis pelanggaran.</td></tr>
+                    <tr><td colspan="7" class="text-center text-slate-400 py-8">Belum ada master jenis pelanggaran.</td></tr>
                     </tbody>
                     @endforelse
                 </tbody>

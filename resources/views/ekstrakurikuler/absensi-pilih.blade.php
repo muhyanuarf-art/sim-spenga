@@ -14,10 +14,11 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Nama Kegiatan</th><th>Pembina</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Nama Kegiatan</th><th>Pembina</th><th class="th-aksi">Aksi</th></tr></thead>
                 <tbody>
                 @forelse($kegiatan as $k)
                     <tr>
+                        <td class="text-center text-slate-400">{{ $loop->iteration }}</td>
                         <td class="font-semibold">{{ $k->nama_ekstrakurikuler }}</td>
                         <td class="text-slate-600">{{ $k->daftarNamaPembina() }}</td>
                         <td class="td-aksi">
@@ -27,7 +28,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="3" class="text-center text-slate-400 py-8">
+                    <tr><td colspan="4" class="text-center text-slate-400 py-8">
                         @if(in_array(auth()->user()->role, ['kesiswaan', 'admin']))
                             Belum ada kegiatan ekstrakurikuler aktif.
                         @else

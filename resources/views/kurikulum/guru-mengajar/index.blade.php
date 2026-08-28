@@ -99,10 +99,11 @@
 
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Kelas</th><th>Mata Pelajaran</th><th>Guru</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Kelas</th><th>Mata Pelajaran</th><th>Guru</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($data as $d)
                 <tbody x-data="{ editing: false }">
                     <tr x-show="!editing">
+                        <td class="text-center text-slate-400">{{ $data->firstItem() + $loop->index }}</td>
                         <td class="font-semibold">{{ $d->kelas->nama_kelas }}</td>
                         <td>{{ $d->mapel->nama_mapel }}</td>
                         <td>{{ $d->guru->name }}</td>
@@ -121,7 +122,7 @@
                         </td>
                     </tr>
                     <tr x-show="editing" x-cloak>
-                        <td colspan="4" class="bg-brand-50/40">
+                        <td colspan="6" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('kurikulum.guru-mengajar.update', $d) }}" class="grid sm:grid-cols-4 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <select name="kelas_id" required class="input">
@@ -149,7 +150,7 @@
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="4" class="text-center text-slate-400 py-8">Belum ada data mapping.</td></tr>
+                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada data mapping.</td></tr>
                 </tbody>
                 @endforelse
             </table>

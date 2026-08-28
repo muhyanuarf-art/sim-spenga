@@ -46,10 +46,11 @@
     <div class="card p-5">
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
-                <thead><tr><th>Nama</th><th>NIP</th><th>Email</th><th>Role</th><th>Status</th><th class="th-aksi">Aksi</th></tr></thead>
+                <thead><tr><th class="w-12 text-center">No</th><th>Nama</th><th>NIP</th><th>Email</th><th>Role</th><th>Status</th><th class="th-aksi">Aksi</th></tr></thead>
                 @forelse($users as $u)
                 <tbody x-data="{ editing: false, role: '{{ $u->role }}' }">
                     <tr x-show="!editing">
+                        <td class="text-center text-slate-400">{{ $users->firstItem() + $loop->index }}</td>
                         <td class="font-medium">{{ $u->name }}</td>
                         <td>{{ $u->nip ?? '-' }}</td>
                         <td>{{ $u->email }}</td>
@@ -71,7 +72,7 @@
                         </td>
                     </tr>
                     <tr x-show="editing" x-cloak>
-                        <td colspan="6" class="bg-brand-50/40">
+                        <td colspan="7" class="bg-brand-50/40">
                             <form method="POST" action="{{ route('users.update', $u) }}" class="grid sm:grid-cols-3 gap-3 items-end py-2">
                                 @csrf @method('PUT')
                                 <input type="text" name="name" value="{{ $u->name }}" placeholder="Nama Lengkap" required class="input">
@@ -103,7 +104,7 @@
                 </tbody>
                 @empty
                 <tbody>
-                    <tr><td colspan="6" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
+                    <tr><td colspan="7" class="text-center text-slate-400 py-8">Belum ada data.</td></tr>
                 </tbody>
                 @endforelse
             </table>
