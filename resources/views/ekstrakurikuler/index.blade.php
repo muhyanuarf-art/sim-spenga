@@ -222,6 +222,10 @@
                     </div>
                     <div class="flex items-center gap-4 flex-wrap">
                         <label class="flex items-center gap-2 text-sm">
+                            {{-- Pasangan hidden+checkbox: checkbox yang tidak dicentang tidak
+                                 dikirim browser sama sekali, jadi hidden inilah yang memberi
+                                 tahu server "pilihannya memang tidak aktif". --}}
+                            <input type="hidden" name="is_aktif" value="0">
                             <input type="checkbox" name="is_aktif" value="1" @checked($e->is_aktif)> Aktif
                         </label>
                         <div class="flex gap-2">
@@ -230,6 +234,35 @@
                         </div>
                     </div>
                 </form>
+
+                {{-- HAPUS PERMANEN.
+                     Diletakkan di dalam panel Edit (bukan di deretan tombol
+                     kartu) supaya tidak terpencet sambil lalu: pengguna harus
+                     membuka Edit dulu, baru tombol ini kelihatan. Form-nya
+                     terpisah dari form Simpan di atas karena form HTML tidak
+                     boleh bersarang.
+
+                     Untuk kegiatan yang cuma berhenti berjalan, yang benar
+                     adalah menghilangkan centang "Aktif" lalu Simpan —
+                     karena itu tombol ini diberi keterangan pembeda. --}}
+                <div class="mt-5 pt-4 border-t border-red-200">
+                    <p class="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Hapus Kegiatan</p>
+                    <p class="text-xs text-slate-500 mb-3 leading-relaxed">
+                        Kegiatan yang sekadar tidak berjalan lagi cukup <strong>dihilangkan centang "Aktif"</strong> di atas —
+                        riwayatnya tetap utuh untuk laporan. Tombol di bawah ini untuk kegiatan yang <strong>salah dibuat</strong>:
+                        seluruh datanya ikut hilang dan tidak bisa dikembalikan.
+                    </p>
+                    <form method="POST" action="{{ route('ekstrakurikuler.destroy', $e) }}"
+                          onsubmit="return confirm('HAPUS PERMANEN kegiatan &quot;{{ $e->nama_ekstrakurikuler }}&quot;?\n\nIkut terhapus: {{ $e->anggotas_count }} anggota dan {{ $e->absensis_count }} sesi absensi beserta seluruh data kehadirannya.\n\nTindakan ini tidak bisa dibatalkan.')">
+                        @csrf @method('DELETE')
+                        <input type="hidden" name="paksa" value="1">
+                        <button type="submit" class="inline-flex items-center gap-2 h-[38px] px-4 rounded-lg border border-red-300 text-red-600 text-sm font-semibold cursor-pointer hover:bg-red-50 active:bg-red-100 transition">
+                            <i class="fa-solid fa-trash"></i>
+                            Hapus permanen beserta datanya
+                            <span class="text-xs font-normal text-red-400">({{ $e->anggotas_count }} anggota, {{ $e->absensis_count }} sesi absensi)</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
         @empty

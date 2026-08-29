@@ -22,7 +22,11 @@ class EkstrakurikulerController extends Controller
 {
     public function index()
     {
-        $ekstrakurikuler = Ekstrakurikuler::periodeAktif()->with('pembinas.user')->orderBy('nama_ekstrakurikuler')->paginate(25);
+        $ekstrakurikuler = Ekstrakurikuler::periodeAktif()
+            ->with('pembinas.user')
+            ->withCount(['anggotas', 'absensis'])
+            ->orderBy('nama_ekstrakurikuler')
+            ->paginate(25);
         // Calon pembina INTERNAL: biasanya guru/guru BK, tapi kesiswaan
         // sendiri kadang jadi pembina juga. Untuk pembina LUAR SEKOLAH,
         // tidak perlu dropdown — cukup diketik bebas di form (lihat view).
@@ -55,7 +59,14 @@ class EkstrakurikulerController extends Controller
     public function update(Request $request, Ekstrakurikuler $ekstrakurikuler)
     {
         $validated = $this->validasi($request);
-        $validated['is_aktif'] = $request->boolean('is_aktif', true);
+        // Checkbox HTML yang TIDAK dicentang tidak ikut terkirim sama sekali.
+        // Dulu di sini ada default `true`, jadi menghilangkan centang "Aktif"
+        // lalu Simpan tidak pernah berhasil menonaktifkan kegiatan — nilainya
+        // selalu kembali jadi aktif. Tanpa default, ketiadaan kunci berarti
+        // "tidak dicentang", yang memang maksudnya. Form-nya juga sudah
+        // mengirim <input type="hidden" name="is_aktif" value="0"> sebagai
+        // pengaman, sama seperti form Siswa/Pengguna/Jam Pelajaran.
+        $validated['is_aktif'] = $request->boolean('is_aktif');
 
         $gagal = DB::transaction(function () use ($validated, $ekstrakurikuler) {
             $ekstrakurikuler->update([
@@ -84,12 +95,64 @@ class EkstrakurikulerController extends Controller
             . ' tidak bisa dikeluarkan dari daftar pembina karena sudah punya riwayat absensi — masih tercatat sebagai pembina.'];
     }
 
-    public function destroy(Ekstrakurikuler $ekstrakurikuler)
+    /**
+     * HAPUS KEGIATAN.
+     *
+     * Dua jalur, sengaja dibedakan:
+     *
+     * 1. Hapus biasa (tombol tong sampah) — ditolak selama kegiatan masih
+     *    punya anggota atau sesi absensi, dan pesan penolakannya menyebut
+     *    persis apa yang menghalangi. Ini pengaman supaya riwayat kehadiran
+     *    tidak lenyap hanya karena satu klik.
+     *
+     * 2. Hapus permanen beserta datanya (`paksa=1`, tombol terpisah di
+     *    panel Edit) — untuk kegiatan yang memang salah dibuat. Anggota,
+     *    pembina, dan seluruh sesi absensinya ikut dihapus dalam satu
+     *    transaksi.
+     *
+     * Sebelum ada jalur kedua, kegiatan yang pernah sekali saja diabsen
+     * TIDAK PERNAH bisa dihapus lewat antarmuka mana pun — tidak ada menu
+     * untuk menghapus sesi absensi ekskul.
+     *
+     * Menonaktifkan (hilangkan centang "Aktif" di panel Edit) tetap jalan
+     * yang dianjurkan untuk kegiatan yang sekadar berhenti berjalan:
+     * datanya utuh untuk laporan, tapi tidak muncul lagi sebagai pilihan.
+     */
+    public function destroy(Request $request, Ekstrakurikuler $ekstrakurikuler)
     {
+        if ($request->boolean('paksa')) {
+            return $this->hapusBesertaSeluruhDatanya($ekstrakurikuler);
+        }
+
         return $this->hapusAtauGagalDenganPesan(
             $ekstrakurikuler,
             'Kegiatan ekstrakurikuler berhasil dihapus.',
-            'Kegiatan ini tidak dapat dihapus karena masih dipakai di data lain (mis. anggota/absensi).'
+            'Kegiatan ini tidak dapat dihapus karena datanya sudah dipakai. Pakai "Hapus permanen beserta datanya" di panel Edit bila kegiatan ini memang salah dibuat, atau cukup hilangkan centang "Aktif" supaya kegiatan berhenti dipakai tanpa menghilangkan riwayatnya.'
+        );
+    }
+
+    /**
+     * Hapus kegiatan bersama data yang MEMANG MILIKNYA sendiri: anggota,
+     * pembina, dan sesi absensi (baris kehadiran per siswa ikut terhapus
+     * lewat aturan CASCADE dari sesinya). Tidak ada data milik modul lain
+     * yang tersentuh di sini.
+     */
+    private function hapusBesertaSeluruhDatanya(Ekstrakurikuler $ekstrakurikuler)
+    {
+        $nama = $ekstrakurikuler->nama_ekstrakurikuler;
+        $jumlahAnggota = $ekstrakurikuler->anggotas()->count();
+        $jumlahSesi = $ekstrakurikuler->absensis()->count();
+
+        DB::transaction(function () use ($ekstrakurikuler) {
+            $ekstrakurikuler->absensis()->delete();
+            $ekstrakurikuler->anggotas()->delete();
+            $ekstrakurikuler->semuaPembinas()->delete();
+            $ekstrakurikuler->delete();
+        });
+
+        return back()->with(
+            'success',
+            "Kegiatan \"{$nama}\" dihapus permanen beserta {$jumlahAnggota} anggota dan {$jumlahSesi} sesi absensinya."
         );
     }
 
