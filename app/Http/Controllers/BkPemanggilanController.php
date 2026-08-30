@@ -91,14 +91,24 @@ class BkPemanggilanController extends Controller
             if ($siswaTerpilih) {
                 $this->bkPastikanSiswaSesuaiCakupan($user, $siswaTerpilih);
             }
-        } elseif ($request->filled('cari')) {
+        } else {
+            // HANYA SISWA YANG PUNYA KASUS BELUM SELESAI.
+            //
+            // Pencatatan ini adalah tindak lanjut atas sebuah kasus, jadi
+            // daftarnya dibatasi ke siswa yang memang punya perkara terbuka
+            // — lihat Siswa::scopePunyaKasusTerbuka(). Daftarnya juga
+            // ditampilkan LANGSUNG tanpa perlu mengetik dulu: jumlahnya
+            // sedikit, dan menyuruh orang menebak nama sebelum melihat
+            // apa pun adalah hambatan yang tidak perlu.
             $hasilCari = Siswa::periodeAktif()->with('kelas')->where('is_active', true)
+                ->punyaKasusTerbuka()
+                ->withCount(['kasusBk as kasus_terbuka_count' => fn ($q) => $q->belumSelesai()])
                 ->when($kelasIds !== null, fn ($q) => $q->diKelasIn($kelasIds))
-                ->where(function ($q) use ($request) {
-                    $q->where('nama', 'like', "%{$request->cari}%")
+                ->when($request->filled('cari'), fn ($q) => $q->where(function ($w) use ($request) {
+                    $w->where('nama', 'like', "%{$request->cari}%")
                       ->orWhere('nis', 'like', "%{$request->cari}%");
-                })
-                ->orderBy('nama')->limit(20)->get();
+                }))
+                ->orderBy('nama')->limit(50)->get();
         }
 
         $kasusAktifTerbuka = collect();

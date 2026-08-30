@@ -117,6 +117,30 @@ class Siswa extends Model
 
     // ==== Modul BK ====
     public function kasusBk(): HasMany { return $this->hasMany(KasusSiswa::class, 'siswa_id'); }
+
+    /**
+     * Siswa yang punya kasus BK yang BELUM SELESAI.
+     *
+     * Dipakai tiga halaman pencatatan BK — Catat Pembinaan, Pengurangan
+     * Poin, dan Pemanggilan Orang Tua — untuk membatasi siswa yang boleh
+     * dipilih.
+     *
+     * Alasannya bukan sekadar memperpendek daftar, melainkan menyambung
+     * alurnya: ketiga pencatatan itu adalah TINDAK LANJUT atas sebuah
+     * kasus. Selama dulu daftarnya berisi seluruh siswa, pengguna bisa
+     * mencatat pembinaan untuk siswa yang tidak punya perkara apa pun —
+     * catatan yang lalu menggantung tanpa asal-usul, dan tidak pernah
+     * menutup kasus mana pun.
+     *
+     * Yang dihitung "belum selesai" adalah kasus yang belum dibatalkan
+     * DAN statusnya belum "Selesai" — jadi mencakup kasus yang masih
+     * "Baru" maupun yang sudah "Dalam Pembinaan" (pembinaan lanjutan
+     * memang wajar untuk perkara yang sedang berjalan).
+     */
+    public function scopePunyaKasusTerbuka($query)
+    {
+        return $query->whereHas('kasusBk', fn ($q) => $q->belumSelesai());
+    }
     public function pembinaanBk(): HasMany { return $this->hasMany(PembinaanSiswa::class, 'siswa_id'); }
     public function penguranganPoinBk(): HasMany { return $this->hasMany(PenguranganPoinSiswa::class, 'siswa_id'); }
     public function pemanggilanOrtuBk(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'siswa_id'); }

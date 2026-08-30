@@ -144,7 +144,7 @@
                         <th class="text-center whitespace-nowrap">Poin</th>
                         <th>Petugas</th>
                         <th>Status</th>
-                        <th class="th-aksi no-print">Aksi</th>
+                        <th class="th-aksi no-print">Bukti</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -175,23 +175,27 @@
                             @if($item['jenis'] === 'kasus')
                                 <p class="font-semibold text-slate-800">{{ $d->nama_pelanggaran }}</p>
                                 <p class="text-xs text-slate-400">Kategori {{ $d->kategori }}</p>
-                                @if($d->bukti_catatan)<p class="text-xs text-slate-400 italic">{{ \Illuminate\Support\Str::limit($d->bukti_catatan, 80) }}</p>@endif
+                                {{-- Kronologi sebelumnya tidak pernah ditampilkan di halaman mana pun,
+                                     padahal itulah keterangan yang menjelaskan apa yang sebenarnya
+                                     terjadi. Tanpa ini, pembaca hanya melihat nama pelanggarannya. --}}
+                                @if($d->kronologi)<p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ $d->kronologi }}</p>@endif
+                                @if($d->bukti_catatan)<p class="text-xs text-slate-400 italic mt-0.5">{{ $d->bukti_catatan }}</p>@endif
                                 @if($dibatalkan)<p class="text-xs text-slate-400 italic">Alasan batal: {{ $d->alasan_pembatalan }}</p>@endif
 
                             @elseif($item['jenis'] === 'pembinaan')
                                 <p class="font-semibold text-slate-800">{{ $d->jenis_pembinaan }}</p>
-                                <p class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($d->catatan_bk, 80) }}</p>
-                                @if($d->hasil_pembinaan)<p class="text-xs text-slate-400 italic">Hasil: {{ \Illuminate\Support\Str::limit($d->hasil_pembinaan, 80) }}</p>@endif
+                                <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ $d->catatan_bk }}</p>
+                                @if($d->hasil_pembinaan)<p class="text-xs text-slate-400 italic mt-0.5">Hasil: {{ $d->hasil_pembinaan }}</p>@endif
 
                             @elseif($item['jenis'] === 'pengurangan')
                                 <p class="font-semibold text-slate-800">Perubahan Perilaku</p>
-                                <p class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($d->alasan, 80) }}</p>
+                                <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ $d->alasan }}</p>
 
                             @else
                                 <p class="font-semibold text-slate-800">Pemanggilan Orang Tua</p>
-                                <p class="text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($d->alasan, 80) }}</p>
-                                @if($d->hasil_pertemuan)<p class="text-xs text-slate-400 italic">Hasil: {{ \Illuminate\Support\Str::limit($d->hasil_pertemuan, 80) }}</p>@endif
-                                @if($d->kesepakatan)<p class="text-xs text-slate-400 italic">Kesepakatan: {{ \Illuminate\Support\Str::limit($d->kesepakatan, 80) }}</p>@endif
+                                <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ $d->alasan }}</p>
+                                @if($d->hasil_pertemuan)<p class="text-xs text-slate-400 italic mt-0.5">Hasil: {{ $d->hasil_pertemuan }}</p>@endif
+                                @if($d->kesepakatan)<p class="text-xs text-slate-400 italic mt-0.5">Kesepakatan: {{ $d->kesepakatan }}</p>@endif
                             @endif
                         </td>
 
@@ -242,23 +246,18 @@
 
                         <td class="td-aksi no-print">
                             <div class="action-buttons">
-                                @if($item['jenis'] === 'kasus' && $bisaKelolaPoin && ! $dibatalkan)
-                                    <x-bk-tombol-selesai
-                                        :action="route('bk.kasus.update-status', $d)"
-                                        metode="PATCH"
-                                        :selesai="$d->isSelesai()"
-                                        :status-buka="$d->statusSaatDibukaKembali()" />
-                                @endif
+                                {{-- Tombol "Tandai Selesai" sengaja TIDAK ada di sini.
 
-                                @if($item['jenis'] === 'pembinaan' && $bisaKelolaPoin)
-                                    <x-bk-tombol-selesai
-                                        :action="route('bk.pembinaan.update', $d)"
-                                        metode="PUT"
-                                        :selesai="$d->isSelesai()"
-                                        status-buka="Pembinaan">
-                                        <input type="hidden" name="hasil_pembinaan" value="{{ $d->hasil_pembinaan }}">
-                                    </x-bk-tombol-selesai>
-                                @endif
+                                     Halaman ini bacaan: riwayat perkembangan seorang siswa dari
+                                     catatan paling awal ke paling baru. Menaruh tombol yang
+                                     mengubah status di tiap barisnya membuat kolom ini penuh
+                                     tombol yang mirip satu sama lain, dan mudah tertekan saat
+                                     orang sebenarnya hanya ingin membaca.
+
+                                     Kemampuannya tidak hilang — menyelesaikan kasus tetap bisa
+                                     lewat menu Kasus BK dan Dashboard BK, yang memang tempat
+                                     mengurus daftar kasus. Kolom ini kini berisi keterangan &
+                                     bukti saja. --}}
 
                                 @if($item['jenis'] === 'pemanggilan' && $d->surat)
                                     <a href="{{ route('surat.show', $d->surat) }}" target="_blank" class="btn-chip btn-chip-edit"
@@ -298,7 +297,7 @@
 
         @if($bisaKelolaPoin && $timeline->isNotEmpty())
             <p class="px-5 pb-4 text-[11px] text-slate-400">
-                Menandai kasus atau pembinaan sebagai "Selesai" otomatis menyelesaikan pasangannya juga.
+                Halaman ini untuk membaca riwayat. Untuk menandai kasus atau pembinaan sebagai "Selesai", buka menu <b>Kasus BK</b> atau Dashboard BK.
             </p>
         @endif
     </div>

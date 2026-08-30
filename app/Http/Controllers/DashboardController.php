@@ -314,10 +314,111 @@ class DashboardController extends Controller
                 ->count();
         }
 
+        [$tugas, $sisaTugas] = $this->tugasBk($kelasBkIds);
+
         return view('dashboard.guru-bk', compact(
             'kelasBk', 'siswaAlfaHariIni', 'rekapPerKelasBk', 'totalSiswaBinaan',
-            'kasusBulanIni', 'siswaDalamPembinaan', 'pemanggilanMenunggu', 'tahunAjaran'
+            'kasusBulanIni', 'siswaDalamPembinaan', 'pemanggilanMenunggu', 'tahunAjaran',
+            'tugas', 'sisaTugas'
         ));
+    }
+
+    /**
+     * PEKERJAAN BK YANG MENUNGGU DIKERJAKAN.
+     *
+     * =================================================================
+     * KENAPA TIGA JENIS INI SAJA
+     * =================================================================
+     * Yang masuk daftar hanya pekerjaan yang PUNYA PENANDA JELAS di
+     * database bahwa ia tertunda — bukan tafsiran. Menambahkan dugaan
+     * ("siswa ini poinnya tinggi, mungkin perlu dibina") akan membuat
+     * daftarnya panjang oleh hal yang belum tentu tugas, dan begitu satu
+     * baris terasa tidak relevan, seluruh daftarnya berhenti dipercaya.
+     *
+     *   1. Kasus berstatus "Baru" — sudah dilaporkan, belum ditangani.
+     *      Statusnya berubah sendiri jadi "Dalam Pembinaan" begitu ada
+     *      pembinaan dicatat, jadi baris ini hilang dengan sendirinya.
+     *
+     *   2. Pembinaan yang tanggal evaluasi berikutnya sudah lewat.
+     *      Tanggal itu diisi sendiri oleh Guru BK saat mencatat pembinaan
+     *      — jadi ini janji yang ia buat sendiri, bukan aturan yang
+     *      dipaksakan sistem. Sebelum ini tidak ada satu halaman pun yang
+     *      mengingatkannya.
+     *
+     *   3. Pemanggilan orang tua yang tanggal pertemuannya sudah tiba
+     *      tetapi hasilnya belum dicatat.
+     *
+     * =================================================================
+     * KENAPA DIBATASI
+     * =================================================================
+     * Berbeda dengan jurnal mengajar, pekerjaan BK tidak kedaluwarsa —
+     * kasus yang belum ditangani sejak dua bulan lalu tetap harus
+     * ditangani. Karena itu tidak ada batas hari; yang dibatasi jumlah
+     * yang DITAMPILKAN. Sisanya disebut sebagai angka dengan tautan ke
+     * daftar lengkapnya, supaya dashboard tetap bisa dikerjakan dan tidak
+     * berubah jadi dinding keluhan.
+     *
+     * @return array{0: \Illuminate\Support\Collection, 1: int}
+     */
+    private function tugasBk($kelasBkIds, int $maksTampil = 8): array
+    {
+        if ($kelasBkIds->isEmpty() || ! KonteksPeriode::bolehTulis()) {
+            return [collect(), 0];
+        }
+
+        $hariIni = now()->toDateString();
+
+        $kasusBaru = KasusSiswa::with(['siswa', 'kelas', 'jenisPelanggaran'])
+            ->aktif()
+            ->where('status', KasusSiswa::STATUS_BARU)
+            ->whereIn('kelas_id', $kelasBkIds)
+            ->get()
+            ->map(fn ($k) => [
+                'jenis' => 'kasus',
+                'tanggal' => $k->tanggal_kejadian,
+                'judul' => $k->siswa?->nama ?? 'Siswa',
+                'rincian' => ($k->kelas?->nama_kelas ? 'Kelas '.$k->kelas->nama_kelas.' · ' : '')
+                    .($k->jenisPelanggaran?->nama ?? 'Kasus belum ditangani'),
+                'tombol' => 'Tangani Kasus',
+                'url' => $k->siswa_id ? route('bk.siswa.show', $k->siswa_id) : route('bk.kasus.index'),
+            ]);
+
+        $evaluasiJatuhTempo = PembinaanSiswa::with('siswa')
+            ->where('status', 'Pembinaan')
+            ->whereNotNull('tanggal_evaluasi_berikutnya')
+            ->whereDate('tanggal_evaluasi_berikutnya', '<=', $hariIni)
+            ->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasBkIds))
+            ->get()
+            ->map(fn ($p) => [
+                'jenis' => 'evaluasi',
+                'tanggal' => $p->tanggal_evaluasi_berikutnya,
+                'judul' => $p->siswa?->nama ?? 'Siswa',
+                'rincian' => 'Evaluasi pembinaan '.($p->jenis_pembinaan ?? '').' sudah jatuh tempo',
+                'tombol' => 'Catat Evaluasi',
+                'url' => $p->siswa_id ? route('bk.siswa.show', $p->siswa_id) : route('bk.pembinaan.index'),
+            ]);
+
+        $pemanggilan = PemanggilanOrangTua::with('siswa')
+            ->where('status', PemanggilanOrangTua::STATUS_MENUNGGU_PERTEMUAN)
+            ->whereDate('tanggal', '<=', $hariIni)
+            ->whereHas('siswa', fn ($q) => $q->diKelasIn($kelasBkIds))
+            ->get()
+            ->map(fn ($p) => [
+                'jenis' => 'pemanggilan',
+                'tanggal' => $p->tanggal,
+                'judul' => $p->siswa?->nama ?? 'Siswa',
+                'rincian' => 'Pertemuan dengan orang tua sudah berlalu, hasilnya belum dicatat',
+                'tombol' => 'Catat Hasil Pertemuan',
+                'url' => route('bk.pemanggilan.hasil.edit', $p),
+            ]);
+
+        // Yang paling lama tertunda didahulukan — itu yang paling
+        // mendesak, sekaligus paling mudah terlupakan.
+        $semua = $kasusBaru->concat($evaluasiJatuhTempo)->concat($pemanggilan)
+            ->sortBy(fn ($t) => $t['tanggal'] ? \Illuminate\Support\Carbon::parse($t['tanggal'])->timestamp : 0)
+            ->values();
+
+        return [$semua->take($maksTampil), max(0, $semua->count() - $maksTampil)];
     }
 
     /** Guru mapel (termasuk yang merangkap Wali Kelas). */
@@ -374,16 +475,154 @@ class DashboardController extends Controller
                 ->values();
         }
 
+        // Daftar pekerjaan yang benar-benar harus dikerjakan — lihat
+        // tugasTertunda() untuk alasan bentuknya.
+        $tugas = $this->tugasTertunda($user, $tahunAjaran);
+
         return view('dashboard.guru', compact(
             'jadwalHariIni', 'jurnalTerakhir', 'kelasWali', 'siswaAlfaHariIni', 'tahunAjaran',
-            'totalSesiHariIni', 'sesiTerisiHariIni', 'sesiBelumTerisi', 'jurnalBulanIni', 'kegiatanHariIni'
+            'totalSesiHariIni', 'sesiTerisiHariIni', 'sesiBelumTerisi', 'jurnalBulanIni', 'kegiatanHariIni',
+            'tugas'
         ));
     }
 
-    private function hariIndonesia(): string
+    /**
+     * PEKERJAAN YANG BELUM SELESAI, DALAM 7 HARI TERAKHIR.
+     *
+     * =================================================================
+     * KENAPA ADA
+     * =================================================================
+     * Dashboard sebelumnya sudah menampilkan jadwal hari ini beserta
+     * tanda "Terisi"/"Belum diisi". Isinya benar, tetapi bentuknya
+     * LAPORAN: guru harus membacanya dulu, menafsirkan tandanya, lalu
+     * menyimpulkan sendiri apa yang harus diklik. Bagi guru yang tidak
+     * terbiasa dengan aplikasi, langkah menafsirkan itulah yang membuat
+     * ragu — bukan kurangnya menu.
+     *
+     * Daftar ini membalik urutannya: yang tampil lebih dulu adalah
+     * PEKERJAANNYA, satu baris satu tombol, tanpa ada yang perlu
+     * disimpulkan sendiri.
+     *
+     * =================================================================
+     * KENAPA 7 HARI, BUKAN HARI INI SAJA
+     * =================================================================
+     * Jurnal yang terlewat kemarin tetap harus diisi. Kalau dashboard
+     * hanya menampilkan hari ini, pekerjaan yang tertinggal jadi tidak
+     * terlihat sama sekali — guru baru tahu saat ditegur Kurikulum.
+     *
+     * Batas 7 hari dipilih supaya daftarnya tetap bisa diselesaikan:
+     * tanpa batas, guru yang sebulan tertinggal akan membuka dashboard
+     * dan melihat 40 baris merah — yang bukannya menolong, malah membuat
+     * orang menyerah sebelum mulai.
+     *
+     * =================================================================
+     * YANG SENGAJA TIDAK DIHITUNG
+     * =================================================================
+     * Hari yang ada Kegiatan Sekolah untuk kelas itu dikecualikan, persis
+     * seperti pengingat WhatsApp. Pada hari lomba/classmeeting/pesantren,
+     * KBM tidak berjalan dan yang mengisi kehadiran adalah wali kelas —
+     * jurnal yang kosong di hari itu memang sudah semestinya.
+     *
+     * Begitu pula saat pengguna sedang menengok periode lampau: di sana
+     * tidak ada yang bisa dikerjakan, jadi menampilkan daftar tugas hanya
+     * akan menyesatkan.
+     */
+    private function tugasTertunda(User $user, ?TahunAjaran $tahunAjaran, int $hariKeBelakang = 7)
+    {
+        if (! $tahunAjaran || ! KonteksPeriode::bolehTulis()) {
+            return collect();
+        }
+
+        $mulai = now()->copy()->subDays($hariKeBelakang - 1)->startOfDay();
+
+        // Jangan menagih hari sebelum periodenya sendiri dimulai.
+        if ($tahunAjaran->tanggal_mulai && $mulai->lt($tahunAjaran->tanggal_mulai)) {
+            $mulai = $tahunAjaran->tanggal_mulai->copy()->startOfDay();
+        }
+
+        $jadwal = JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
+            ->where('guru_id', $user->id)
+            ->where('tahun_ajaran_id', $tahunAjaran->id)
+            ->whereHas('jamPelajaran', fn ($q) => $q->where('is_active', true))
+            ->get();
+
+        if ($jadwal->isEmpty()) {
+            return collect();
+        }
+
+        // Satu query untuk seluruh rentang, bukan satu query per hari.
+        $terisi = \App\Models\JurnalMengajarSlot::whereIn('jadwal_pelajaran_id', $jadwal->pluck('id'))
+            ->whereBetween('tanggal', [$mulai->toDateString(), now()->toDateString()])
+            ->get()
+            ->map(fn ($s) => $s->jadwal_pelajaran_id.'|'.\Illuminate\Support\Carbon::parse($s->tanggal)->toDateString())
+            ->flip();
+
+        $hasil = collect();
+        $kursor = now()->copy()->startOfDay();
+
+        while ($kursor->gte($mulai)) {
+            $hari = $this->hariIndonesia($kursor);
+
+            if ($hari === 'Minggu') {
+                $kursor->subDay();
+
+                continue;
+            }
+
+            $milikHariItu = $jadwal->where('hari', $hari);
+
+            if ($milikHariItu->isEmpty()) {
+                $kursor->subDay();
+
+                continue;
+            }
+
+            $kelasBerkegiatan = KegiatanSekolah::kelasIdBerkegiatanPada($kursor);
+            $tanggal = $kursor->toDateString();
+
+            foreach (SesiMengajarGrouper::kelompokkan($milikHariItu) as $sesi) {
+                $pertama = $sesi['slots']->first();
+
+                if (in_array($pertama->kelas_id, $kelasBerkegiatan, true)) {
+                    continue;
+                }
+
+                // Satu sesi selalu disimpan sekaligus, jadi jam pertama
+                // terisi berarti seluruh sesinya terisi.
+                if ($terisi->has($pertama->id.'|'.$tanggal)) {
+                    continue;
+                }
+
+                // Sesi hari ini yang jamnya BELUM selesai bukan pekerjaan
+                // yang tertunda — guru mungkin masih mengajar saat ini.
+                if ($kursor->isToday()) {
+                    $selesai = $kursor->copy()->setTimeFromTimeString($sesi['jam_akhir']->jam_selesai);
+                    if ($selesai->gt(now())) {
+                        continue;
+                    }
+                }
+
+                $hasil->push([
+                    'tanggal' => $kursor->copy(),
+                    'hari_ini' => $kursor->isToday(),
+                    'ids' => $sesi['ids'],
+                    'kelas' => $sesi['kelas'],
+                    'mapel' => $sesi['mapel'],
+                    'jam_awal' => $sesi['jam_awal'],
+                    'jam_akhir' => $sesi['jam_akhir'],
+                ]);
+            }
+
+            $kursor->subDay();
+        }
+
+        return $hasil;
+    }
+
+    private function hariIndonesia(?\Illuminate\Support\Carbon $tanggal = null): string
     {
         $map = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 0 => 'Minggu'];
 
-        return $map[now()->dayOfWeek] ?? 'Senin';
+        return $map[($tanggal ?? now())->dayOfWeek] ?? 'Senin';
     }
 }
