@@ -22,13 +22,17 @@ $d->tabel(['Bagian', 'Isi', 'Untuk siapa'], [
     ['B', 'Pemasangan di server & aktivasi nomor seri', 'Teknisi / Admin'],
     ['C', 'Persiapan awal — urutan yang WAJIB diikuti', 'Admin & Kurikulum'],
     ['D', 'Panduan harian per peran', 'Sesuai peran masing-masing'],
-    ['E', 'Pemilih periode: melihat data semester lampau', 'Semua pengguna'],
-    ['F', 'Pergantian semester & tahun ajaran', 'Admin & Kurikulum'],
-    ['G', 'Import data lewat Excel', 'Admin & Kurikulum'],
-    ['H', 'Bila terjadi masalah — arti tiap pesan', 'Semua pengguna'],
-    ['I', 'Keamanan & pemeliharaan', 'Admin'],
-    ['J', 'Lampiran: daftar menu per peran', 'Semua pengguna'],
+    ['E', 'Pemberitahuan WhatsApp otomatis', 'Admin, Guru, Wali Kelas'],
+    ['F', 'Pemilih periode: melihat data semester lampau', 'Semua pengguna'],
+    ['G', 'Pergantian semester & tahun ajaran', 'Admin & Kurikulum'],
+    ['H', 'Import data lewat Excel', 'Admin & Kurikulum'],
+    ['I', 'Bila terjadi masalah — arti tiap pesan', 'Semua pengguna'],
+    ['J', 'Keamanan & pemeliharaan', 'Admin'],
+    ['K', 'Lampiran: daftar menu per peran', 'Semua pengguna'],
 ], [10, 60, 30]);
+
+$d->catatan('Ada dokumen kedua untuk urusan database',
+    'Mencadangkan, memulihkan, mengosongkan data uji coba, dan merawat database dibahas terpisah di **Panduan Database SIM-SPENGA** — dokumen khusus Admin. Dokumen yang sedang Anda baca ini tentang pemakaian aplikasinya.');
 
 // =====================================================================
 $d->h1('Bagian A — Mengenal SIM-SPENGA');
@@ -68,7 +72,7 @@ $d->tabel(['Istilah', 'Artinya di SIM-SPENGA'], [
 $d->h3('Aturan emas: semua data milik satu semester');
 $d->p('Sejak pembaruan Agustus 2026, **tidak ada satu pun data yang berlaku untuk satu tahun penuh.** Semuanya milik satu semester: mata pelajaran, jam pelajaran, jenis pelanggaran, jenis surat, ekstrakurikuler beserta anggotanya, kelas beserta daftar siswanya, wali kelas, pembina ekstrakurikuler, guru mengajar, jadwal, sampai seluruh nilai dan absensi.');
 $d->p('Akibatnya yang menguntungkan: susunan kelas Semester 2 boleh berbeda dari Semester 1, guru boleh berganti tugas di tengah tahun, dan Semester 1 yang sudah lewat **tidak pernah ikut berubah**.');
-$d->p('Akibat yang perlu Anda ingat: semester baru berangkat dari keadaan kosong. Tapi Anda tidak perlu mengetik ulang — ada tombol **Salin Data** yang memindahkan seluruh pengaturan semester sebelumnya sekali klik. Caranya di Bagian F.');
+$d->p('Akibat yang perlu Anda ingat: semester baru berangkat dari keadaan kosong. Tapi Anda tidak perlu mengetik ulang — ada tombol **Salin Data** yang memindahkan seluruh pengaturan semester sebelumnya sekali klik. Caranya di Bagian G.');
 
 // =====================================================================
 $d->h1('Bagian B — Pemasangan & Aktivasi');
@@ -166,7 +170,7 @@ $d->h2('Langkah 4 — Mata Pelajaran');
 $d->p('Menu: **Data Master → Mata Pelajaran**');
 $d->langkah([
     'Klik **+ Tambah Mata Pelajaran**, isi Kode (misal `MTK`) dan Nama Mata Pelajaran.',
-    'Atau lebih cepat: klik **Import Excel**, unduh templatnya, isi, lalu unggah kembali (lihat Bagian G).',
+    'Atau lebih cepat: klik **Import Excel**, unduh templatnya, isi, lalu unggah kembali (lihat Bagian H).',
 ]);
 
 $d->h2('Langkah 5 — Jam Pelajaran');
@@ -340,6 +344,32 @@ $d->langkah([
 $d->catatan('Pembina berlaku per semester',
     'Bila pembina Pramuka berganti di Semester Genap, ubah saja di semester itu — Semester Ganjil tetap mencatat pembina yang lama, sehingga rekap absensi ekskul semester lalu tetap menyebut nama yang benar.');
 
+$d->h3('Menghentikan atau menghapus sebuah kegiatan');
+$d->p('Dua hal yang sering tertukar. Pilih yang sesuai keadaannya:');
+$d->tabel(['Keadaan', 'Yang benar dilakukan', 'Akibatnya'], [
+    [
+        'Kegiatan **berhenti berjalan** (peminat habis, pembina pensiun)',
+        'Klik ikon pensil → hilangkan centang **Aktif** → **Simpan**',
+        'Riwayat absensi & nilai ekskul tetap utuh untuk rapor; kegiatan tidak lagi muncul sebagai pilihan baru',
+    ],
+    [
+        'Kegiatan **salah dibuat**, belum ada anggota maupun absensi',
+        'Klik ikon tong sampah',
+        'Langsung terhapus',
+    ],
+    [
+        'Kegiatan **salah dibuat**, tetapi terlanjur ada anggota atau absensi',
+        'Klik ikon pensil → gulir ke bagian merah **Hapus Kegiatan** → **Hapus permanen beserta datanya**',
+        'Anggota, pembina, dan seluruh sesi absensinya ikut terhapus dan tidak bisa dikembalikan',
+    ],
+], [30, 34, 36]);
+
+$d->catatan('Tombol tong sampah menolak? Itu memang pengamannya',
+    'Kegiatan yang sudah punya anggota atau pernah sekali saja diabsen tidak bisa dihapus dengan tombol biasa, dan pesan penolakannya menyebut angkanya — mis. "masih dipakai 6 anggota ekstrakurikuler dan 1 sesi absensi ekstrakurikuler". Tanpa pengaman itu, satu klik bisa melenyapkan riwayat kehadiran satu semester. Untuk kegiatan yang benar-benar salah dibuat, pakai tombol **Hapus permanen** di panel Edit.');
+
+$d->catatan('Kegiatan bernama sama di semester lain tidak ikut terhapus',
+    'Karena ekstrakurikuler tercatat per semester, "Pramuka" Semester Ganjil dan "Pramuka" Semester Genap adalah dua data yang berbeda. Menghapus salah satunya tidak menyentuh yang lain.');
+
 $d->h2('D.5 Kurikulum');
 $d->poin([
     '**Monitoring Input Nilai** — melihat mapel dan kelas mana yang nilainya belum lengkap, satu layar untuk seluruh sekolah.',
@@ -360,17 +390,113 @@ $d->langkah([
 ]);
 
 // =====================================================================
-$d->h1('Bagian E — Melihat Data Semester Lampau');
+$d->h1('Bagian E — Pemberitahuan WhatsApp Otomatis');
+
+$d->p('SIM-SPENGA mengirim dua macam pesan WhatsApp, dan keduanya berjalan sendiri tanpa ada yang perlu menekan tombol. Keduanya sengaja dikirim dari **nomor yang berbeda**.');
+
+$d->h2('E.1 Dua nomor pengirim yang terpisah');
+
+$d->tabel(['', 'Pemberitahuan Alfa', 'Pengingat Jurnal & Absensi'], [
+    ['Dikirim dari', 'Nomor **sekolah**', 'Nomor **kepala sekolah**'],
+    ['Dikirim kepada', 'Orang tua/wali siswa', 'Guru yang bersangkutan'],
+    ['Isinya', 'Anak Bapak/Ibu tercatat Alfa hari ini', 'Jurnal & absensi Anda belum terisi'],
+    ['Kapan', 'Segera setelah guru menyimpan absensi', '30 menit setelah jam pelajaran selesai'],
+    ['Diatur di', 'Berkas `.env` di server', 'Menu Pengaturan → Pengingat Guru (WA)'],
+], [22, 39, 39]);
+
+$d->catatan('Kenapa harus dua nomor',
+    'Supaya percakapan sekolah dengan orang tua tidak bercampur dengan pengingat internal kepada guru dalam satu nomor. Guru juga lebih menanggapi pengingat yang datang dari nomor kepala sekolah. Di layanan pengirim WhatsApp (Fonnte), keduanya adalah **perangkat** yang berbeda dalam satu akun — yang membedakan hanya tokennya.');
+
+$d->h2('E.2 Pemberitahuan Alfa ke orang tua');
+
+$d->p('Begitu guru menyimpan absensi yang berisi status **Alfa**, aplikasi menyusun pesan ke nomor WhatsApp orang tua siswa tersebut. Pesannya menyebut tanggal, nama siswa, dan mata pelajaran atau nama kegiatan.');
+
+$d->poin([
+    'Nomor tujuan diambil dari kolom **No. WA Orang Tua** di Data Siswa. Bila kosong, pengiriman ditandai gagal beserta alasannya.',
+    'Bila nomornya ditolak, aplikasi mencoba sekali lagi. Gagal juga berarti berhenti — kemungkinan besar nomor itu memang bukan WhatsApp aktif.',
+    'Riwayat lengkapnya ada di menu **Monitoring → Notifikasi WhatsApp Ortu**, bisa disaring per bulan.',
+]);
+
+$d->h2('E.3 Pengingat jurnal & absensi ke guru');
+
+$d->p('Setiap 5 menit, aplikasi memeriksa jadwal hari itu. Sesi mengajar yang jurnal & absensinya belum terisi **30 menit setelah jam pelajarannya berakhir** akan dikirimi pengingat ke nomor WhatsApp gurunya.');
+
+$d->tabel(['Aturan', 'Penjelasan'], [
+    ['Dihitung dari jam **terakhir**', 'Guru yang mengajar 3 jam berturut-turut baru diingatkan 30 menit setelah jam ketiganya usai — bukan di tengah ia masih mengajar.'],
+    ['Satu pesan per **sesi**', 'Tiga jam berurutan di kelas & mata pelajaran yang sama dihitung satu sesi, persis seperti satu baris yang guru klik di layar. Jadi satu pesan, bukan tiga.'],
+    ['Tidak pernah dikirim dua kali', 'Sesi yang sudah diingatkan tidak akan diingatkan lagi pada hari yang sama.'],
+    ['Keburu diisi = tidak jadi dikirim', 'Bila guru mengisi jurnalnya tepat saat pesan masih menunggu giliran kirim, pesannya dibatalkan dan ditandai **Dilewati**.'],
+    ['Ada jam kirim', 'Di luar jendela jam yang diatur Admin (mis. 06.30–18.00), pengiriman ditunda — guru tidak dihubungi larut malam.'],
+], [30, 70]);
+
+$d->h3('Contoh pesan yang diterima guru');
+$d->kode("Assalamu'alaikum, Bapak/Ibu Budi Santoso, S.Pd.\n\nSistem mencatat jurnal mengajar & absensi berikut belum terisi:\n\nHari/Tanggal : Jumat, 14 Agustus 2026\nKelas : *7A*\nMata pelajaran : *Bahasa Indonesia*\nJam ke : *2-3* (07.40-08.20)\n\nMohon segera diisi melalui menu \"Absensi & Jurnal Mengajar\".\n\n_Pesan otomatis dari SMP Negeri 3 Bumiayu. Bila jurnal sudah diisi, abaikan pesan ini._");
+
+$d->h2('E.4 Menyiapkannya — untuk Admin');
+
+$d->p('Menu **Pengaturan → Pengingat Guru (WA)**. Menu ini hanya terbuka untuk Admin, karena memegang token perangkat WhatsApp kepala sekolah.');
+
+$d->langkah([
+    'Pastikan **nomor WhatsApp setiap guru sudah terisi** di menu Kelola Pengguna. Tanpa itu pengingatnya tercatat gagal.',
+    'Buka dasbor Fonnte → menu **Device** → pilih perangkat bernomor kepala sekolah → salin **Token**-nya.',
+    'Tempelkan token itu pada kolom **Token perangkat WhatsApp kepala sekolah**, lalu klik **Simpan Pengaturan**.',
+    'Isi sebuah nomor di kotak **Uji Coba Pengiriman**, klik **Kirim Pesan Uji**, dan pastikan pesannya benar-benar sampai. Lakukan ini SEBELUM menyalakan pengingat untuk seluruh guru.',
+    'Bila pesan uji sampai, centang **Nyalakan pengingat otomatis** lalu Simpan.',
+    'Atur **jeda** (bawaan 30 menit) dan **jendela jam kirim** sesuai kebiasaan sekolah.',
+]);
+
+$d->catatan('Token tidak akan terhapus tanpa sengaja',
+    'Setelah disimpan, token tidak pernah ditampilkan lagi dan kolomnya selalu terlihat kosong. Menyimpan halaman dengan kolom itu kosong **tidak menghapus** token yang sudah ada — jadi Admin bisa mengubah jeda tanpa takut merusak sambungan. Untuk benar-benar mengganti perangkat, ada tombol **Hapus token perangkat yang tersimpan**.');
+
+$d->h3('Mengubah naskah pesannya');
+$d->p('Naskah pesan boleh diubah Admin. Kata kunci di bawah ini akan diganti dengan data yang sesungguhnya saat pesan dikirim:');
+$d->tabel(['Kata kunci', 'Diganti menjadi'], [
+    ['`{guru}`', 'Nama guru yang diingatkan'],
+    ['`{tanggal}`', 'Hari dan tanggal, mis. Senin, 01 September 2026'],
+    ['`{kelas}`', 'Nama kelas, mis. 7A'],
+    ['`{mapel}`', 'Nama mata pelajaran'],
+    ['`{jam}`', 'Jam ke berapa, mis. 3-4'],
+    ['`{waktu}`', 'Rentang pukulnya, mis. 08.20-09.40'],
+    ['`{sekolah}`', 'Nama sekolah dari Pengaturan Sekolah'],
+    ['`{aplikasi}`', 'Alamat aplikasi'],
+], [22, 78]);
+$d->p('Kosongkan kolom naskah untuk kembali memakai naskah bawaan.');
+
+$d->h2('E.5 Membaca riwayat pengiriman');
+
+$d->p('Di bawah halaman Pengaturan ada riwayat per bulan beserta ringkasan jumlahnya. Arti tiap status:');
+
+$d->tabel(['Status', 'Artinya', 'Yang perlu dilakukan'], [
+    ['Terkirim', 'Pesan diterima layanan WhatsApp', 'Tidak ada'],
+    ['Menunggu', 'Sudah tercatat, pesannya masih dalam antrian', 'Tunggu sebentar. Bila menetap lama, pekerja antrian di server kemungkinan mati'],
+    ['Dilewati', 'Guru keburu mengisi jurnalnya, atau pengingat dimatikan sebelum terkirim', 'Tidak ada — ini justru hasil yang diinginkan'],
+    ['Gagal', 'Nomor guru bermasalah, atau token salah', 'Perbaiki nomornya di Kelola Pengguna, lalu klik **Kirim ulang** pada barisnya'],
+], [16, 44, 40]);
+
+$d->h2('E.6 Bila pengingat tidak jalan sama sekali');
+
+$d->p('Pengingat dikerjakan di belakang layar, jadi **dua proses harus hidup terus** di server. Bila salah satunya mati, pengaturan tetap tersimpan tetapi tidak ada pesan yang keluar sama sekali. Cara memasangnya ada di **Panduan Database SIM-SPENGA**.');
+
+$d->tabel(['Gejala', 'Penyebab yang paling mungkin'], [
+    ['Riwayat kosong sama sekali, padahal ada jurnal yang belum diisi', 'Penjadwal (`schedule:run`) tidak berjalan, atau saklarnya belum dinyalakan'],
+    ['Riwayat terisi tetapi semuanya berstatus **Menunggu**', 'Pekerja antrian (`queue:work`) tidak berjalan'],
+    ['Semua berstatus **Gagal** dengan keterangan nomor', 'Nomor WhatsApp guru belum diisi di Kelola Pengguna'],
+    ['Semua **Gagal** dengan keterangan token', 'Token perangkat salah atau perangkatnya terputus di Fonnte'],
+    ['Halaman Pengaturan menampilkan kotak kuning', 'Pengingat dinyalakan tetapi tokennya belum diisi'],
+], [45, 55]);
+
+// =====================================================================
+$d->h1('Bagian F — Melihat Data Semester Lampau');
 $d->p('Di kanan atas setiap halaman ada **kotak pemilih periode**. Isinya seluruh periode yang pernah ada.');
 
-$d->h2('E.1 Cara memakainya');
+$d->h2('F.1 Cara memakainya');
 $d->langkah([
     'Klik kotak periode di kanan atas.',
     'Pilih periode yang ingin dilihat, misalnya "2026/2027 Ganjil".',
     'Halaman langsung menampilkan keadaan periode itu.',
 ]);
 
-$d->h2('E.2 Yang berubah saat Anda menengok periode lampau');
+$d->h2('F.2 Yang berubah saat Anda menengok periode lampau');
 $d->poin([
     'Kotak periodenya berubah warna menjadi kuning.',
     'Muncul spanduk **"Mode lihat saja"** di setiap halaman.',
@@ -381,13 +507,13 @@ $d->poin([
 $d->catatan('Inilah jawaban "data lama saya ke mana?"',
     'Guru yang tidak lagi menjadi wali kelas di semester berjalan tetap bisa membuka seluruh rekap, absensi, dan jurnal kelas perwaliannya di semester lampau — cukup pilih periodenya. Datanya tidak pernah hilang, hanya perlu dilihat dari periode yang benar.', 'E7F3E7');
 
-$d->h2('E.3 Kembali ke periode berjalan');
+$d->h2('F.3 Kembali ke periode berjalan');
 $d->p('Pilih kembali periode yang bertanda **(berjalan)** di kotak yang sama. Spanduk kuning hilang dan tombol simpan berfungsi lagi.');
 
 // =====================================================================
-$d->h1('Bagian F — Pergantian Semester & Tahun Ajaran');
+$d->h1('Bagian G — Pergantian Semester & Tahun Ajaran');
 
-$d->h2('F.1 Pergantian Semester (Ganjil ke Genap)');
+$d->h2('G.1 Pergantian Semester (Ganjil ke Genap)');
 $d->p('Dikerjakan Admin di menu **Data Master → Tahun Ajaran**.');
 $d->langkah([
     'Pastikan seluruh nilai Semester Ganjil sudah difinalisasi guru — cek lewat Monitoring Input Nilai.',
@@ -409,7 +535,7 @@ $d->tabel(['Kategori', 'Ikut disalin?'], [
     ['Nilai, absensi, jurnal, kasus BK, surat', 'Tidak — itu catatan kejadian milik semesternya sendiri'],
 ], [58, 42]);
 
-$d->h2('F.2 Pergantian Tahun Ajaran');
+$d->h2('G.2 Pergantian Tahun Ajaran');
 $d->langkah([
     'Pastikan **kedua** semester tahun lama sudah ditutup. Aplikasi menolak mengaktifkan tahun baru bila masih ada semester lama yang terbuka.',
     'Klik **+ Buat Tahun Ajaran [nama]** — Semester Ganjil & Genap tahun baru terbuat sekaligus.',
@@ -424,10 +550,10 @@ $d->catatan('Siswa kelas 9 yang lulus tidak perlu dinonaktifkan satu per satu',
     'Cukup tidak diikutkan pada berkas import di langkah 6. Karena setiap menu hanya menampilkan siswa yang kelasnya milik periode aktif, mereka otomatis berhenti muncul — sementara seluruh riwayat, nilai, dan catatan BK-nya tetap tersimpan dan bisa dibuka kapan saja lewat pemilih periode.', 'E7F3E7');
 
 // =====================================================================
-$d->h1('Bagian G — Import Data lewat Excel');
+$d->h1('Bagian H — Import Data lewat Excel');
 $d->p('Lima menu menyediakan import: Mata Pelajaran, Data Kelas, Data Siswa, Pemetaan Guru Mengajar, dan Jadwal Pelajaran. Cara pakainya sama persis.');
 
-$d->h2('G.1 Langkah umum');
+$d->h2('H.1 Langkah umum');
 $d->langkah([
     'Buka menu yang bersangkutan, klik tombol **Import Excel**.',
     'Klik **Unduh Templat**. Jangan membuat berkas sendiri dari nol.',
@@ -437,7 +563,7 @@ $d->langkah([
     'Baca panel hasilnya: berapa baris dibuat, berapa diperbarui, dan baris mana yang dilewati beserta alasannya.',
 ]);
 
-$d->h2('G.2 Kolom tiap templat');
+$d->h2('H.2 Kolom tiap templat');
 $d->tabel(['Menu', 'Kolom wajib'], [
     ['Mata Pelajaran', '`kode`, `nama_mapel`'],
     ['Data Kelas', '`nama_kelas`, `tingkat` — `nip_wali_kelas` opsional'],
@@ -448,7 +574,7 @@ $d->tabel(['Menu', 'Kolom wajib'], [
 
 $d->p('Kolom `kode_kelas` diisi **nama kelas** persis seperti tertulis di menu Data Kelas, misalnya `7A`. Kolom `nip_guru` diisi NIP persis seperti di menu Kelola Pengguna, dan `kode_mapel` diisi kode dari menu Mata Pelajaran.');
 
-$d->h2('G.3 Hal penting tentang import');
+$d->h2('H.3 Hal penting tentang import');
 $d->poin([
     'Import **aman diulang**. Baris yang sudah ada akan diperbarui, bukan digandakan.',
     'Import selalu masuk ke **periode yang sedang berjalan**, tidak pernah ke periode lain.',
@@ -457,7 +583,7 @@ $d->poin([
 ]);
 
 // =====================================================================
-$d->h1('Bagian H — Bila Terjadi Masalah');
+$d->h1('Bagian I — Bila Terjadi Masalah');
 $d->p('Aplikasi ini sengaja menjelaskan sebab penolakan, bukan sekadar menolak. Berikut pesan yang paling sering muncul dan artinya.');
 
 $d->tabel(['Pesan', 'Artinya', 'Yang harus dilakukan'], [
@@ -471,9 +597,11 @@ $d->tabel(['Pesan', 'Artinya', 'Yang harus dilakukan'], [
     ['Belum ada mata pelajaran yang dipetakan', 'Kelas ini belum punya pemetaan guru mengajar pada periode ini', 'Lengkapi lewat Pemetaan Guru Mengajar'],
     ['Terlalu banyak percobaan masuk', 'Salah kata sandi lebih dari 5 kali dalam semenit', 'Tunggu satu menit, lalu coba lagi'],
     ['Aplikasi belum diaktifkan', 'Nomor seri belum dimasukkan di server ini', 'Masukkan nomor seri di halaman Aktivasi'],
+    ['Nomor WhatsApp guru belum diisi', 'Pengingat jurnal tidak punya nomor tujuan', 'Isi kolom No. HP guru di menu Kelola Pengguna'],
+    ['Token perangkat WhatsApp kepala sekolah belum diisi', 'Pengingat dinyalakan tanpa token', 'Isi tokennya di Pengaturan → Pengingat Guru (WA)'],
 ], [30, 34, 36]);
 
-$d->h2('H.1 Bila halaman tidak mau terbuka sama sekali');
+$d->h2('I.1 Bila halaman tidak mau terbuka sama sekali');
 $d->langkah([
     'Periksa apakah Anda sudah masuk. Bila sesi kedaluwarsa, aplikasi mengarahkan ke halaman masuk.',
     'Periksa kotak periode di kanan atas — mungkin Anda sedang menengok periode yang datanya memang belum ada.',
@@ -482,23 +610,27 @@ $d->langkah([
 ]);
 
 // =====================================================================
-$d->h1('Bagian I — Keamanan & Pemeliharaan');
+$d->h1('Bagian J — Keamanan & Pemeliharaan');
 
-$d->h2('I.1 Kebiasaan yang wajib dijaga');
+$d->h2('J.1 Kebiasaan yang wajib dijaga');
 $d->poin([
     'Setiap orang memakai **akunnya sendiri**. Jangan pernah berbagi akun — seluruh catatan aplikasi menyimpan siapa yang mengerjakan apa.',
     'Ganti kata sandi awal segera setelah akun dibuat.',
     'Guru yang pindah atau pensiun: **nonaktifkan** akunnya, jangan dihapus.',
     'Pastikan orang tua benar-benar mengganti kata sandi bawaan. Kolom "Akun Ortu" di Data Siswa menunjukkan statusnya.',
     'Tutup semester tepat waktu — data yang sudah ditutup tidak bisa diubah siapa pun, termasuk karena kekeliruan.',
+    'Jaga agar **nomor WhatsApp guru** di Kelola Pengguna selalu benar — itu yang dipakai pengingat jurnal otomatis.',
+    'Token perangkat WhatsApp kepala sekolah adalah rahasia setara kata sandi. Siapa pun yang memegangnya bisa mengirim pesan atas nama kepala sekolah.',
 ]);
 
-$d->h2('I.2 Cadangan data (backup)');
-$d->p('Cadangkan database secara berkala, dan **wajib** sebelum pergantian semester atau tahun ajaran.');
-$d->kode("mysqldump -u pengguna -p sim_spenga > cadangan-2026-08-29.sql");
-$d->p('Cadangkan juga folder `storage/app/public` yang berisi berkas unggahan: logo sekolah dan bukti pelanggaran.');
+$d->h2('J.2 Cadangan data (backup)');
+$d->p('Cadangkan database **setiap minggu**, dan **wajib** sebelum pergantian semester atau tahun ajaran.');
+$d->kode("mysqldump -u pengguna -p --no-tablespaces --single-transaction sim_spenga > cadangan-2026-08-29.sql");
+$d->p('Cadangkan juga folder `storage/app/public` yang berisi berkas unggahan: logo sekolah, ikon aplikasi, bukti pelanggaran & pembinaan BK, dan lampiran surat. Database saja belum lengkap — bila foldernya tidak ikut, catatan BK akan pulih tanpa foto buktinya dan kop surat kehilangan logonya.');
+$d->catatan('Langkah lengkapnya ada di dokumen terpisah',
+    'Cara mencadangkan lewat phpMyAdmin selangkah demi selangkah, cara memulihkan, cara mengosongkan data uji coba tanpa menghilangkan master data, dan perawatan berkala dibahas tuntas di **Panduan Database SIM-SPENGA**.');
 
-$d->h2('I.3 Yang sudah dijaga aplikasi');
+$d->h2('J.3 Yang sudah dijaga aplikasi');
 $d->tabel(['Perlindungan', 'Keterangan'], [
     ['Batas percobaan masuk', '5 percobaan per menit per akun & alamat'],
     ['Kata sandi', 'Disimpan teracak (hash), tidak bisa dibaca balik'],
@@ -507,10 +639,11 @@ $d->tabel(['Perlindungan', 'Keterangan'], [
     ['Portal orang tua', 'Terpisah penuh dari area staf; hanya menampilkan data anaknya sendiri'],
     ['Perlindungan data', 'Menghapus master data yang masih dipakai ditolak, bukan dihapus diam-diam'],
     ['Lisensi', 'Aplikasi tidak berjalan tanpa nomor seri yang sah'],
+    ['Token WhatsApp', 'Token perangkat kepala sekolah disimpan terenkripsi; membaca database langsung tidak memberikan tokennya'],
 ], [30, 70]);
 
 // =====================================================================
-$d->h1('Bagian J — Lampiran: Daftar Menu per Peran');
+$d->h1('Bagian K — Lampiran: Daftar Menu per Peran');
 
 $d->h2('Admin');
 $d->tabel(['Kelompok', 'Menu'], [
@@ -521,7 +654,7 @@ $d->tabel(['Kelompok', 'Menu'], [
     ['Kesiswaan', 'Bimbingan Konseling, Kegiatan Sekolah, Ekstrakurikuler'],
     ['Administrasi Surat', 'Surat BK, Jenis Surat'],
     ['Data Master', 'Pemetaan Guru Mengajar, Pemetaan Guru BK, Jadwal Pelajaran, Data Siswa, Data Kelas, Mata Pelajaran, Tahun Ajaran'],
-    ['Pengaturan', 'Pengaturan Sekolah, Jenis Pelanggaran, Pengaturan Penilaian, Jam Pelajaran, Kelola Pengguna'],
+    ['Pengaturan', 'Pengaturan Sekolah, **Pengingat Guru (WA)**, Jenis Pelanggaran, Pengaturan Penilaian, Jam Pelajaran, Kelola Pengguna'],
 ], [26, 74]);
 
 $d->h2('Kurikulum');

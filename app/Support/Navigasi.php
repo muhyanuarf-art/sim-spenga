@@ -441,6 +441,16 @@ class Navigasi
                         'roles' => ['guru_bk', 'admin'],
                     ],
                     [
+                        'label' => 'Pengingat Guru (WA)',
+                        'icon' => 'fa-bell',
+                        'route' => 'pengaturan-notifikasi.edit',
+                        'cocok' => ['pengaturan-notifikasi.*'],
+                        'deskripsi' => 'Pengingat WhatsApp otomatis ke guru yang belum mengisi jurnal & absensi.',
+                        // Hanya Admin: halaman ini memegang token perangkat
+                        // WhatsApp kepala sekolah.
+                        'roles' => ['admin'],
+                    ],
+                    [
                         'label' => 'Pengaturan Penilaian',
                         'icon' => 'fa-percent',
                         'route' => 'penilaian.pengaturan.edit',

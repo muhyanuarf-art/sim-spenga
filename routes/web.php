@@ -40,6 +40,7 @@ use App\Http\Controllers\PengaturanPenilaianController;
 use App\Http\Controllers\ProgramPerbaikanController;
 use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\OrangTuaDashboardController;
+use App\Http\Controllers\PengaturanNotifikasiController;
 use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
@@ -428,6 +429,18 @@ Route::middleware('auth')->group(function () {
         // Halaman melihat histori TETAP ADA di bawah ini — datanya tidak
         // pernah dihapus.
         Route::get('siswa/{siswa}/riwayat-kelas', [RiwayatKelasController::class, 'show'])->name('siswa.riwayat-kelas');
+    });
+
+    // ===== PENGINGAT JURNAL & ABSENSI KE GURU (WhatsApp perangkat 2) =====
+    // Khusus Admin: halaman ini memegang token perangkat WhatsApp kepala
+    // sekolah, jadi tidak dibuka untuk peran lain — termasuk Kurikulum yang
+    // boleh mengurus Pengaturan Sekolah.
+    Route::middleware('role:admin')->group(function () {
+        Route::get('pengaturan-notifikasi', [PengaturanNotifikasiController::class, 'edit'])->name('pengaturan-notifikasi.edit');
+        Route::put('pengaturan-notifikasi', [PengaturanNotifikasiController::class, 'update'])->name('pengaturan-notifikasi.update');
+        Route::delete('pengaturan-notifikasi/token', [PengaturanNotifikasiController::class, 'hapusToken'])->name('pengaturan-notifikasi.hapus-token');
+        Route::post('pengaturan-notifikasi/uji', [PengaturanNotifikasiController::class, 'uji'])->name('pengaturan-notifikasi.uji');
+        Route::post('pengaturan-notifikasi/{pengingat}/kirim-ulang', [PengaturanNotifikasiController::class, 'kirimUlang'])->name('pengaturan-notifikasi.kirim-ulang');
     });
 
     // ===== PENGATURAN SEKOLAH: data relatif tetap (lokasi, kepala sekolah, dst)

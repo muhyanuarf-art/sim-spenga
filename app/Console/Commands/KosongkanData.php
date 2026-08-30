@@ -55,6 +55,11 @@ class KosongkanData extends Command
         'pengaturan_sekolahs',
         'pengaturan_penilaians',
         'kktp_tingkats',
+        // Setelan pengingat jurnal ke guru, termasuk token perangkat
+        // WhatsApp kepala sekolah. Ikut dikosongkan berarti sekolah harus
+        // meminta tokennya lagi ke Fonnte hanya karena membersihkan data
+        // uji coba — padahal ini setelan, bukan data sekolah.
+        'pengaturan_notifikasi_gurus',
 
         // --- Akun kepegawaian (guru, BK, kurikulum, kesiswaan, admin) ---
         'users',

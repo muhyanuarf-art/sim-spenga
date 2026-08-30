@@ -40,9 +40,10 @@ $d->tabel(['Bagian', 'Isi', 'Seberapa sering dipakai'], [
     ['E', 'Menghapus data lewat aplikasi (bukan database)', 'Sering'],
     ['F', 'Pergantian semester & tahun ajaran', 'Dua kali setahun'],
     ['G', 'Perawatan berkala', 'Tiap bulan'],
-    ['H', 'Keamanan database', 'Sekali, saat pemasangan'],
-    ['I', 'Bila terjadi masalah — gejala & tindakan', 'Saat diperlukan'],
-    ['J', 'Lampiran: daftar perintah cepat', 'Rujukan'],
+    ['H', 'Penjadwal & pekerja antrian (pengingat WhatsApp)', 'Sekali, saat pemasangan'],
+    ['I', 'Keamanan database', 'Sekali, saat pemasangan'],
+    ['J', 'Bila terjadi masalah — gejala & tindakan', 'Saat diperlukan'],
+    ['K', 'Lampiran: daftar perintah cepat', 'Rujukan'],
 ], [9, 61, 30]);
 
 $d->catatan('Satu aturan yang tidak boleh dilanggar',
@@ -66,15 +67,16 @@ $d->catatan('Kesalahan yang paling sering terjadi',
 
 $d->h2('A.2 Tiga golongan tabel');
 
-$d->p('Database ini berisi 53 tabel. Untuk keperluan pengelolaan, semuanya masuk salah satu dari tiga golongan berikut. Pembagian inilah yang dipakai perintah pengosongan data di Bagian D.');
+$d->p('Database ini berisi 55 tabel. Untuk keperluan pengelolaan, semuanya masuk salah satu dari tiga golongan berikut. Pembagian inilah yang dipakai perintah pengosongan data di Bagian D.');
 
-$d->h3('Golongan 1 — Master data (13 tabel)');
+$d->h3('Golongan 1 — Master data (14 tabel)');
 $d->p('Daftar acuan yang disusun sekali lalu dipakai berulang. **Tidak pernah** ikut dikosongkan.');
 
 $d->tabel(['Tabel', 'Isinya di aplikasi'], [
     ['`tahun_ajarans`', 'Daftar periode: 2026/2027 Ganjil, Genap, dan seterusnya'],
     ['`pengaturan_sekolahs`', 'Identitas sekolah, kepala sekolah, logo, format tanda tangan'],
     ['`pengaturan_penilaians`', 'Bobot & aturan penilaian per periode'],
+    ['`pengaturan_notifikasi_gurus`', 'Setelan pengingat jurnal ke guru + token perangkat WhatsApp kepala sekolah'],
     ['`kktp_tingkats`', 'Nilai KKTP per tingkat & mata pelajaran'],
     ['`users`', 'Akun guru, BK, kurikulum, kesiswaan, TU, kepala sekolah, admin'],
     ['`mata_pelajarans`', 'Daftar mata pelajaran'],
@@ -87,7 +89,7 @@ $d->tabel(['Tabel', 'Isinya di aplikasi'], [
     ['`lisensi_aplikasis`', 'Bukti aktivasi nomor seri — milik sistem, jangan disentuh'],
 ], [30, 70]);
 
-$d->h3('Golongan 2 — Data sekolah (34 tabel)');
+$d->h3('Golongan 2 — Data sekolah (35 tabel)');
 $d->p('Hasil pemakaian sehari-hari. Inilah yang dikosongkan bila aplikasi hendak dipakai sungguhan setelah masa uji coba.');
 
 $d->tabel(['Kelompok', 'Tabelnya'], [
@@ -99,7 +101,7 @@ $d->tabel(['Kelompok', 'Tabelnya'], [
     ['Bimbingan Konseling', '`kasus_siswas`, `pembinaan_siswas`, `evaluasi_pembinaans`, `pemanggilan_orangtuas`, `pengurangan_poin_siswas`'],
     ['Surat', '`surats`, `surat_siswa`, `surat_activities`, `surat_attachments`, `disposisi_surats`'],
     ['Kegiatan & ekstrakurikuler', '`kegiatan_sekolahs`, `kegiatan_kelas`, `ekstrakurikuler_siswas`, `ekstrakurikuler_pembinas`'],
-    ['Notifikasi', '`notifikasi_was`, `notifikasi_alfa_terkirims`'],
+    ['Notifikasi', '`notifikasi_was`, `notifikasi_alfa_terkirims`, `pengingat_jurnals`'],
 ], [28, 72]);
 
 $d->h3('Golongan 3 — Data sementara sistem (6 tabel)');
@@ -225,7 +227,7 @@ $d->h2('C.3 Setelah pemulihan — tiga langkah penutup');
 
 $d->langkah([
     'Bersihkan cache aplikasi: `php artisan optimize:clear`',
-    'Buka aplikasi di peramban dan login. Bila diminta memasukkan nomor seri, lihat Bagian I.',
+    'Buka aplikasi di peramban dan login. Bila diminta memasukkan nomor seri, lihat Bagian J.',
     'Periksa satu halaman berisi data — misalnya Data Siswa dan Daftar Nilai satu kelas — untuk memastikan isinya benar.',
 ]);
 
@@ -249,7 +251,8 @@ $d->tabel(['Tetap ada sesudahnya', 'Hilang, harus diisi ulang'], [
     ['Jenis pelanggaran & jenis surat', 'Pembina & anggota ekstrakurikuler'],
     ['Nama kegiatan ekstrakurikuler', 'Akun portal orang tua'],
     ['Pengaturan penilaian & KKTP', 'Semua absensi, nilai, jurnal, BK, surat, kegiatan'],
-    ['Aktivasi nomor seri', ''],
+    ['Aktivasi nomor seri', 'Riwayat pengingat jurnal ke guru'],
+    ['Setelan pengingat WhatsApp + tokennya', ''],
 ], [50, 50]);
 
 $d->h2('D.3 Langkah menjalankannya');
@@ -413,15 +416,126 @@ $d->tabel(['Tabel', 'Sebabnya'], [
     ['`absensi_siswas`', 'Satu baris per siswa per jam pelajaran per hari'],
     ['`nilai_siswas`', 'Satu baris per siswa per penilaian per mata pelajaran'],
     ['`jurnal_mengajar_slots`', 'Satu baris per jam mengajar tiap guru'],
+    ['`pengingat_jurnals`', 'Satu baris per sesi mengajar yang terlambat diisi'],
     ['`sessions`', 'Bertambah tiap login; aman dikosongkan kapan saja'],
 ], [30, 70]);
 
 $d->p('Ketiga tabel pertama adalah catatan resmi sekolah — **jangan dihapus** untuk menghemat tempat. Bila memang perlu, pindahkan periode lama ke arsip cadangan permanen dan konsultasikan dengan penyedia aplikasi lebih dulu.');
 
 // =====================================================================
-$d->h1('Bagian H — Keamanan Database');
+$d->h1('Bagian H — Penjadwal & Pekerja Antrian');
 
-$d->h2('H.1 Jangan memakai root tanpa kata sandi');
+$d->p('Sebagian pekerjaan SIM-SPENGA tidak dikerjakan saat seseorang mengklik tombol, melainkan di belakang layar: mengirim pemberitahuan Alfa ke orang tua, dan mengirim pengingat jurnal ke guru. Keduanya menuntut **dua proses yang hidup terus** di server.');
+
+$d->catatan('Gejalanya menipu bila proses ini mati',
+    'Aplikasi tetap terbuka normal, pengaturan tetap tersimpan, dan tidak ada pesan galat di mana pun — hanya saja tidak ada satu pun WhatsApp yang terkirim. Karena itu bagian ini perlu dikerjakan sekali saat pemasangan, lalu diperiksa sesekali.');
+
+$d->h2('H.1 Dua proses yang harus hidup');
+
+$d->tabel(['Proses', 'Perintahnya', 'Tugasnya'], [
+    [
+        'Penjadwal',
+        '`php artisan schedule:run`',
+        'Dipanggil **tiap menit**. Setiap 5 menit ia memeriksa jadwal hari itu dan mencatat sesi mengajar yang jurnalnya terlambat diisi.',
+    ],
+    [
+        'Pekerja antrian',
+        '`php artisan queue:work`',
+        'Berjalan **terus-menerus**. Inilah yang benar-benar menghubungi layanan WhatsApp dan mengirim pesannya.',
+    ],
+], [18, 30, 52]);
+
+$d->p('Pembagian ini disengaja: menghubungi layanan luar bisa memakan beberapa detik, dan pekerjaan itu tidak boleh membuat guru menunggu saat menekan tombol Simpan.');
+
+$d->h2('H.2 Memasang di server Windows');
+
+$d->p('Dilakukan sekali, memakai **Task Scheduler** bawaan Windows.');
+
+$d->h3('Penjadwal — dijalankan tiap menit');
+$d->langkah([
+    'Buat berkas `C:\jadwal-spenga.bat` berisi dua baris di bawah ini.',
+    'Buka **Task Scheduler** (ketik "Task Scheduler" di menu Start).',
+    'Klik **Create Task** (bukan Create Basic Task).',
+    'Tab **General**: beri nama "SIM-SPENGA Penjadwal". Pilih **Run whether user is logged on or not** dan centang **Run with highest privileges**.',
+    'Tab **Triggers** → **New** → Begin the task: **At startup**. Centang **Repeat task every**, isi **1 minute**, dan Duration: **Indefinitely**.',
+    'Tab **Actions** → **New** → Program/script: telusuri ke `C:\jadwal-spenga.bat`.',
+    'Tab **Settings**: hilangkan centang **Stop the task if it runs longer than**.',
+    'Klik OK dan masukkan kata sandi Windows bila diminta.',
+]);
+
+$d->kode("@echo off\ncd /d C:\laragon\www\sim-spenga\nC:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe artisan schedule:run >> storage\logs\jadwal.log 2>&1");
+
+$d->catatan('Sesuaikan dua alamat di dalamnya',
+    'Alamat folder aplikasi dan alamat `php.exe`. Untuk mengetahui alamat php.exe yang benar, buka Terminal Laragon lalu ketik `where php`.');
+
+$d->h3('Pekerja antrian — hidup terus');
+$d->p('Berbeda dari penjadwal, proses ini tidak dipanggil berulang melainkan dijalankan sekali dan dibiarkan hidup. Bila mati, Windows harus menyalakannya lagi.');
+
+$d->langkah([
+    'Buat berkas `C:\antrian-spenga.bat` seperti contoh di bawah.',
+    'Di Task Scheduler, buat tugas kedua bernama "SIM-SPENGA Antrian".',
+    'Tab **Triggers**: Begin the task **At startup** (tanpa pengulangan).',
+    'Tab **Actions**: arahkan ke `C:\antrian-spenga.bat`.',
+    'Tab **Settings**: centang **If the task fails, restart every 1 minute**, dan hilangkan centang **Stop the task if it runs longer than**.',
+]);
+
+$d->kode("@echo off\ncd /d C:\laragon\www\sim-spenga\nC:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe artisan queue:work --queue=notifikasi,pengingat-guru,default --tries=3 --sleep=3");
+
+$d->catatan('Urutan antrian itu bukan hiasan',
+    'Antrian `notifikasi` (pemberitahuan Alfa ke orang tua) disebut lebih dulu daripada `pengingat-guru`, sehingga pesan kepada orang tua selalu didahulukan bila keduanya menumpuk bersamaan.');
+
+$d->h2('H.3 Setelah setiap pembaruan aplikasi');
+
+$d->p('Pekerja antrian menyimpan kode aplikasi di dalam ingatannya saat dijalankan. Setelah kode diperbarui, ia harus disuruh berhenti supaya Windows menyalakannya kembali dengan kode yang baru:');
+$d->kode('php artisan queue:restart');
+
+$d->h2('H.4 Memeriksa keduanya benar-benar bekerja');
+
+$d->tabel(['Yang diperiksa', 'Caranya', 'Hasil yang benar'], [
+    [
+        'Penjadwal terdaftar',
+        '`php artisan schedule:list`',
+        'Muncul baris `*/5 * * * * php artisan pengingat:jurnal`',
+    ],
+    [
+        'Penjadwal benar-benar dipanggil',
+        'Buka `storage\logs\jadwal.log`',
+        'Berkasnya bertambah isinya tiap menit',
+    ],
+    [
+        'Deteksi berjalan',
+        '`php artisan pengingat:jurnal --lihat`',
+        'Menampilkan daftar sesi yang belum terisi, tanpa mengirim apa pun',
+    ],
+    [
+        'Pekerja antrian hidup',
+        'Task Manager → cari proses `php.exe`',
+        'Ada satu yang hidup terus-menerus',
+    ],
+    [
+        'Pesan benar-benar keluar',
+        'Pengaturan → Pengingat Guru (WA) → **Kirim Pesan Uji**',
+        'Pesan sampai di nomor tujuan',
+    ],
+], [24, 38, 38]);
+
+$d->h2('H.5 Bila pengingat tidak jalan');
+
+$d->tabel(['Gejala', 'Penyebab', 'Tindakan'], [
+    ['Riwayat pengingat kosong terus', 'Penjadwal tidak jalan, atau saklarnya belum dinyalakan', 'Periksa Task Scheduler dan halaman Pengaturan'],
+    ['Riwayat terisi, semuanya **Menunggu**', 'Pekerja antrian mati', 'Nyalakan lagi tugas "SIM-SPENGA Antrian"'],
+    ['Semua **Gagal**, keterangannya soal nomor', 'Nomor WhatsApp guru kosong atau salah', 'Perbaiki di Kelola Pengguna, lalu klik Kirim ulang'],
+    ['Semua **Gagal**, keterangannya soal token', 'Token perangkat salah, atau perangkat terputus di Fonnte', 'Sambungkan ulang perangkatnya di Fonnte, salin token baru'],
+    ['Pesan uji berhasil tapi pengingat tidak', 'Pekerja antrian mati — pesan uji dikirim langsung, pengingat lewat antrian', 'Periksa proses antriannya'],
+], [28, 34, 38]);
+
+$d->catatan('Kenapa pesan uji bisa berhasil padahal pengingat tidak',
+    'Pesan uji sengaja dikirim **langsung** tanpa melewati antrian, karena Admin sedang menunggu jawabannya di layar. Pengingat sesungguhnya selalu lewat antrian. Jadi "pesan uji sampai tetapi pengingat tidak pernah datang" hampir selalu berarti pekerja antriannya yang mati — bukan tokennya yang salah.');
+
+// =====================================================================
+$d->h1('Bagian I — Keamanan Database');
+
+$d->h2('I.1 Jangan memakai root tanpa kata sandi');
 
 $d->p('Bawaan Laragon adalah pengguna `root` tanpa kata sandi. Itu wajar untuk komputer pengembangan, **tidak boleh** untuk server sekolah yang dipakai sungguhan. Buat pengguna khusus yang hanya berhak atas database ini:');
 
@@ -432,7 +546,7 @@ FLUSH PRIVILEGES;');
 
 $d->p('Lalu ubah `DB_USERNAME` dan `DB_PASSWORD` di berkas `.env`, dan jalankan `php artisan config:clear`.');
 
-$d->h2('H.2 Berkas .env adalah kunci rumah');
+$d->h2('I.2 Berkas .env adalah kunci rumah');
 
 $d->tabel(['Isi .env', 'Kalau bocor'], [
     ['`DB_PASSWORD`', 'Seluruh data sekolah bisa diunduh orang lain'],
@@ -446,7 +560,7 @@ $d->catatan('APP_KEY jangan diganti setelah aplikasi dipakai',
     'Mengganti `APP_KEY` membuat **semua orang ter-logout** sekaligus **membatalkan aktivasi nomor seri** — aplikasi akan meminta nomor seri lagi. Kunci ini dibuat sekali saat pemasangan, lalu dibiarkan.',
     'FFD9D9');
 
-$d->h2('H.3 Pengaturan wajib di server sekolah');
+$d->h2('I.3 Pengaturan wajib di server sekolah');
 
 $d->tabel(['Setelan di .env', 'Nilai', 'Alasan'], [
     ['`APP_DEBUG`', '`false`', 'Bila `true`, setiap galat menampilkan isi `.env` termasuk kata sandi database kepada siapa pun yang memicunya'],
@@ -458,12 +572,12 @@ $d->tabel(['Setelan di .env', 'Nilai', 'Alasan'], [
 
 $d->p('Contoh lengkapnya tersedia di berkas `.env.production.example` pada folder aplikasi.');
 
-$d->h2('H.4 phpMyAdmin jangan terbuka dari luar');
+$d->h2('I.4 phpMyAdmin jangan terbuka dari luar');
 
 $d->p('Bila server sekolah bisa diakses dari internet, pastikan `phpmyadmin` hanya bisa dibuka dari jaringan sekolah. phpMyAdmin yang terbuka adalah pintu masuk paling sering dipakai untuk mencuri isi database.');
 
 // =====================================================================
-$d->h1('Bagian I — Bila Terjadi Masalah');
+$d->h1('Bagian J — Bila Terjadi Masalah');
 
 $d->tabel(['Gejala', 'Penyebab yang paling mungkin', 'Tindakan'], [
     [
@@ -484,7 +598,7 @@ $d->tabel(['Gejala', 'Penyebab yang paling mungkin', 'Tindakan'], [
     [
         'Admin lupa kata sandi',
         '—',
-        'Lihat I.1 di bawah',
+        'Lihat J.1 di bawah',
     ],
     [
         'Logo hilang dari kop surat, foto bukti BK kosong',
@@ -503,7 +617,7 @@ $d->tabel(['Gejala', 'Penyebab yang paling mungkin', 'Tindakan'], [
     ],
 ], [24, 34, 42]);
 
-$d->h2('I.1 Mengganti kata sandi yang terlupa');
+$d->h2('J.1 Mengganti kata sandi yang terlupa');
 
 $d->p('Bila masih ada admin lain yang bisa masuk, ganti lewat menu **Kelola Pengguna**. Bila tidak ada satu pun yang bisa masuk, lewat terminal:');
 
@@ -522,7 +636,7 @@ $d->catatan('Segera ganti lagi setelah bisa masuk',
     'Kata sandi yang diketik di terminal tercatat di riwayat perintah. Setelah berhasil login, ganti sekali lagi lewat menu Kelola Pengguna.');
 
 // =====================================================================
-$d->h1('Bagian J — Lampiran: Daftar Perintah Cepat');
+$d->h1('Bagian K — Lampiran: Daftar Perintah Cepat');
 
 $d->p('Semua perintah dijalankan dari folder aplikasi. Buka Laragon → klik kanan ikonnya → **Terminal**, lalu:');
 
@@ -544,6 +658,10 @@ php artisan data:kosongkan --lihat
 REM Menjalankan penghapusan (akan minta ketik HAPUS)
 php artisan data:kosongkan');
 
+$d->h2('Pengingat WhatsApp ke guru');
+
+$d->kode("REM Melihat sesi yang terlambat diisi hari ini, tanpa mengirim apa pun\nphp artisan pengingat:jurnal --lihat\n\nREM Memeriksa tanggal tertentu\nphp artisan pengingat:jurnal --tanggal=2026-09-01 --lihat\n\nREM Memastikan penjadwalnya terdaftar\nphp artisan schedule:list\n\nREM Menyuruh pekerja antrian memuat ulang kode setelah aplikasi diperbarui\nphp artisan queue:restart");
+
 $d->h2('Perawatan');
 
 $d->kode('REM Membersihkan seluruh cache
@@ -562,6 +680,8 @@ $d->tabel(['Kapan', 'Yang dikerjakan'], [
     ['Tiap bulan', 'Periksa ukuran database, bersihkan log lama, pastikan cadangan terakhir masih segar'],
     ['Tiap akhir semester', 'Cadangan permanen sebagai arsip; kunci periode lama'],
     ['Tiap ganti tahun ajaran', 'Cadangkan, buat periode baru, duplikasi master data, sesuaikan kelas & penugasan'],
+    ['Tiap bulan', 'Pastikan penjadwal & pekerja antrian masih hidup (Bagian H.4)'],
+    ['Sesudah aplikasi diperbarui', 'Jalankan `php artisan queue:restart` agar pekerja antrian memuat kode baru'],
     ['Sebelum tindakan besar apa pun', 'Cadangkan lebih dulu — tanpa pengecualian'],
 ], [26, 74]);
 

@@ -59,6 +59,15 @@ class AppServiceProvider extends ServiceProvider
         // 1 akun tidak bisa dibrute-force dari banyak IP tanpa batas.
         // Percobaan aktivasi dibatasi: nomor seri 20 karakter memang tidak
         // realistis ditebak, tapi membatasi tetap menutup upaya membanjiri.
+        // Penahan laju TERPISAH untuk pengingat guru. Sengaja tidak
+        // menumpang 'notifikasi-wa' milik notifikasi Alfa: keduanya memakai
+        // perangkat Fonnte yang berbeda, jadi kuota kirimnya juga berbeda,
+        // dan antrian pengingat guru yang panjang tidak boleh ikut
+        // memperlambat pemberitahuan Alfa kepada orang tua.
+        RateLimiter::for('pengingat-guru', function () {
+            return Limit::perMinute(20);
+        });
+
         RateLimiter::for('aktivasi', function ($request) {
             return Limit::perMinute(5)->by($request->ip());
         });
