@@ -184,6 +184,67 @@ class KegiatanSekolah extends Model
         };
     }
 
+    /**
+     * KELAS MANA SAJA YANG SEDANG BERKEGIATAN PADA SUATU TANGGAL.
+     *
+     * Dipakai pengingat jurnal WhatsApp (App\Console\Commands\
+     * KirimPengingatJurnal dan App\Jobs\KirimPengingatJurnalWhatsapp).
+     *
+     * Alasannya: pada hari kegiatan sekolah, KBM biasa tidak berjalan.
+     * Yang mengisi kehadiran adalah WALI KELAS lewat menu Absensi Kegiatan,
+     * bukan guru mata pelajaran lewat jurnal mengajar. Menagih guru mapel
+     * mengisi jurnal untuk hari itu berarti menagih sesuatu yang memang
+     * tidak seharusnya ada — dan itu cara tercepat membuat guru berhenti
+     * menganggap serius pengingat ini.
+     *
+     * Cakupannya dihormati apa adanya: kegiatan yang hanya untuk kelas 7
+     * tidak membebaskan kelas 8 dan 9 dari kewajiban mengisi jurnal.
+     *
+     * Hasilnya di-cache per tanggal selama satu proses berjalan, karena
+     * pemanggilnya menelusuri banyak sesi sekaligus dan `kelasSasaran()`
+     * melakukan query sendiri untuk tiap kegiatan.
+     *
+     * @return array<int, int> daftar kelas_id
+     */
+    public static function kelasIdBerkegiatanPada(string|Carbon $tanggal): array
+    {
+        $kunci = $tanggal instanceof Carbon ? $tanggal->toDateString() : Carbon::parse($tanggal)->toDateString();
+
+        if (array_key_exists($kunci, static::$cacheKelasBerkegiatan)) {
+            return static::$cacheKelasBerkegiatan[$kunci];
+        }
+
+        $kelasId = static::berlangsungPadaTanggal($kunci)
+            ->flatMap(fn (self $k) => $k->kelasSasaran()->pluck('id'))
+            ->unique()
+            ->values()
+            ->all();
+
+        return static::$cacheKelasBerkegiatan[$kunci] = $kelasId;
+    }
+
+    /** Cache per tanggal — lihat kelasIdBerkegiatanPada(). */
+    private static array $cacheKelasBerkegiatan = [];
+
+    /** Kosongkan cache; dipakai pengujian dan proses antrian yang berumur panjang. */
+    public static function lupakanCacheKegiatan(): void
+    {
+        static::$cacheKelasBerkegiatan = [];
+    }
+
+    /**
+     * Nama kegiatan yang mencakup sebuah kelas pada tanggal itu — dipakai
+     * untuk menjelaskan kepada Admin mengapa sebuah pengingat dilewati.
+     */
+    public static function namaKegiatanUntukKelas(string|Carbon $tanggal, int $kelasId): ?string
+    {
+        $kunci = $tanggal instanceof Carbon ? $tanggal->toDateString() : Carbon::parse($tanggal)->toDateString();
+
+        return static::berlangsungPadaTanggal($kunci)
+            ->first(fn (self $k) => $k->kelasSasaran()->contains('id', $kelasId))
+            ?->nama;
+    }
+
     public static function namaHari(Carbon $tanggal): string
     {
         $map = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 0 => 'Minggu'];

@@ -25,7 +25,9 @@ class PembinaanSiswa extends Model
 
     public function getBuktiFileUrlAttribute(): ?string
     {
-        return $this->bukti_file ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->bukti_file) : null;
+        // Lewat rute berautentikasi, bukan tautan publik — lihat
+        // App\Http\Controllers\BerkasTerlindungiController.
+        return \App\Http\Controllers\BerkasTerlindungiController::url($this->bukti_file);
     }
 
     // Dua keadaan yang dilihat pengguna — sama seperti KasusSiswa, supaya

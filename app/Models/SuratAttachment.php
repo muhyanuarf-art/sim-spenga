@@ -24,7 +24,9 @@ class SuratAttachment extends Model
 
     public function url(): string
     {
-        return asset('storage/' . $this->path);
+        // Lampiran surat bisa memuat nama & perkara siswa, jadi disajikan
+        // lewat rute berautentikasi — lihat BerkasTerlindungiController.
+        return (string) \App\Http\Controllers\BerkasTerlindungiController::url($this->path);
     }
 
     public function ukuranReadable(): string

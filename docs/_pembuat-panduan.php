@@ -427,7 +427,18 @@ $d->tabel(['Aturan', 'Penjelasan'], [
     ['Tidak pernah dikirim dua kali', 'Sesi yang sudah diingatkan tidak akan diingatkan lagi pada hari yang sama.'],
     ['Keburu diisi = tidak jadi dikirim', 'Bila guru mengisi jurnalnya tepat saat pesan masih menunggu giliran kirim, pesannya dibatalkan dan ditandai **Dilewati**.'],
     ['Ada jam kirim', 'Di luar jendela jam yang diatur Admin (mis. 06.30–18.00), pengiriman ditunda — guru tidak dihubungi larut malam.'],
+    ['**Hari Kegiatan Sekolah dikecualikan**', 'Pada hari lomba, classmeeting, tryout, atau pesantren, KBM biasa tidak berjalan — kehadiran diisi **wali kelas** lewat Absensi Kegiatan. Guru mata pelajaran tidak diingatkan sama sekali untuk kelas yang sedang berkegiatan.'],
+    ['**Tidak pernah menyusul ke hari berikutnya**', 'Pengingat hanya berlaku pada hari mengajarnya. Bila harinya keburu lewat sebelum pesannya sempat keluar, pesan itu **dibatalkan** dan ditandai Kedaluwarsa — bukan dikirim terlambat.'],
 ], [30, 70]);
+
+$d->catatan('Cakupan kegiatan dihormati apa adanya',
+    'Kegiatan yang hanya untuk kelas 7 **tidak** membebaskan kelas 8 dan 9 — guru yang mengajar kelas 8 hari itu tetap diingatkan seperti biasa. Begitu pula kegiatan yang hanya berlaku pada hari tertentu (mis. lomba tiap Sabtu selama Agustus): di luar hari itu pengingat berjalan normal. Kegiatan yang statusnya **Nonaktif** tidak membebaskan siapa pun.');
+
+$d->catatan('Kegiatan yang baru dicatat setelah berjalan tetap terkejar',
+    'Kesiswaan sering baru memasukkan kegiatannya ke aplikasi setelah acaranya dimulai — misalnya lomba mulai pukul 07.00 tetapi baru diinput pukul 10.00. Pengingat untuk jam-jam pertama mungkin sudah terlanjur masuk antrian. Sistem memeriksa ulang tepat sebelum pesannya keluar, jadi pesan itu **dibatalkan** dan ditandai Dilewati. Guru tidak akan menerima teguran untuk hari yang KBM-nya memang ditiadakan.');
+
+$d->catatan('Kenapa tidak boleh menyusul keesokan harinya',
+    'Pengingat itu cepat basi. Gunanya menyuruh guru mengisi jurnal **selagi ingatannya masih segar** dan datanya masih bisa dipertanggungjawabkan. Sesudah harinya lewat, pesan yang sama berubah sifat: bukan lagi pengingat, melainkan teguran atas sesuatu yang sudah tidak bisa diperbaiki hari itu juga — dan yang paling buruk, bisa tiba pada hari libur atau pagi-pagi keesokan harinya. Pengingat semacam itu justru membuat seluruh fiturnya mulai diabaikan guru.');
 
 $d->h3('Contoh pesan yang diterima guru');
 $d->kode("Assalamu'alaikum, Bapak/Ibu Budi Santoso, S.Pd.\n\nSistem mencatat jurnal mengajar & absensi berikut belum terisi:\n\nHari/Tanggal : Jumat, 14 Agustus 2026\nKelas : *7A*\nMata pelajaran : *Bahasa Indonesia*\nJam ke : *2-3* (07.40-08.20)\n\nMohon segera diisi melalui menu \"Absensi & Jurnal Mengajar\".\n\n_Pesan otomatis dari SMP Negeri 3 Bumiayu. Bila jurnal sudah diisi, abaikan pesan ini._");
@@ -469,9 +480,13 @@ $d->p('Di bawah halaman Pengaturan ada riwayat per bulan beserta ringkasan jumla
 $d->tabel(['Status', 'Artinya', 'Yang perlu dilakukan'], [
     ['Terkirim', 'Pesan diterima layanan WhatsApp', 'Tidak ada'],
     ['Menunggu', 'Sudah tercatat, pesannya masih dalam antrian', 'Tunggu sebentar. Bila menetap lama, pekerja antrian di server kemungkinan mati'],
-    ['Dilewati', 'Guru keburu mengisi jurnalnya, atau pengingat dimatikan sebelum terkirim', 'Tidak ada — ini justru hasil yang diinginkan'],
+    ['Dilewati', 'Guru keburu mengisi jurnalnya, kelasnya sedang ada Kegiatan Sekolah, atau pengingat dimatikan sebelum terkirim. Kolom Keterangan menyebut yang mana', 'Tidak ada — ini justru hasil yang diinginkan'],
     ['Gagal', 'Nomor guru bermasalah, atau token salah', 'Perbaiki nomornya di Kelola Pengguna, lalu klik **Kirim ulang** pada barisnya'],
+    ['Kedaluwarsa', 'Hari mengajarnya sudah lewat sebelum pesannya sempat keluar dari antrian', 'Ini pertanda pekerja antrian di server sempat mati. Periksa servernya — jurnal yang bersangkutan kemungkinan besar memang belum terisi'],
 ], [16, 44, 40]);
+
+$d->catatan('Beda "Dilewati" dan "Kedaluwarsa" — keduanya sama-sama tidak dikirim',
+    '**Dilewati** adalah kabar baik: gurunya sudah mengisi jurnal, jadi tidak perlu diganggu. **Kedaluwarsa** adalah kabar buruk: jurnalnya kemungkinan besar masih kosong, tetapi pesannya sudah telanjur basi karena harinya lewat. Bila angka Kedaluwarsa mulai banyak, yang bermasalah bukan gurunya melainkan servernya — lihat E.6.');
 
 $d->h2('E.6 Bila pengingat tidak jalan sama sekali');
 
@@ -483,6 +498,7 @@ $d->tabel(['Gejala', 'Penyebab yang paling mungkin'], [
     ['Semua berstatus **Gagal** dengan keterangan nomor', 'Nomor WhatsApp guru belum diisi di Kelola Pengguna'],
     ['Semua **Gagal** dengan keterangan token', 'Token perangkat salah atau perangkatnya terputus di Fonnte'],
     ['Halaman Pengaturan menampilkan kotak kuning', 'Pengingat dinyalakan tetapi tokennya belum diisi'],
+    ['Banyak berstatus **Kedaluwarsa**', 'Pekerja antrian sempat mati berjam-jam atau semalaman, sehingga pesannya baru diproses setelah harinya lewat'],
 ], [45, 55]);
 
 // =====================================================================
@@ -626,7 +642,10 @@ $d->poin([
 $d->h2('J.2 Cadangan data (backup)');
 $d->p('Cadangkan database **setiap minggu**, dan **wajib** sebelum pergantian semester atau tahun ajaran.');
 $d->kode("mysqldump -u pengguna -p --no-tablespaces --single-transaction sim_spenga > cadangan-2026-08-29.sql");
-$d->p('Cadangkan juga folder `storage/app/public` yang berisi berkas unggahan: logo sekolah, ikon aplikasi, bukti pelanggaran & pembinaan BK, dan lampiran surat. Database saja belum lengkap — bila foldernya tidak ikut, catatan BK akan pulih tanpa foto buktinya dan kop surat kehilangan logonya.');
+$d->p('Cadangkan juga seluruh folder `storage/app` yang berisi berkas unggahan. Di dalamnya ada **dua** folder dan keduanya sama-sama wajib: `public` (logo sekolah & ikon aplikasi) dan `private` (foto bukti pelanggaran & pembinaan BK, serta lampiran surat). Database saja belum lengkap — bila foldernya tidak ikut, catatan BK akan pulih tanpa foto buktinya dan kop surat kehilangan logonya.');
+
+$d->catatan('Kenapa berkas BK terpisah di folder `private`',
+    'Berkas di `public` dilayani langsung oleh peladen web, tanpa pemeriksaan login — itu memang perlu untuk logo, yang harus tampil di halaman masuk. Foto bukti pelanggaran siswa tidak boleh begitu: siapa pun yang memegang alamatnya akan bisa membukanya selamanya, bahkan setelah tidak lagi bekerja di sekolah. Karena itu berkas rahasia disimpan di `private`, di luar jangkauan peladen web, dan hanya bisa dibuka lewat aplikasi oleh pengguna yang sudah masuk.');
 $d->catatan('Langkah lengkapnya ada di dokumen terpisah',
     'Cara mencadangkan lewat phpMyAdmin selangkah demi selangkah, cara memulihkan, cara mengosongkan data uji coba tanpa menghilangkan master data, dan perawatan berkala dibahas tuntas di **Panduan Database SIM-SPENGA**.');
 

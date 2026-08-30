@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\JurnalMengajarSlot;
+use App\Models\KegiatanSekolah;
 use App\Models\PengaturanNotifikasiGuru;
 use App\Models\PengaturanSekolah;
 use App\Models\PengingatJurnal;
@@ -93,7 +94,42 @@ class KirimPengingatJurnalWhatsapp implements ShouldQueue
             return;
         }
 
+        // KEGIATAN SEKOLAH MEMBATALKAN PENGINGAT.
+        //
+        // Diperiksa DI SINI juga, bukan hanya saat pendeteksian, karena
+        // Kesiswaan sering baru mencatat kegiatannya di aplikasi setelah
+        // kegiatannya berjalan — mis. lomba dimulai pukul 07.00 tetapi baru
+        // diinput pukul 10.00. Pengingat untuk jam-jam pertama sudah
+        // terlanjur masuk antrian sebelum itu. Tanpa pemeriksaan kedua ini,
+        // guru tetap menerima teguran untuk hari yang KBM-nya memang
+        // ditiadakan.
+        KegiatanSekolah::lupakanCacheKegiatan();
+        $namaKegiatan = KegiatanSekolah::namaKegiatanUntukKelas($baris->tanggal, (int) $baris->kelas_id);
+
+        if ($namaKegiatan !== null) {
+            $baris->update([
+                'status_kirim' => 'dilewati',
+                'keterangan_gagal' => 'Tidak dikirim: kelas ini sedang mengikuti Kegiatan Sekolah "'
+                    .$namaKegiatan.'". Kehadirannya diisi wali kelas, bukan guru mata pelajaran.',
+            ]);
+
+            return;
+        }
+
         $pengaturan = PengaturanNotifikasiGuru::current();
+
+        // Pengingat hanya berlaku pada HARI MENGAJARNYA. Lihat alasannya di
+        // kadaluwarsa() — inilah yang mencegah pesan tentang hari Jumat baru
+        // sampai hari Sabtu.
+        if ($alasan = $this->kadaluwarsa($baris, $pengaturan)) {
+            $baris->update([
+                'status_kirim' => 'kedaluwarsa',
+                'keterangan_gagal' => $alasan,
+            ]);
+
+            return;
+        }
+
         $token = $pengaturan->token();
 
         if (! $pengaturan->aktif) {
@@ -166,6 +202,61 @@ class KirimPengingatJurnalWhatsapp implements ShouldQueue
         }
 
         throw new RuntimeException("Fonnte gagal kirim pengingat: {$alasan}");
+    }
+
+    /**
+     * SUDAH TERLAMBAT UNTUK DIKIRIM?
+     *
+     * Mengembalikan alasannya bila pesan ini tidak boleh lagi keluar, atau
+     * null bila masih layak dikirim.
+     *
+     * =================================================================
+     * KENAPA ADA PEMERIKSAAN INI
+     * =================================================================
+     * Pengingat itu barang yang cepat basi. Gunanya menyuruh guru mengisi
+     * jurnal SELAGI ingatannya masih segar dan datanya masih bisa
+     * dipertanggungjawabkan. Sesudah harinya lewat, pesan yang sama
+     * berubah sifat: bukan lagi pengingat, melainkan teguran atas sesuatu
+     * yang sudah tidak bisa diperbaiki hari itu juga — dan yang paling
+     * buruk, bisa tiba pada hari libur atau pagi-pagi keesokan harinya.
+     *
+     * Kejadian nyata yang ditutup pemeriksaan ini:
+     *
+     * 1. Pekerja antrian mati semalam. Pesan yang mengantre sejak Jumat
+     *    pukul 09.30 baru diproses Sabtu pagi begitu pekerjanya dinyalakan
+     *    lagi — dan guru menerima pengingat tentang hari Jumat.
+     * 2. Percobaan ulang yang mundur jauh. `$backoff` teknis (15 detik,
+     *    1 menit, 5 menit) ditambah jeda 2 menit tiap percobaan nomor bisa
+     *    melewati tengah malam bila kegagalannya terjadi menjelang pukul 24.
+     * 3. Antrian menumpuk. Bila banyak sesi terlambat sekaligus dan laju
+     *    kirim dibatasi 20 pesan per menit, pesan terakhir bisa menunggu
+     *    cukup lama.
+     *
+     * Dua batas yang dipakai, keduanya harus terpenuhi:
+     *  - Tanggalnya masih hari ini.
+     *  - Masih di dalam jendela jam kirim yang diatur Admin. Lewat dari
+     *    itu, kesempatan berikutnya baru ada besok — dan besok tanggalnya
+     *    sudah tidak cocok lagi, jadi ditutup sekarang saja supaya
+     *    statusnya jujur, bukan menggantung di 'pending' selamanya.
+     */
+    private function kadaluwarsa(PengingatJurnal $baris, PengaturanNotifikasiGuru $pengaturan): ?string
+    {
+        $hari = Carbon::parse($baris->tanggal);
+
+        if (! $hari->isToday()) {
+            return 'Tidak dikirim: hari mengajarnya ('
+                .$hari->translatedFormat('l, d F Y')
+                .') sudah lewat sebelum pesan sempat keluar dari antrian.';
+        }
+
+        if (! $pengaturan->didalamJamKirim()) {
+            return 'Tidak dikirim: sudah lewat jam kirim ('
+                .substr((string) $pengaturan->jam_mulai_kirim, 0, 5).'-'
+                .substr((string) $pengaturan->jam_akhir_kirim, 0, 5)
+                .') pada hari mengajarnya.';
+        }
+
+        return null;
     }
 
     /**

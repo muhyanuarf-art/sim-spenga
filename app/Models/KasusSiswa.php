@@ -22,7 +22,9 @@ class KasusSiswa extends Model
 
     public function getBuktiFileUrlAttribute(): ?string
     {
-        return $this->bukti_file ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->bukti_file) : null;
+        // Lewat rute berautentikasi, bukan tautan publik — lihat
+        // App\Http\Controllers\BerkasTerlindungiController.
+        return \App\Http\Controllers\BerkasTerlindungiController::url($this->bukti_file);
     }
 
     public function siswa(): BelongsTo { return $this->belongsTo(Siswa::class, 'siswa_id'); }

@@ -66,6 +66,7 @@ class PengingatJurnal extends Model
             'terkirim' => 'Terkirim',
             'gagal' => 'Gagal',
             'dilewati' => 'Dilewati (Keburu Diisi)',
+            'kedaluwarsa' => 'Kedaluwarsa (Harinya Lewat)',
             default => ucfirst($this->status_kirim),
         };
     }
@@ -77,6 +78,9 @@ class PengingatJurnal extends Model
             'terkirim' => 'bg-emerald-100 text-emerald-700',
             'gagal' => 'bg-red-100 text-red-700',
             'dilewati' => 'bg-sky-100 text-sky-700',
+            // Sengaja kuning, bukan biru seperti 'dilewati': ini keadaan yang
+            // perlu diperiksa Admin, bukan kabar baik.
+            'kedaluwarsa' => 'bg-amber-100 text-amber-700',
             default => 'bg-slate-100 text-slate-600',
         };
     }

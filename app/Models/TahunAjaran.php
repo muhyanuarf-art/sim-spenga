@@ -304,6 +304,23 @@ class TahunAjaran extends Model
     }
 
     /**
+     * Versi paling pendek — untuk bilah atas, tempat teksnya bersaing ruang
+     * dengan breadcrumb di kiri dan nama pengguna di kanan pada satu baris
+     * setinggi 64px. Contoh: "2026/2027 Ganjil".
+     *
+     * Kata "Semester" dan titik pemisahnya sengaja dibuang: di bilah atas
+     * keduanya tidak menambah keterangan apa pun ("Ganjil" sudah pasti
+     * semester), tetapi memakan sekitar sepertiga lebar kotaknya — dan
+     * itulah yang membuat teksnya melebar sampai berdesakan dengan menu
+     * pengguna di layar sempit. Nama lengkapnya tetap ada di atribut
+     * `title` dan di menu pengguna.
+     */
+    public function labelRingkas(): string
+    {
+        return "{$this->nama} {$this->semester}";
+    }
+
+    /**
      * Nomor semester (1 untuk Ganjil, 2 untuk Genap). Dipakai di kepala
      * dokumen resmi yang menuliskan semester sebagai angka, mis.
      * "Semester : 1" pada lembar Analisis Hasil Tes Sumatif.

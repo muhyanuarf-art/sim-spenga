@@ -40,6 +40,7 @@ use App\Http\Controllers\PengaturanPenilaianController;
 use App\Http\Controllers\ProgramPerbaikanController;
 use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\OrangTuaDashboardController;
+use App\Http\Controllers\BerkasTerlindungiController;
 use App\Http\Controllers\PengaturanNotifikasiController;
 use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
@@ -92,6 +93,14 @@ Route::prefix('orangtua')->name('orangtua.')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ===== BERKAS RAHASIA (bukti BK & lampiran surat) =====
+    // Berada di dalam grup 'auth' supaya ikut melewati pemeriksaan login
+    // DAN lisensi. Sebelum ini berkasnya dilayani langsung oleh peladen
+    // web lewat public/storage, tanpa pemeriksaan apa pun — lihat
+    // App\Http\Controllers\BerkasTerlindungiController.
+    Route::get('berkas/{path}', [BerkasTerlindungiController::class, 'tampilkan'])
+        ->where('path', '.*')->name('berkas.lihat');
 
     // Pemilih periode di kepala halaman — mengubah periode yang DILIHAT
     // pengguna ini saja, bukan periode aktif sekolah. Sengaja TIDAK

@@ -234,7 +234,7 @@
                     </select>
                 </div>
                 <div class="flex flex-wrap gap-2 ml-auto">
-                    @foreach(['terkirim' => 'Terkirim', 'pending' => 'Menunggu', 'gagal' => 'Gagal', 'dilewati' => 'Dilewati'] as $k => $label)
+                    @foreach(['terkirim' => 'Terkirim', 'pending' => 'Menunggu', 'gagal' => 'Gagal', 'dilewati' => 'Dilewati', 'kedaluwarsa' => 'Kedaluwarsa'] as $k => $label)
                         <span class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
                             <span class="font-bold text-slate-700">{{ $ringkasan[$k] ?? 0 }}</span>
                             <span class="text-slate-400">{{ $label }}</span>
@@ -271,7 +271,7 @@
                             </td>
                             <td class="px-4 py-2.5 text-slate-400 text-xs max-w-xs">{{ $r->keterangan_gagal ?: ($r->dikirim_at?->format('H:i') ? 'Terkirim pukul '.$r->dikirim_at->format('H:i') : '—') }}</td>
                             <td class="px-4 py-2.5 text-right">
-                                @if(in_array($r->status_kirim, ['gagal', 'dilewati'], true))
+                                @if(in_array($r->status_kirim, ['gagal', 'dilewati', 'kedaluwarsa'], true) && $r->tanggal->isToday())
                                     <form method="POST" action="{{ route('pengaturan-notifikasi.kirim-ulang', $r) }}">
                                         @csrf
                                         <button type="submit" class="text-xs font-semibold text-brand-600 hover:text-brand-800 cursor-pointer whitespace-nowrap">

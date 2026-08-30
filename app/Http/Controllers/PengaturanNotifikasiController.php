@@ -183,8 +183,20 @@ class PengaturanNotifikasiController extends Controller
      */
     public function kirimUlang(PengingatJurnal $pengingat)
     {
-        if (! in_array($pengingat->status_kirim, ['gagal', 'dilewati'], true)) {
-            return back()->with('error', 'Hanya pengingat berstatus Gagal atau Dilewati yang bisa dikirim ulang.');
+        if (! in_array($pengingat->status_kirim, ['gagal', 'dilewati', 'kedaluwarsa'], true)) {
+            return back()->with('error', 'Hanya pengingat berstatus Gagal, Dilewati, atau Kedaluwarsa yang bisa dikirim ulang.');
+        }
+
+        // Pengingat hari lampau tidak akan pernah jadi dikirim (lihat
+        // KirimPengingatJurnalWhatsapp::kadaluwarsa). Ditolak di sini juga
+        // supaya Admin mendapat jawaban yang jujur seketika, bukan melihat
+        // barisnya berkedip ke 'Menunggu' lalu balik lagi jadi 'Kedaluwarsa'
+        // beberapa detik kemudian tanpa penjelasan.
+        if (! $pengingat->tanggal->isToday()) {
+            return back()->with('error',
+                'Pengingat ini untuk '.$pengingat->tanggal->translatedFormat('l, d F Y')
+                .' dan hari itu sudah lewat. Pengingat hanya dikirim pada hari mengajarnya —'
+                .' menegur guru keesokan harinya justru membuat pengingat ini diabaikan.');
         }
 
         $pengingat->update([

@@ -131,7 +131,7 @@ class BkPembinaanController extends Controller
         $tahap = $poinService->rekomendasiTahap($poinService->poinAktif($siswa)) ?? 1;
 
         if ($request->hasFile('bukti_file')) {
-            $validated['bukti_file'] = $request->file('bukti_file')->store('bk/bukti-pembinaan', 'public');
+            $validated['bukti_file'] = $request->file('bukti_file')->store('bk/bukti-pembinaan');
         }
 
         $pembinaan = PembinaanSiswa::create([

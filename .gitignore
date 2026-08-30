@@ -33,3 +33,31 @@ yarn-error.log
 !/storage/framework/testing/.gitkeep
 /storage/framework/views/*
 !/storage/framework/views/.gitkeep
+
+# ---------------------------------------------------------------------
+# RAHASIA & BERKAS UNGGAHAN — jangan pernah masuk ke repositori.
+#
+# Ditambahkan setelah ditemukan bahwa .env.backup-sebelum-rotate (berisi
+# token WhatsApp yang masih berlaku) dan foto bukti pelanggaran siswa
+# sudah terlanjur ter-commit. Aturan di bawah mencegah kejadian yang sama
+# terulang; berkas yang SUDAH terlanjur masuk riwayat harus dibersihkan
+# terpisah — .gitignore tidak berlaku surut untuk berkas yang sudah
+# terlacak.
+# ---------------------------------------------------------------------
+.env.*
+!.env.example
+!.env.production.example
+*.env.backup*
+
+# Unggahan pengguna: bukti pelanggaran & pembinaan BK, lampiran surat,
+# logo sekolah. Isinya milik sekolah, bukan bagian dari kode aplikasi —
+# dan sebagiannya data pribadi siswa.
+/storage/app/private
+/storage/app/public/bk
+/storage/app/public/surat-lampiran
+/storage/app/public/pengaturan-sekolah
+/storage/app/public/ikon
+
+# Cadangan database
+/storage/app/cadangan
+*.sql

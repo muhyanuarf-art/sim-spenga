@@ -59,11 +59,16 @@ $d->p('Seluruh data SIM-SPENGA tersimpan di **dua tempat**, dan keduanya sama pe
 
 $d->tabel(['Tempat', 'Isinya', 'Bila hilang'], [
     ['Database MySQL bernama `sim_spenga`', 'Semua data teks & angka: siswa, nilai, absensi, jurnal, BK, surat, pengaturan, akun', 'Seluruh catatan sekolah lenyap'],
-    ['Folder `storage/app/public`', 'Berkas yang diunggah: logo sekolah, ikon aplikasi, foto bukti pelanggaran & pembinaan BK, lampiran surat', 'Datanya masih ada, tapi gambar & lampirannya kosong'],
+    ['Folder `storage/app/public`', 'Berkas yang boleh dibaca siapa saja: logo sekolah & ikon aplikasi', 'Kop surat dan halaman masuk kehilangan logonya'],
+    ['Folder `storage/app/private`', 'Berkas RAHASIA: foto bukti pelanggaran & pembinaan BK, lampiran surat', 'Catatan BK masih ada, tapi foto buktinya hilang semua'],
 ], [26, 50, 24]);
 
 $d->catatan('Kesalahan yang paling sering terjadi',
     'Mencadangkan database saja, lupa foldernya. Saat dipulihkan, semua catatan BK masih ada tetapi **foto buktinya hilang semua** dan logo di kop surat menjadi kosong. Cadangkan keduanya bersamaan — lihat Bagian B.4.');
+
+$d->catatan('Dua folder berkas, beda sifat — dan keduanya wajib dicadangkan',
+    '`storage/app/public` dilayani LANGSUNG oleh peladen web tanpa pemeriksaan login; isinya memang hanya logo & ikon, yang harus bisa tampil di halaman masuk. `storage/app/private` berada di luar jangkauan peladen web dan hanya bisa dibuka lewat aplikasi oleh pengguna yang sudah masuk; di situlah foto bukti pelanggaran siswa dan lampiran surat disimpan. Mencadangkan `public` saja berarti seluruh bukti BK hilang saat pemulihan.',
+    'FFD9D9');
 
 $d->h2('A.2 Tiga golongan tabel');
 
@@ -167,11 +172,18 @@ $d->tabel(['Bagian perintah', 'Gunanya'], [
 
 $d->h2('B.4 Mencadangkan berkas unggahan juga');
 
-$d->p('Database saja belum lengkap. Salin juga folder berikut:');
+$d->p('Database saja belum lengkap. Salin juga folder berikut — **seluruhnya**, termasuk kedua anak foldernya:');
 
-$d->kode('C:\laragon\www\sim-spenga\storage\app\public');
+$d->kode('C:\laragon\www\sim-spenga\storage\app');
 
-$d->p('Isinya empat folder: `bk` (foto bukti pelanggaran & pembinaan), `ikon` (ikon aplikasi), `pengaturan-sekolah` (logo kop surat), dan `surat-lampiran` (lampiran surat). Cara termudah: klik kanan folder `public` tersebut, pilih **Send to → Compressed (zipped) folder**, lalu simpan bersama berkas `.sql`-nya.');
+$d->tabel(['Folder', 'Isinya', 'Sifat'], [
+    ['`storage/app/public/pengaturan-sekolah`', 'Logo kop surat', 'Boleh dibaca siapa saja'],
+    ['`storage/app/public/ikon`', 'Ikon aplikasi & favicon', 'Boleh dibaca siapa saja'],
+    ['`storage/app/private/bk`', 'Foto bukti pelanggaran & pembinaan', '**Rahasia** — wajib login'],
+    ['`storage/app/private/surat-lampiran`', 'Lampiran surat', '**Rahasia** — wajib login'],
+], [34, 40, 26]);
+
+$d->p('Cara termudah: klik kanan folder `storage\app`, pilih **Send to → Compressed (zipped) folder**, lalu simpan bersama berkas `.sql`-nya.');
 
 $d->h2('B.5 Di mana cadangan disimpan');
 
@@ -212,7 +224,7 @@ $d->langkah([
     'Klik database `sim_spenga` yang baru, lalu tab **Import**.',
     'Klik **Choose File**, pilih berkas cadangan `.sql` (atau `.zip`-nya langsung — phpMyAdmin bisa membaca zip).',
     'Gulir ke bawah, klik **Import**. Tunggu sampai muncul keterangan berhasil.',
-    'Kembalikan juga folder `storage/app/public` dari cadangannya.',
+    'Kembalikan juga folder `storage/app` dari cadangannya — **kedua** anak foldernya, `public` dan `private`.',
 ]);
 
 $d->h2('C.2 Lewat baris perintah');
@@ -301,7 +313,7 @@ $d->h2('D.6 Catatan tambahan');
 $d->poin([
     '**Nomor ID kembali mulai dari 1**, jadi database benar-benar seperti pemasangan baru.',
     '**Aktivasi nomor seri tidak ikut terhapus** — tidak perlu diaktifkan ulang selama alamat akses aplikasinya tidak berubah.',
-    'Foto bukti BK dan lampiran surat di folder `storage/app/public` **tidak ikut terhapus**. Bila ingin benar-benar bersih, hapus isi folder `bk` dan `surat-lampiran` secara manual. Jangan hapus folder `ikon` dan `pengaturan-sekolah` — di situ logo sekolahnya.',
+    'Foto bukti BK dan lampiran surat di folder `storage/app/private` **tidak ikut terhapus**. Bila ingin benar-benar bersih, hapus isi folder `private\bk` dan `private\surat-lampiran` secara manual. Jangan sentuh `public\ikon` dan `public\pengaturan-sekolah` — di situ logo sekolahnya.',
 ]);
 
 // =====================================================================
@@ -393,7 +405,7 @@ $d->h2('G.1 Sekali sebulan');
 
 $d->tabel(['Yang diperiksa', 'Caranya', 'Batas wajar'], [
     ['Ukuran database', 'phpMyAdmin → klik `sim_spenga` → lihat kolom Size di bawah daftar tabel', 'Di bawah 500 MB untuk beberapa tahun pemakaian'],
-    ['Ukuran folder unggahan', 'Klik kanan `storage\app\public` → Properties', 'Foto bukti BK yang paling cepat menumpuk'],
+    ['Ukuran folder unggahan', 'Klik kanan `storage\app` → Properties', 'Foto bukti BK di `private` yang paling cepat menumpuk'],
     ['Berkas log', 'Buka folder `storage\logs`', 'Hapus berkas `laravel-*.log` yang lebih lama dari 3 bulan'],
     ['Cadangan terakhir', 'Periksa tanggal berkas cadangan Anda', 'Tidak lebih lama dari 7 hari'],
 ], [24, 46, 30]);
@@ -527,7 +539,12 @@ $d->tabel(['Gejala', 'Penyebab', 'Tindakan'], [
     ['Semua **Gagal**, keterangannya soal nomor', 'Nomor WhatsApp guru kosong atau salah', 'Perbaiki di Kelola Pengguna, lalu klik Kirim ulang'],
     ['Semua **Gagal**, keterangannya soal token', 'Token perangkat salah, atau perangkat terputus di Fonnte', 'Sambungkan ulang perangkatnya di Fonnte, salin token baru'],
     ['Pesan uji berhasil tapi pengingat tidak', 'Pekerja antrian mati — pesan uji dikirim langsung, pengingat lewat antrian', 'Periksa proses antriannya'],
+    ['Semua kelas berstatus **Dilewati** pada satu hari', 'Hari itu ada Kegiatan Sekolah yang mencakup seluruh kelas — kehadirannya diisi wali kelas, jadi memang tidak ada jurnal yang perlu ditagih', 'Tidak ada. Ini perilaku yang benar'],
+    ['Banyak berstatus **Kedaluwarsa**', 'Pekerja antrian sempat mati cukup lama, sehingga pesannya baru diproses setelah hari mengajarnya lewat', 'Nyalakan lagi pekerjanya dan pastikan Task Scheduler menyalakannya ulang otomatis (H.2)'],
 ], [28, 34, 38]);
+
+$d->catatan('Pengingat yang telanjur basi tidak akan dikirim',
+    'Pengingat hanya berlaku pada hari mengajarnya. Bila pekerja antrian mati semalaman lalu dinyalakan pagi berikutnya, pesan yang menumpuk itu **tidak akan diberangkatkan** — semuanya ditandai Kedaluwarsa. Ini disengaja: guru tidak boleh menerima teguran tentang hari kemarin, apalagi di hari libur. Akibatnya jurnal hari itu memang lolos tanpa pengingat, jadi matinya pekerja antrian bukan perkara sepele.');
 
 $d->catatan('Kenapa pesan uji bisa berhasil padahal pengingat tidak',
     'Pesan uji sengaja dikirim **langsung** tanpa melewati antrian, karena Admin sedang menunggu jawabannya di layar. Pengingat sesungguhnya selalu lewat antrian. Jadi "pesan uji sampai tetapi pengingat tidak pernah datang" hampir selalu berarti pekerja antriannya yang mati — bukan tokennya yang salah.');
@@ -572,7 +589,17 @@ $d->tabel(['Setelan di .env', 'Nilai', 'Alasan'], [
 
 $d->p('Contoh lengkapnya tersedia di berkas `.env.production.example` pada folder aplikasi.');
 
-$d->h2('I.4 phpMyAdmin jangan terbuka dari luar');
+$d->h2('I.4 Berkas rahasia tidak boleh dilayani langsung');
+
+$d->p('Foto bukti pelanggaran & pembinaan BK dan lampiran surat disimpan di `storage/app/private`, **bukan** di `storage/app/public`. Bedanya menentukan:');
+
+$d->poin([
+    'Berkas di `public` disambungkan ke `public/storage` dan dilayani langsung oleh peladen web — tanpa login, tanpa peran, tanpa lisensi. Cocok untuk logo, tidak untuk catatan kedisiplinan siswa.',
+    'Berkas di `private` berada di luar jangkauan peladen web. Satu-satunya jalan membukanya adalah lewat aplikasi, dan aplikasi memeriksa dulu apakah penggunanya sudah masuk.',
+    'Jangan pernah memindahkan isi `private` ke `public` "supaya lebih mudah dibuka". Nama berkasnya memang acak, tetapi alamat bocor lewat riwayat peramban dan tangkapan layar — dan sekali bocor, berlaku selamanya.',
+]);
+
+$d->h2('I.5 phpMyAdmin jangan terbuka dari luar');
 
 $d->p('Bila server sekolah bisa diakses dari internet, pastikan `phpmyadmin` hanya bisa dibuka dari jaringan sekolah. phpMyAdmin yang terbuka adalah pintu masuk paling sering dipakai untuk mencuri isi database.');
 
@@ -660,7 +687,7 @@ php artisan data:kosongkan');
 
 $d->h2('Pengingat WhatsApp ke guru');
 
-$d->kode("REM Melihat sesi yang terlambat diisi hari ini, tanpa mengirim apa pun\nphp artisan pengingat:jurnal --lihat\n\nREM Memeriksa tanggal tertentu\nphp artisan pengingat:jurnal --tanggal=2026-09-01 --lihat\n\nREM Memastikan penjadwalnya terdaftar\nphp artisan schedule:list\n\nREM Menyuruh pekerja antrian memuat ulang kode setelah aplikasi diperbarui\nphp artisan queue:restart");
+$d->kode("REM Melihat sesi yang terlambat diisi hari ini, tanpa mengirim apa pun\nphp artisan pengingat:jurnal --lihat\n\nREM Memeriksa tanggal tertentu (hanya bisa DILIHAT; pengiriman sungguhan\nREM selalu untuk hari ini saja)\nphp artisan pengingat:jurnal --tanggal=2026-09-01 --lihat\n\nREM Memastikan penjadwalnya terdaftar\nphp artisan schedule:list\n\nREM Menyuruh pekerja antrian memuat ulang kode setelah aplikasi diperbarui\nphp artisan queue:restart");
 
 $d->h2('Perawatan');
 

@@ -75,12 +75,23 @@
                     </tr>
                     <tr class="bg-slate-50 text-slate-700">
                         @forelse($mapels as $m)
-                            {{-- Nama mapel diputar 90° supaya kolomnya tetap sempit
-                                 walau mata pelajarannya banyak (sampai belasan). --}}
-                            <th class="border border-slate-300 px-1 py-2 w-9 align-bottom h-28">
-                                <span class="block whitespace-nowrap origin-center -rotate-90 mx-auto"
-                                      title="{{ $m->nama_mapel }}">{{ $m->nama_mapel }}</span>
-                            </th>
+                            {{-- Yang ditulis di sini SINGKATANNYA (kolom `kode`,
+                                 mis. PJOK), bukan nama lengkapnya.
+
+                                 Dulu nama lengkap diputar 90° di dalam kotak
+                                 setinggi 112px. Selama namanya pendek itu rapi,
+                                 tetapi "Pendidikan Jasmani, Olahraga dan
+                                 Kesehatan" jauh lebih panjang dari 112px — teks
+                                 yang diputar itu meluber ke bawah dan menimpa
+                                 baris siswa pertama.
+
+                                 Dengan singkatan, teksnya cukup ditulis mendatar:
+                                 tidak ada lagi tinggi tetap yang bisa dilampaui,
+                                 dan kepala tabelnya jadi jauh lebih pendek serta
+                                 lebih mudah dibaca. Nama lengkapnya tetap terbaca
+                                 lewat tooltip. --}}
+                            <th class="border border-slate-300 px-1 py-2 align-middle min-w-[38px] max-w-[56px] leading-tight break-words"
+                                title="{{ $m->nama_mapel }}">{{ $m->labelRingkas() }}</th>
                         @empty
                             <th class="border border-slate-300 px-2 py-2 text-slate-400 font-normal">—</th>
                         @endforelse

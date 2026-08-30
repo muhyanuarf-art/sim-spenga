@@ -117,7 +117,7 @@ class BkKasusController extends Controller
 
         $buktiFilePath = null;
         if ($request->hasFile('bukti_file')) {
-            $buktiFilePath = $request->file('bukti_file')->store('bk/bukti-pelanggaran', 'public');
+            $buktiFilePath = $request->file('bukti_file')->store('bk/bukti-pelanggaran');
         }
 
         KasusSiswa::create([

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Jobs\KirimPengingatJurnalWhatsapp;
 use App\Models\JadwalPelajaran;
+use App\Models\KegiatanSekolah;
 use App\Models\PengaturanNotifikasiGuru;
 use App\Models\PengingatJurnal;
 use App\Models\TahunAjaran;
@@ -78,6 +79,28 @@ class KirimPengingatJurnal extends Command
             return self::SUCCESS;
         }
 
+        // PENGINGAT HANYA UNTUK HARI INI.
+        //
+        // `--tanggal` memang berguna untuk memeriksa hari lampau, tetapi
+        // hanya untuk DILIHAT. Mengirim sungguhan pengingat tentang hari
+        // yang sudah lewat tidak ada gunanya bagi siapa pun: jurnalnya
+        // sudah tidak bisa diisi tepat waktu lagi, dan pesannya tiba
+        // sebagai teguran atas sesuatu yang sudah berlalu — bisa-bisa di
+        // hari libur.
+        //
+        // Job pengiriman juga memeriksa hal yang sama sekali lagi tepat
+        // sebelum pesan keluar (lihat KirimPengingatJurnalWhatsapp::
+        // kadaluwarsa()), karena antrian bisa tertahan berjam-jam. Yang di
+        // sini mencegah barisnya dibuat sama sekali; yang di sana menjaga
+        // baris yang sudah terlanjur dibuat.
+        if (! $lihatSaja && ! $tanggal->isToday()) {
+            $this->warn('Tanggal '.$tanggal->translatedFormat('l, d F Y').' bukan hari ini.');
+            $this->line('  Pengingat hanya dikirim pada hari mengajarnya. Tambahkan --lihat');
+            $this->line('  untuk memeriksa hari itu tanpa mengirim apa pun.');
+
+            return self::SUCCESS;
+        }
+
         // Jendela jam kirim hanya berlaku untuk pengiriman sungguhan pada
         // HARI INI. Memeriksa tanggal lampau (mis. saat menguji) tidak
         // masuk akal dibatasi jam.
@@ -107,7 +130,16 @@ class KirimPengingatJurnal extends Command
         $terlambat = $this->cariSesiTerlambat($periode, $hari, $tanggal, $batas);
 
         if ($terlambat->isEmpty()) {
-            $this->info('Tidak ada sesi yang terlambat diisi. Semua jurnal & absensi sudah terisi.');
+            // Kalau seluruh sesi tersaring habis oleh Kegiatan Sekolah,
+            // tabel rinciannya tidak pernah sempat tampil — jadi nama
+            // kegiatan & kelasnya disebutkan di sini. Tanpa itu Admin cuma
+            // membaca "tidak ada apa-apa" dan tidak tahu apa sebabnya.
+            if (KegiatanSekolah::kelasIdBerkegiatanPada($tanggal) !== []) {
+                $this->info('Tidak ada sesi yang perlu diingatkan.');
+                $this->tampilkanKegiatan($tanggal);
+            } else {
+                $this->info('Tidak ada sesi yang terlambat diisi. Semua jurnal & absensi sudah terisi.');
+            }
 
             return self::SUCCESS;
         }
@@ -152,6 +184,34 @@ class KirimPengingatJurnal extends Command
     }
 
     /**
+     * Sebutkan kelas mana yang dikecualikan hari itu karena ada Kegiatan
+     * Sekolah, beserta nama kegiatannya.
+     *
+     * Dipakai di DUA tempat — saat ada temuan (di atas tabel) dan saat
+     * temuannya nihil — karena keduanya sama-sama membingungkan bila tidak
+     * dijelaskan: Admin yang tahu persis ada kelas belum mengisi jurnal
+     * akan mengira pengingatnya rusak.
+     */
+    private function tampilkanKegiatan(Carbon $tanggal): void
+    {
+        $kelasId = KegiatanSekolah::kelasIdBerkegiatanPada($tanggal);
+
+        if ($kelasId === []) {
+            return;
+        }
+
+        $namaKelas = \App\Models\Kelas::whereIn('id', $kelasId)
+            ->orderBy('nama_kelas')->pluck('nama_kelas')->implode(', ');
+        $namaKegiatan = KegiatanSekolah::berlangsungPadaTanggal($tanggal->toDateString())
+            ->pluck('nama')->implode(', ');
+
+        $this->newLine();
+        $this->line('Dikecualikan : '.$namaKelas);
+        $this->line('               ada Kegiatan Sekolah ('.$namaKegiatan.') — kehadirannya');
+        $this->line('               diisi wali kelas, bukan guru mata pelajaran.');
+    }
+
+    /**
      * Semua sesi pada $hari yang jam terakhirnya sudah lewat $batas dan
      * belum punya jurnal.
      *
@@ -180,8 +240,22 @@ class KirimPengingatJurnal extends Command
 
         $sesi = SesiMengajarGrouper::tandaiSudahDiisi($sesi, $jadwal, $tanggal->toDateString());
 
+        // KELAS YANG SEDANG BERKEGIATAN DIKELUARKAN.
+        //
+        // Pada hari kegiatan sekolah (lomba, classmeeting, pesantren, tryout)
+        // KBM biasa tidak berjalan: yang mengisi kehadiran adalah WALI KELAS
+        // lewat Absensi Kegiatan, bukan guru mapel lewat jurnal mengajar.
+        // Jadi jurnal yang kosong pada hari itu memang sudah semestinya —
+        // menagihnya berarti menyalahkan guru atas sesuatu yang bukan
+        // tugasnya hari itu.
+        //
+        // Cakupan kegiatan dihormati apa adanya: kegiatan khusus kelas 7
+        // tidak membebaskan kelas 8 dan 9.
+        $kelasBerkegiatan = KegiatanSekolah::kelasIdBerkegiatanPada($tanggal);
+
         return $sesi
             ->filter(fn ($s) => ! $s['sudah_diisi'])
+            ->filter(fn ($s) => ! in_array($s['slots']->first()->kelas_id, $kelasBerkegiatan, true))
             ->filter(function ($s) use ($tanggal, $batas) {
                 // Selesainya jam TERAKHIR pada sesi ini.
                 $selesai = $tanggal->copy()->setTimeFromTimeString($s['jam_akhir']->jam_selesai);
@@ -232,6 +306,9 @@ class KirimPengingatJurnal extends Command
         $this->line('Tanggal   : '.$tanggal->translatedFormat('l, d F Y'));
         $this->line('Jeda      : '.$pengaturan->jeda_menit.' menit setelah jam pelajaran selesai');
         $this->line('Ditemukan : '.$terlambat->count().' sesi belum terisi');
+
+        $this->tampilkanKegiatan($tanggal);
+
         $this->newLine();
 
         $this->table(

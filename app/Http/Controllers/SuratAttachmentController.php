@@ -17,7 +17,7 @@ class SuratAttachmentController extends Controller
         ]);
 
         $file = $validated['file'];
-        $path = $file->store('surat-lampiran', 'public');
+        $path = $file->store('surat-lampiran');
 
         SuratAttachment::create([
             'surat_id' => $surat->id,
@@ -37,7 +37,7 @@ class SuratAttachmentController extends Controller
         $surat = $lampiran->surat;
         $nama = $lampiran->nama_file;
 
-        Storage::disk('public')->delete($lampiran->path);
+        Storage::disk('local')->delete($lampiran->path);
         $lampiran->delete();
         SuratActivity::catat($surat, 'Lampiran dihapus', $nama);
 
