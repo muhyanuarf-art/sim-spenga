@@ -19,6 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // Lisensi diperiksa PALING DULU: selama nomor seri belum
         // dimasukkan, tidak ada satu halaman pun yang boleh terbuka —
         // termasuk login staf & portal orang tua.
+        // Aplikasi Android tidak punya token CSRF — ia bukan halaman yang
+        // dirender server. Pengaman rute ini bukan CSRF melainkan
+        // pembatasan laju + pemeriksaan kredensial; dan karena ia hanya
+        // MENERBITKAN tautan (tidak mengubah apa pun), pemalsuan lintas
+        // situs tidak menghasilkan apa-apa bagi penyerang.
+        $middleware->validateCsrfTokens(except: ['aplikasi/masuk']);
+
         $middleware->prependToGroup('web', [
             \App\Http\Middleware\EnsureLisensiAktif::class,
         ]);

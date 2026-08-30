@@ -40,6 +40,7 @@ use App\Http\Controllers\PengaturanPenilaianController;
 use App\Http\Controllers\ProgramPerbaikanController;
 use App\Http\Controllers\OrangTuaController;
 use App\Http\Controllers\OrangTuaDashboardController;
+use App\Http\Controllers\AplikasiMobileController;
 use App\Http\Controllers\BerkasTerlindungiController;
 use App\Http\Controllers\PengaturanNotifikasiController;
 use App\Http\Controllers\PengaturanSekolahController;
@@ -63,6 +64,15 @@ Route::get('site.webmanifest', [IkonAplikasiController::class, 'manifest'])->nam
 // ===== AKTIVASI LISENSI: satu-satunya halaman yang terbuka sebelum
 // aplikasi diaktifkan (lihat App\Support\Lisensi & middleware
 // EnsureLisensiAktif yang dipasang di grup 'web'). =====
+// ===== JEMBATAN APLIKASI ANDROID =====
+// Keduanya berada di grup 'web' (bukan berkas api terpisah) supaya ikut
+// melewati pemeriksaan lisensi dan punya sesi — sesi itulah yang justru
+// jadi tujuannya. Lihat App\Http\Controllers\AplikasiMobileController.
+Route::post('aplikasi/masuk', [AplikasiMobileController::class, 'masuk'])
+    ->name('aplikasi.masuk')->middleware('throttle:login');
+Route::get('aplikasi/masuk-otomatis/{user}', [AplikasiMobileController::class, 'masukOtomatis'])
+    ->name('aplikasi.masuk-otomatis')->middleware('signed');
+
 Route::get('aktivasi', [AktivasiController::class, 'form'])->name('aktivasi.form');
 Route::post('aktivasi', [AktivasiController::class, 'simpan'])->name('aktivasi.simpan')->middleware('throttle:aktivasi');
 

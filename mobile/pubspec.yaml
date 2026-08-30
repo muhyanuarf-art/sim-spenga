@@ -1,0 +1,30 @@
+name: sim_spenga
+description: Aplikasi Android SIM-SPENGA — SMP Negeri 3 Bumiayu.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # WebView: seluruh aplikasi web ditampilkan di dalamnya sesudah masuk.
+  webview_flutter: ^4.10.0
+
+  # Untuk satu permintaan saja — menukar kredensial dengan tautan masuk.
+  http: ^1.2.2
+
+  # Menyimpan alamat server & email terakhir. TIDAK menyimpan kata sandi.
+  shared_preferences: ^2.3.2
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
