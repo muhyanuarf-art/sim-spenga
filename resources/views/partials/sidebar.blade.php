@@ -9,7 +9,7 @@
 @endphp
 
 <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-       class="sidebar fixed z-40 inset-y-0 left-0 w-[17rem] transform transition-transform duration-200 lg:translate-x-0 lg:static lg:flex lg:flex-col"
+       class="sidebar fixed z-40 inset-y-0 left-0 w-[17rem] flex flex-col transform transition-transform duration-200 lg:translate-x-0 lg:static"
        x-data="{ cari: '' }">
 
     {{-- Identitas aplikasi --}}

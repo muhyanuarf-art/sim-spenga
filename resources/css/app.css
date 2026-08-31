@@ -314,3 +314,18 @@ body { -webkit-font-smoothing: antialiased; }
     .btn-chip-delete:hover,
     .btn-chip-success:hover { box-shadow: none; }
 }
+
+/* Bayangan tebal mahal digambar ulang saat digulir, dan di layar kecil
+   nyaris tak terlihat. Di perangkat sentuh dipakai bayangan tipis saja. */
+@media (hover: none) {
+    .card {
+        box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+    }
+
+    /* Tabel lebar punya penggulir sendiri. Tanpa ini, gulir vertikal yang
+       dimulai di atas tabel harus "dirambatkan" dulu ke halaman — itulah
+       sentakan yang terasa di awal usapan jari. */
+    .overflow-x-auto {
+        overscroll-behavior-x: contain;
+    }
+}
