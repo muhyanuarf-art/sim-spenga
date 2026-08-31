@@ -13,6 +13,10 @@ dependencies:
   # WebView: seluruh aplikasi web ditampilkan di dalamnya sesudah masuk.
   webview_flutter: ^4.10.0
 
+  # Dibutuhkan untuk menyetel mode komposisi WebView khusus Android —
+  # tanpa ini gulir terasa tersendat karena tiap frame disalin ke tekstur.
+  webview_flutter_android: ^4.14.1
+
   # Untuk satu permintaan saja — menukar kredensial dengan tautan masuk.
   http: ^1.2.2
 

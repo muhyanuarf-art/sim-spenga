@@ -1,5 +1,8 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 /// Seluruh aplikasi SIM-SPENGA ditampilkan di sini.
 ///
@@ -161,7 +164,18 @@ class _LayarWebState extends State<LayarWeb> {
         ),
         body: Stack(
           children: [
-            WebViewWidget(controller: _c),
+            // Di Android, WebView dipaksa memakai komposisi hibrida: penggambaran
+            // diserahkan ke view Android asli, bukan disalin ke tekstur Flutter
+            // setiap frame. Tanpa ini gulir terasa tersendat, padahal halaman
+            // yang sama mulus di Chrome pada ponsel yang sama.
+            Platform.isAndroid
+                ? WebViewWidget.fromPlatformCreationParams(
+                    params: AndroidWebViewWidgetCreationParams(
+                      controller: _c.platform,
+                      displayWithHybridComposition: true,
+                    ),
+                  )
+                : WebViewWidget(controller: _c),
             if (_galat != null)
               Container(
                 color: Colors.white,
