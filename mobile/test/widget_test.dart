@@ -17,7 +17,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SIM-SPENGA'), findsOneWidget);
-    expect(find.text('Email atau NIP'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
     expect(find.text('Kata Sandi'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Masuk'), findsOneWidget);
   });
@@ -38,10 +38,16 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: LayarMasuk()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Masuk'));
+    // Tata letaknya kini lebih tinggi dari layar uji bawaan (800x600),
+    // jadi tombolnya digulir ke tampilan dulu sebelum ditekan.
+    final tombol = find.widgetWithText(FilledButton, 'Masuk');
+    await tester.ensureVisible(tombol);
+    await tester.pumpAndSettle();
+
+    await tester.tap(tombol);
     await tester.pump();
 
-    expect(find.text('Email atau NIP belum diisi.'), findsOneWidget);
+    expect(find.text('Email belum diisi.'), findsOneWidget);
     expect(find.text('Kata sandi belum diisi.'), findsOneWidget);
   });
 
@@ -50,9 +56,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: LayarMasuk()));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.visibility), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.visibility));
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.visibility_outlined));
     await tester.pump();
-    expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
   });
 }

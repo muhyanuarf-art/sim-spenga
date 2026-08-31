@@ -2,6 +2,9 @@
 
     <!-- Aplikasi ini seluruhnya berbicara dengan server sekolah. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Masuk dengan sidik jari (opsional, dinyalakan sendiri oleh pengguna). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <application
         android:usesCleartextTraffic="true"
         android:label="SIM-SPENGA"

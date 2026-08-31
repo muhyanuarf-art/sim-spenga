@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'biometrik.dart';
 import 'layanan.dart';
 import 'layar_web.dart';
 
@@ -7,12 +8,19 @@ import 'layar_web.dart';
 ///
 /// Sengaja bukan halaman web: di sinilah pembatasan peran terasa jelas
 /// bagi pengguna (Admin ditolak dengan kalimat yang menjelaskan alasannya,
-/// bukan sekadar dilempar balik), dan di sinilah alamat server bisa
-/// diperbaiki tanpa perlu masuk ke aplikasi lebih dulu.
+/// bukan sekadar dilempar balik), di sinilah alamat server bisa diperbaiki
+/// tanpa perlu masuk lebih dulu, dan di sinilah sidik jari bisa dipakai —
+/// tiga hal yang tidak mungkin dikerjakan halaman web.
 ///
 /// Yang MENEGAKKAN pembatasan itu tetap server — lihat
 /// App\Http\Controllers\AplikasiMobileController. Layar ini hanya
 /// menyampaikan jawabannya dengan enak dibaca.
+///
+/// TAMPILANNYA sengaja dibuat sama persis dengan halaman login web
+/// (resources/views/auth/login.blade.php): gradien brand-900 → brand-600,
+/// kartu putih melengkung, isian bergaya .input, tombol .btn-primary.
+/// Pengguna berpindah antara ponsel dan komputer sepanjang hari; dua
+/// wajah yang berbeda untuk pintu masuk yang sama hanya membingungkan.
 class LayarMasuk extends StatefulWidget {
   const LayarMasuk({super.key});
 
@@ -21,6 +29,16 @@ class LayarMasuk extends StatefulWidget {
 }
 
 class _LayarMasukState extends State<LayarMasuk> {
+  // Palet diambil dari tailwind.config.js supaya benar-benar sewarna.
+  static const _brand900 = Color(0xFF193C8C);
+  static const _brand800 = Color(0xFF1844B3);
+  static const _brand600 = Color(0xFF1C68F2);
+  static const _brand500 = Color(0xFF3388FD);
+  static const _slate800 = Color(0xFF1E293B);
+  static const _slate500 = Color(0xFF64748B);
+  static const _slate400 = Color(0xFF94A3B8);
+  static const _garis = Color(0xFFDBE2EE);
+
   final _emailC = TextEditingController();
   final _sandiC = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -31,6 +49,9 @@ class _LayarMasukState extends State<LayarMasuk> {
   String? _pesanGalat;
   String _alamatServer = '';
 
+  bool _biometrikTersedia = false;
+  bool _biometrikAktif = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,12 +61,24 @@ class _LayarMasukState extends State<LayarMasuk> {
   Future<void> _muatAwal() async {
     final alamat = await Layanan.alamatServer();
     final email = await Layanan.emailTerakhir();
+    final tersedia = await Biometrik.tersedia();
+    final aktif = await Biometrik.aktif();
+
     if (!mounted) return;
     setState(() {
       _alamatServer = alamat;
       if (email != null) _emailC.text = email;
       _ingatEmail = email != null;
+      _biometrikTersedia = tersedia;
+      _biometrikAktif = aktif;
     });
+
+    // Kalau sudah dinyalakan, langsung tawarkan sidik jari begitu aplikasi
+    // dibuka — itulah gunanya. Pengguna tetap bisa membatalkan dan
+    // mengetik kata sandi seperti biasa.
+    if (tersedia && aktif) {
+      await _masukBiometrik();
+    }
   }
 
   @override
@@ -53,6 +86,47 @@ class _LayarMasukState extends State<LayarMasuk> {
     _emailC.dispose();
     _sandiC.dispose();
     super.dispose();
+  }
+
+  /// Masuk memakai kredensial yang dijaga sidik jari.
+  Future<void> _masukBiometrik() async {
+    if (_sedangMasuk) return;
+
+    final lolos = await Biometrik.minta('Buktikan diri Anda untuk masuk.');
+    if (!lolos || !mounted) return;
+
+    final kredensial = await Biometrik.ambil();
+    if (kredensial == null) {
+      // Brankas kosong padahal ditandai aktif — rapikan keadaannya.
+      await Biometrik.lupakan();
+      if (!mounted) return;
+      setState(() => _biometrikAktif = false);
+      return;
+    }
+
+    setState(() {
+      _sedangMasuk = true;
+      _pesanGalat = null;
+    });
+
+    final hasil = await Layanan.masuk(kredensial.email, kredensial.sandi);
+    if (!mounted) return;
+
+    if (!hasil.berhasil) {
+      // Kata sandi yang tersimpan sudah basi (mis. diganti Admin).
+      // Menyimpannya lebih lama hanya akan gagal berulang kali.
+      await Biometrik.lupakan();
+      if (!mounted) return;
+      setState(() {
+        _sedangMasuk = false;
+        _biometrikAktif = false;
+        _pesanGalat = '${hasil.pesan}\n\nMasuk dengan sidik jari dimatikan. '
+            'Silakan masuk dengan kata sandi, lalu nyalakan lagi.';
+      });
+      return;
+    }
+
+    await _lanjutKeAplikasi(hasil);
   }
 
   Future<void> _masuk() async {
@@ -63,7 +137,9 @@ class _LayarMasukState extends State<LayarMasuk> {
       _pesanGalat = null;
     });
 
-    final hasil = await Layanan.masuk(_emailC.text.trim(), _sandiC.text);
+    final email = _emailC.text.trim();
+    final sandi = _sandiC.text;
+    final hasil = await Layanan.masuk(email, sandi);
 
     if (!mounted) return;
 
@@ -75,10 +151,24 @@ class _LayarMasukState extends State<LayarMasuk> {
       return;
     }
 
-    await Layanan.simpanEmail(_ingatEmail ? _emailC.text.trim() : null);
-
+    await Layanan.simpanEmail(_ingatEmail ? email : null);
     if (!mounted) return;
 
+    // Tawarkan sidik jari HANYA sesudah kata sandinya terbukti benar —
+    // menyimpan kredensial yang salah tidak ada gunanya.
+    if (_biometrikTersedia && !_biometrikAktif) {
+      final mau = await _tanyaAktifkanBiometrik();
+      if (mau) {
+        await Biometrik.simpan(email, sandi);
+        if (mounted) setState(() => _biometrikAktif = true);
+      }
+    }
+
+    if (!mounted) return;
+    await _lanjutKeAplikasi(hasil);
+  }
+
+  Future<void> _lanjutKeAplikasi(HasilMasuk hasil) async {
     // Kata sandi dibuang dari ingatan begitu tidak diperlukan lagi.
     _sandiC.clear();
 
@@ -94,6 +184,58 @@ class _LayarMasukState extends State<LayarMasuk> {
 
     if (!mounted) return;
     setState(() => _sedangMasuk = false);
+  }
+
+  Future<bool> _tanyaAktifkanBiometrik() async {
+    final jawab = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.fingerprint, size: 40, color: _brand600),
+        title: const Text('Masuk dengan sidik jari?'),
+        content: const Text(
+          'Lain kali Anda cukup menempelkan sidik jari, tanpa mengetik kata '
+          'sandi.\n\nKata sandi disimpan terkunci di ponsel ini saja, dan '
+          'hanya terbuka oleh sidik jari Anda.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Nanti saja'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Nyalakan'),
+          ),
+        ],
+      ),
+    );
+
+    return jawab ?? false;
+  }
+
+  Future<void> _lupakanBiometrik() async {
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Lupakan sidik jari?'),
+        content: const Text(
+          'Kata sandi yang tersimpan akan dihapus dari ponsel ini. Anda perlu '
+          'mengetiknya lagi saat masuk berikutnya.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+        ],
+      ),
+    );
+
+    if (yakin != true) return;
+
+    await Biometrik.lupakan();
+    if (!mounted) return;
+    setState(() => _biometrikAktif = false);
   }
 
   Future<void> _gantiAlamatServer() async {
@@ -145,152 +287,72 @@ class _LayarMasukState extends State<LayarMasuk> {
     });
   }
 
+  /// Isian bergaya .input di app.css: tepi #dbe2ee, sudut membulat,
+  /// dan cincin biru tipis saat difokus.
+  InputDecoration _gayaIsian({required String petunjuk, Widget? akhiran}) {
+    OutlineInputBorder tepi(Color warna, double tebal) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: warna, width: tebal),
+        );
+
+    return InputDecoration(
+      hintText: petunjuk,
+      hintStyle: const TextStyle(color: _slate400, fontSize: 14.5),
+      suffixIcon: akhiran,
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+      border: tepi(_garis, 1),
+      enabledBorder: tepi(_garis, 1),
+      focusedBorder: tepi(_brand500, 1.6),
+      errorBorder: tepi(const Color(0xFFE0392F), 1),
+      focusedErrorBorder: tepi(const Color(0xFFE0392F), 1.6),
+      errorStyle: const TextStyle(fontSize: 12.5),
+    );
+  }
+
+  Widget _label(String teks) => Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Text(
+          teks,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: _slate500,
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _Kepala(),
-                  const SizedBox(height: 24),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(22),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text(
-                              'Masuk',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Gunakan akun yang sama seperti di komputer.',
-                              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-                            ),
-                            const SizedBox(height: 20),
-
-                            TextFormField(
-                              controller: _emailC,
-                              enabled: !_sedangMasuk,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              style: const TextStyle(fontSize: 16),
-                              decoration: const InputDecoration(
-                                labelText: 'Email atau NIP',
-                                prefixIcon: Icon(Icons.person_outline),
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (v) =>
-                                  (v == null || v.trim().isEmpty) ? 'Email atau NIP belum diisi.' : null,
-                            ),
-                            const SizedBox(height: 14),
-
-                            TextFormField(
-                              controller: _sandiC,
-                              enabled: !_sedangMasuk,
-                              obscureText: !_sandiTerlihat,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _sedangMasuk ? null : _masuk(),
-                              style: const TextStyle(fontSize: 16),
-                              decoration: InputDecoration(
-                                labelText: 'Kata Sandi',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_sandiTerlihat ? Icons.visibility_off : Icons.visibility),
-                                  tooltip: _sandiTerlihat ? 'Sembunyikan' : 'Tampilkan',
-                                  onPressed: () => setState(() => _sandiTerlihat = !_sandiTerlihat),
-                                ),
-                              ),
-                              validator: (v) =>
-                                  (v == null || v.isEmpty) ? 'Kata sandi belum diisi.' : null,
-                            ),
-
-                            CheckboxListTile(
-                              value: _ingatEmail,
-                              onChanged: _sedangMasuk ? null : (v) => setState(() => _ingatEmail = v ?? false),
-                              title: const Text('Ingat email saya', style: TextStyle(fontSize: 14)),
-                              subtitle: const Text(
-                                'Kata sandi tidak pernah disimpan.',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: EdgeInsets.zero,
-                              dense: true,
-                            ),
-
-                            if (_pesanGalat != null) ...[
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFEF2F2),
-                                  border: Border.all(color: const Color(0xFFFECACA)),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _pesanGalat!,
-                                        style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 14, height: 1.4),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              height: 52,
-                              child: FilledButton(
-                                onPressed: _sedangMasuk ? null : _masuk,
-                                child: _sedangMasuk
-                                    ? const SizedBox(
-                                        width: 22, height: 22,
-                                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                                      )
-                                    : const Text('Masuk', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                  TextButton.icon(
-                    onPressed: _sedangMasuk ? null : _gantiAlamatServer,
-                    icon: const Icon(Icons.dns_outlined, size: 18, color: Colors.white70),
-                    label: Text(
-                      'Server: $_alamatServer',
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Akun Admin dan portal orang tua tidak dapat masuk lewat aplikasi ini.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white38, fontSize: 12, height: 1.5),
-                  ),
-                ],
+      body: Container(
+        // Sepadan dengan `bg-gradient-to-br from-brand-900 via-brand-800
+        // to-brand-600` di halaman login web.
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [_brand900, _brand800, _brand600],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 448),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const _Kepala(),
+                    const SizedBox(height: 28),
+                    _kartuMasuk(),
+                    const SizedBox(height: 24),
+                    _kaki(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -298,8 +360,250 @@ class _LayarMasukState extends State<LayarMasuk> {
       ),
     );
   }
+
+  Widget _kartuMasuk() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(26),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Masuk ke Akun Anda',
+              style: TextStyle(fontSize: 17.5, fontWeight: FontWeight.bold, color: _slate800),
+            ),
+            const SizedBox(height: 3),
+            const Text(
+              'Gunakan email dan kata sandi yang diberikan Admin sekolah.',
+              style: TextStyle(fontSize: 13.5, color: _slate400, height: 1.4),
+            ),
+            const SizedBox(height: 22),
+
+            if (_pesanGalat != null) ...[
+              _kotakGalat(),
+              const SizedBox(height: 18),
+            ],
+
+            _label('Email'),
+            TextFormField(
+              controller: _emailC,
+              enabled: !_sedangMasuk,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              style: const TextStyle(fontSize: 14.5, color: _slate800),
+              decoration: _gayaIsian(petunjuk: 'nama@sekolah.sch.id'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Email belum diisi.' : null,
+            ),
+            const SizedBox(height: 16),
+
+            _label('Kata Sandi'),
+            TextFormField(
+              controller: _sandiC,
+              enabled: !_sedangMasuk,
+              obscureText: !_sandiTerlihat,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _sedangMasuk ? null : _masuk(),
+              style: const TextStyle(fontSize: 14.5, color: _slate800),
+              decoration: _gayaIsian(
+                petunjuk: '••••••••',
+                akhiran: IconButton(
+                  icon: Icon(
+                    _sandiTerlihat ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    size: 20,
+                    color: _slate400,
+                  ),
+                  tooltip: _sandiTerlihat ? 'Sembunyikan' : 'Tampilkan',
+                  onPressed: () => setState(() => _sandiTerlihat = !_sandiTerlihat),
+                ),
+              ),
+              validator: (v) => (v == null || v.isEmpty) ? 'Kata sandi belum diisi.' : null,
+            ),
+            const SizedBox(height: 10),
+
+            // Sepadan dengan "Ingat saya di perangkat ini" di halaman web.
+            InkWell(
+              onTap: _sedangMasuk ? null : () => setState(() => _ingatEmail = !_ingatEmail),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Checkbox(
+                        value: _ingatEmail,
+                        onChanged: _sedangMasuk
+                            ? null
+                            : (v) => setState(() => _ingatEmail = v ?? false),
+                        activeColor: _brand600,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Ingat saya di perangkat ini',
+                        style: TextStyle(fontSize: 13.5, color: _slate500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            SizedBox(
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: _sedangMasuk ? null : _masuk,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _brand600,
+                  disabledBackgroundColor: _brand600.withValues(alpha: 0.55),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: _sedangMasuk
+                    ? const SizedBox.shrink()
+                    : const Icon(Icons.login_rounded, size: 18),
+                label: _sedangMasuk
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                      )
+                    : const Text(
+                        'Masuk',
+                        style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                      ),
+              ),
+            ),
+
+            if (_biometrikTersedia && _biometrikAktif) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: Color(0xFFE6EAF2))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      'atau',
+                      style: TextStyle(fontSize: 12, color: _slate400.withValues(alpha: 0.9)),
+                    ),
+                  ),
+                  const Expanded(child: Divider(color: Color(0xFFE6EAF2))),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 46,
+                child: OutlinedButton.icon(
+                  onPressed: _sedangMasuk ? null : _masukBiometrik,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _brand600,
+                    side: const BorderSide(color: _garis),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.fingerprint, size: 22),
+                  label: const Text(
+                    'Masuk dengan sidik jari',
+                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  onPressed: _sedangMasuk ? null : _lupakanBiometrik,
+                  child: const Text(
+                    'Lupakan sidik jari',
+                    style: TextStyle(fontSize: 12.5, color: _slate400),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _kotakGalat() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        border: Border.all(color: const Color(0xFFFECACA)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 19),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              _pesanGalat!,
+              style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13.5, height: 1.45),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kaki() {
+    return Column(
+      children: [
+        TextButton.icon(
+          onPressed: _sedangMasuk ? null : _gantiAlamatServer,
+          icon: const Icon(Icons.dns_outlined, size: 17, color: Colors.white70),
+          label: Text(
+            'Server: $_alamatServer',
+            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Akun Admin dan portal orang tua tidak dapat masuk lewat aplikasi ini.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 11.5,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '© ${DateTime.now().year} SIM-SPENGA · SMP Negeri 3 Bumiayu',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.4),
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
+/// Kepala halaman: kotak inisial, nama aplikasi, nama sekolah, dan satu
+/// baris keterangan — susunan yang sama persis dengan halaman login web.
 class _Kepala extends StatelessWidget {
   const _Kepala();
 
@@ -308,22 +612,48 @@ class _Kepala extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 64, height: 64,
+          width: 64,
+          height: 64,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
-          child: const Icon(Icons.school_outlined, color: Colors.white, size: 32),
+          alignment: Alignment.center,
+          child: const Text(
+            'SIM',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         const Text(
           'SIM-SPENGA',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+          ),
         ),
-        const SizedBox(height: 2),
-        const Text(
+        const SizedBox(height: 5),
+        Text(
           'SMP Negeri 3 Bumiayu',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 13.5,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          'Monitoring & manajemen guru serta siswa',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 11.5,
+          ),
         ),
       ],
     );

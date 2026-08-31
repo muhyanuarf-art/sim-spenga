@@ -35,9 +35,13 @@ class HasilMasuk {
 /// masuk-sekali, lalu membuka tautan itu di WebView supaya sesinya
 /// terbentuk seperti login biasa.
 ///
-/// Akibatnya kata sandi TIDAK PERNAH disimpan di ponsel. Yang tersimpan
+/// Akibatnya kata sandi tidak disimpan di sini. Yang tersimpan lewat kelas ini
 /// hanya alamat server dan (bila dipilih) alamat surel — supaya tidak
 /// perlu diketik ulang tiap hari.
+///
+/// SATU-SATUNYA pengecualian ada di Biometrik: bila pengguna sendiri
+/// menyalakan masuk dengan sidik jari, kata sandinya disimpan terenkripsi
+/// di Android Keystore dan hanya bisa dibaca sesudah sidik jarinya cocok.
 class Layanan {
   /// Alamat server bawaan. Diisi saat pemasangan di sekolah; pengguna
   /// tetap bisa menggantinya dari aplikasi bila alamatnya berubah.

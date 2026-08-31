@@ -1,5 +1,7 @@
 package id.sch.spenga.sim_spenga
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity, bukan FlutterActivity: local_auth memunculkan
+// dialog sidik jari lewat BiometricPrompt, yang menuntut FragmentActivity.
+class MainActivity : FlutterFragmentActivity()
