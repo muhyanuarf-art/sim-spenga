@@ -292,3 +292,25 @@ body { -webkit-font-smoothing: antialiased; }
     page-break-inside: avoid;
     break-inside: avoid;
 }
+
+/* =========================================================================
+   PERANGKAT SENTUH — HEMAT REPAINT SAAT DIGULIR
+   =========================================================================
+   Efek hover tidak berguna di layar sentuh: jari tidak "melayang". Yang
+   terjadi malah Chrome menempelkan status :hover saat disentuh lalu
+   menahannya, sehingga bayangan & transform ikut digambar ulang ketika
+   halaman digulir. Di sini efeknya dimatikan khusus perangkat tanpa
+   penunjuk melayang; tampilan di desktop sama sekali tidak berubah.
+   ========================================================================= */
+@media (hover: none) {
+    .card-hover { transition: none; }
+    .card-hover:hover {
+        box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 16px -8px rgba(16, 24, 40, .1);
+        border-color: #e6eaf2;
+        transform: none;
+    }
+    .btn-primary:hover { box-shadow: 0 2px 8px -2px rgba(28, 104, 242, .5); }
+    .btn-chip-edit:hover,
+    .btn-chip-delete:hover,
+    .btn-chip-success:hover { box-shadow: none; }
+}

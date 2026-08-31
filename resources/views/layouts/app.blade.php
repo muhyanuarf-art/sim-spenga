@@ -22,11 +22,11 @@
     @include('partials.sidebar')
 
     <div x-show="sidebarOpen" @click="sidebarOpen = false" x-cloak x-transition.opacity
-         class="fixed inset-0 bg-slate-900/50 backdrop-blur-[2px] z-30 lg:hidden"></div>
+         class="fixed inset-0 bg-slate-900/50 z-30 lg:hidden"></div>
 
     <div class="flex-1 flex flex-col min-w-0">
         {{-- ===== Top bar ===== --}}
-        <header class="h-16 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-3">
+        <header class="h-16 bg-white lg:bg-white/95 lg:backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-3">
             <div class="flex items-center gap-3 min-w-0">
                 <button @click="sidebarOpen = !sidebarOpen"
                         class="lg:hidden w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-600 shrink-0">
