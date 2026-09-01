@@ -74,7 +74,10 @@
         <a href="{{ route('orangtua.login') }}" class="underline font-semibold hover:text-white">Masuk di portal orang tua</a>
     </p>
     <p class="text-center text-blue-100/50 text-xs mt-3">
-        &copy; {{ date('Y') }} SIM-SPENGA &middot; {{ $sekolah->nama_sekolah ?? 'SMP Negeri' }}
+        SIM-SPENGA &middot; {{ $sekolah->nama_sekolah ?? 'SMP Negeri' }}
+    </p>
+    <p class="text-center text-blue-100/50 text-xs mt-3">
+        &copy; {{ date('Y') }} FF Production
     </p>
 </div>
 
