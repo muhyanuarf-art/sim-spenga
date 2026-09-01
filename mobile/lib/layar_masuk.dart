@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'biometrik.dart';
+import 'identitas_sekolah.dart';
 import 'layanan.dart';
+import 'layar_lupa_sandi.dart';
 import 'layar_web.dart';
 
 /// Layar masuk NATIVE.
@@ -52,6 +56,8 @@ class _LayarMasukState extends State<LayarMasuk> {
   bool _biometrikTersedia = false;
   bool _biometrikAktif = false;
 
+  IdentitasSekolah? _sekolah;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +69,7 @@ class _LayarMasukState extends State<LayarMasuk> {
     final email = await Layanan.emailTerakhir();
     final tersedia = await Biometrik.tersedia();
     final aktif = await Biometrik.aktif();
+    final sekolah = await IdentitasSekolah.tersimpan();
 
     if (!mounted) return;
     setState(() {
@@ -71,7 +78,12 @@ class _LayarMasukState extends State<LayarMasuk> {
       _ingatEmail = email != null;
       _biometrikTersedia = tersedia;
       _biometrikAktif = aktif;
+      _sekolah = sekolah;
     });
+
+    // Identitas sekolah diperbarui diam-diam di latar: layar masuk tidak
+    // boleh menunggu jaringan hanya demi sebuah logo.
+    unawaited(_segarkanIdentitas());
 
     // Kalau sudah dinyalakan, langsung tawarkan sidik jari begitu aplikasi
     // dibuka — itulah gunanya. Pengguna tetap bisa membatalkan dan
@@ -79,6 +91,14 @@ class _LayarMasukState extends State<LayarMasuk> {
     if (tersedia && aktif) {
       await _masukBiometrik();
     }
+  }
+
+  /// Tanya server siapa dirinya. Gagal pun tidak apa-apa: yang tersimpan
+  /// tetap terpakai, dan layar masuk tidak menampilkan galat karenanya.
+  Future<void> _segarkanIdentitas() async {
+    final baru = await IdentitasSekolah.ambilDariServer();
+    if (baru == null || !mounted) return;
+    setState(() => _sekolah = baru);
   }
 
   @override
@@ -214,28 +234,23 @@ class _LayarMasukState extends State<LayarMasuk> {
     return jawab ?? false;
   }
 
-  Future<void> _lupakanBiometrik() async {
-    final yakin = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Lupakan sidik jari?'),
-        content: const Text(
-          'Kata sandi yang tersimpan akan dihapus dari ponsel ini. Anda perlu '
-          'mengetiknya lagi saat masuk berikutnya.',
-          style: TextStyle(fontSize: 14, height: 1.5),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
-        ],
+  /// Buka alur lupa kata sandi. Sidik jari ikut dicabut di sana, karena
+  /// kredensial tersimpannya menjadi basi begitu kata sandinya diganti —
+  /// itulah sebabnya tombol "Lupakan sidik jari" yang berdiri sendiri
+  /// tidak lagi diperlukan di layar ini.
+  Future<void> _bukaLupaSandi() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LayarLupaSandi(emailAwal: _emailC.text.trim()),
       ),
     );
 
-    if (yakin != true) return;
-
-    await Biometrik.lupakan();
     if (!mounted) return;
-    setState(() => _biometrikAktif = false);
+
+    // Kembali dari sana, sidik jari mungkin sudah dicabut.
+    final aktif = await Biometrik.aktif();
+    if (!mounted) return;
+    setState(() => _biometrikAktif = aktif);
   }
 
   Future<void> _gantiAlamatServer() async {
@@ -285,6 +300,9 @@ class _LayarMasukState extends State<LayarMasuk> {
       _alamatServer = tersimpan;
       _pesanGalat = null;
     });
+
+    // Alamat baru bisa berarti sekolah yang berbeda.
+    unawaited(_segarkanIdentitas());
   }
 
   /// Isian bergaya .input di app.css: tepi #dbe2ee, sudut membulat,
@@ -346,7 +364,15 @@ class _LayarMasukState extends State<LayarMasuk> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const _Kepala(),
+                    // Alamat server tidak lagi tertulis di layar, tapi tetap
+                    // harus bisa diganti kalau server sekolah pindah alamat —
+                    // tanpa jalan ini, satu-satunya cara adalah membangun
+                    // ulang APK. Disembunyikan di balik tekan-lama pada logo
+                    // supaya tidak terpencet guru secara tidak sengaja.
+                    GestureDetector(
+                      onLongPress: _sedangMasuk ? null : _gantiAlamatServer,
+                      child: _Kepala(sekolah: _sekolah),
+                    ),
                     const SizedBox(height: 28),
                     _kartuMasuk(),
                     const SizedBox(height: 24),
@@ -526,17 +552,21 @@ class _LayarMasukState extends State<LayarMasuk> {
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.center,
-                child: TextButton(
-                  onPressed: _sedangMasuk ? null : _lupakanBiometrik,
-                  child: const Text(
-                    'Lupakan sidik jari',
-                    style: TextStyle(fontSize: 12.5, color: _slate400),
-                  ),
+            ],
+
+            // Selalu tampil, bukan hanya saat sidik jari menyala: yang
+            // lupa kata sandi justru paling sering yang belum pernah
+            // menyalakannya.
+            Align(
+              alignment: Alignment.center,
+              child: TextButton(
+                onPressed: _sedangMasuk ? null : _bukaLupaSandi,
+                child: const Text(
+                  'Lupa kata sandi?',
+                  style: TextStyle(fontSize: 13, color: _slate500),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -570,31 +600,25 @@ class _LayarMasukState extends State<LayarMasuk> {
   Widget _kaki() {
     return Column(
       children: [
-        TextButton.icon(
-          onPressed: _sedangMasuk ? null : _gantiAlamatServer,
-          icon: const Icon(Icons.dns_outlined, size: 17, color: Colors.white70),
-          label: Text(
-            'Server: $_alamatServer',
-            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
-          ),
-        ),
-        const SizedBox(height: 4),
         Text(
-          'Akun Admin dan portal orang tua tidak dapat masuk lewat aplikasi ini.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
-            fontSize: 11.5,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          '© ${DateTime.now().year} SIM-SPENGA · SMP Negeri 3 Bumiayu',
+          'SIM-SPENGA · ${_sekolah?.nama ?? "SMP Negeri"}',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.4),
             fontSize: 11,
+          ),
+        ),
+        const SizedBox(height: 3),
+        // Tahun sengaja TETAP 2026, bukan tahun berjalan: ini tahun
+        // pembuatan aplikasinya, dan hak cipta tidak ikut bergeser
+        // hanya karena kalender berganti.
+        Text(
+          '© 2026 FF Production',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.45),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -602,13 +626,22 @@ class _LayarMasukState extends State<LayarMasuk> {
   }
 }
 
-/// Kepala halaman: kotak inisial, nama aplikasi, nama sekolah, dan satu
+/// Kepala halaman: logo sekolah, nama aplikasi, nama sekolah, dan satu
 /// baris keterangan — susunan yang sama persis dengan halaman login web.
+///
+/// Logo & nama diambil dari server (lihat IdentitasSekolah). Selama
+/// belum terambil — pemasangan baru, atau server sedang tak terjangkau —
+/// yang tampil adalah inisial sekolah, persis seperti halaman web ketika
+/// Logo Aplikasi belum diunggah.
 class _Kepala extends StatelessWidget {
-  const _Kepala();
+  const _Kepala({required this.sekolah});
+
+  final IdentitasSekolah? sekolah;
 
   @override
   Widget build(BuildContext context) {
+    final logo = sekolah?.logoUrl;
+
     return Column(
       children: [
         Container(
@@ -619,15 +652,25 @@ class _Kepala extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
+          clipBehavior: Clip.antiAlias,
           alignment: Alignment.center,
-          child: const Text(
-            'SIM',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          child: logo == null
+              ? _inisial()
+              : Padding(
+                  // Sepadan dengan `object-contain p-2` di halaman web.
+                  padding: const EdgeInsets.all(8),
+                  child: Image.network(
+                    logo,
+                    fit: BoxFit.contain,
+                    // Selama logo masih diunduh, inisial dulu yang tampil —
+                    // lebih baik daripada kotak kosong yang berkedip.
+                    frameBuilder: (_, anak, frame, __) =>
+                        frame == null ? _inisial() : anak,
+                    // Server mati atau berkasnya terhapus tidak boleh
+                    // menyisakan ikon gambar rusak di layar masuk.
+                    errorBuilder: (_, __, ___) => _inisial(),
+                  ),
+                ),
         ),
         const SizedBox(height: 16),
         const Text(
@@ -641,7 +684,8 @@ class _Kepala extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          'SMP Negeri 3 Bumiayu',
+          sekolah?.nama ?? 'Sistem Informasi Manajemen Sekolah',
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.8),
             fontSize: 13.5,
@@ -658,4 +702,15 @@ class _Kepala extends StatelessWidget {
       ],
     );
   }
+
+  Widget _inisial() => Center(
+        child: Text(
+          sekolah?.inisial ?? 'SIM',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
 }

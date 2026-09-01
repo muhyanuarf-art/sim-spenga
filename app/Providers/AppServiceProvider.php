@@ -89,5 +89,17 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             });
         });
+
+        // Minta kode reset = mengirim pesan WhatsApp yang berbiaya, jadi
+        // dibatasi lebih ketat daripada login. Batas per jam ada supaya
+        // pengulangan pelan-pelan pun tidak bisa menguras kuota Fonnte.
+        RateLimiter::for('reset-sandi', function ($request) {
+            $key = Str::lower((string) $request->input('email')) . '|' . $request->ip();
+
+            return [
+                Limit::perMinute(3)->by($key),
+                Limit::perHour(10)->by($key),
+            ];
+        });
     }
 }

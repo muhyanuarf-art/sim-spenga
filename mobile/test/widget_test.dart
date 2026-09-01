@@ -22,15 +22,31 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Masuk'), findsOneWidget);
   });
 
-  testWidgets('memberi tahu bahwa Admin & orang tua tidak bisa masuk',
+  testWidgets('menampilkan jalan keluar lupa kata sandi & hak cipta',
       (WidgetTester tester) async {
     await tester.pumpWidget(const AplikasiSimSpenga());
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('Admin dan portal orang tua tidak dapat masuk'),
-      findsOneWidget,
-    );
+    expect(find.text('Lupa kata sandi?'), findsOneWidget);
+    expect(find.text('© 2026 FF Production'), findsOneWidget);
+  });
+
+  testWidgets('lupa kata sandi membuka layarnya sendiri',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LayarMasuk()));
+    await tester.pumpAndSettle();
+
+    final tautan = find.text('Lupa kata sandi?');
+    await tester.ensureVisible(tautan);
+    await tester.pumpAndSettle();
+
+    await tester.tap(tautan);
+    await tester.pumpAndSettle();
+
+    // Langkah pertama di layar itu: mengisi email, belum menghubungi
+    // server sama sekali.
+    expect(find.text('Lupa Kata Sandi'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Kirim Kode'), findsOneWidget);
   });
 
   testWidgets('isian kosong ditolak sebelum menghubungi server',

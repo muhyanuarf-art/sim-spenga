@@ -24,7 +24,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // pembatasan laju + pemeriksaan kredensial; dan karena ia hanya
         // MENERBITKAN tautan (tidak mengubah apa pun), pemalsuan lintas
         // situs tidak menghasilkan apa-apa bagi penyerang.
-        $middleware->validateCsrfTokens(except: ['aplikasi/masuk']);
+        //
+        // Dua rute lupa-sandi menyusul dengan alasan yang MIRIP TAPI TIDAK
+        // SAMA — yang kedua memang mengubah kata sandi. Yang menjaganya di
+        // sana bukan CSRF melainkan KODE OTP yang dikirim ke WhatsApp nomor
+        // milik akun itu: permintaan palsu lintas situs paling jauh hanya
+        // memicu pengiriman satu pesan (dan itu pun dibatasi laju), sebab
+        // penyerang tidak pernah melihat kodenya.
+        $middleware->validateCsrfTokens(except: [
+            'aplikasi/masuk',
+            'aplikasi/lupa-sandi',
+            'aplikasi/lupa-sandi/verifikasi',
+        ]);
 
         $middleware->prependToGroup('web', [
             \App\Http\Middleware\EnsureLisensiAktif::class,

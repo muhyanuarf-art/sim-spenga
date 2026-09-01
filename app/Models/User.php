@@ -14,6 +14,14 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    /**
+     * Kata sandi yang dipasang saat akun direset — lewat menu Admin
+     * maupun lewat OTP WhatsApp di aplikasi Android. Nilainya sama
+     * dengan milik portal orang tua supaya hanya ada satu yang perlu
+     * diingat saat menuntun guru lewat telepon.
+     */
+    public const PASSWORD_DEFAULT = 'password';
+
     protected $fillable = [
         'name', 'nip', 'email', 'password', 'role', 'no_hp', 'is_active',
     ];

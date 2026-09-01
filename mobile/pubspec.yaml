@@ -32,6 +32,27 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# ===== IKON PELUNCUR ANDROID =====
+# Sumbernya lambang SMP Negeri 3 Bumiayu — berkas yang sama yang dipakai
+# situs web sebagai ikon (storage/app/public/ikon). Kalau sekolah nanti
+# mengganti Logo Aplikasi lewat menu Pengaturan Sekolah, salin ulang
+# berkas itu ke assets/ikon/logo_sekolah.png lalu jalankan:
+#
+#   dart run flutter_launcher_icons
+#
+flutter_launcher_icons:
+  android: "ic_launcher"
+  image_path: "assets/ikon/logo_sekolah.png"
+  min_sdk_android: 24
+
+  # Android memangkas ikon adaptif jadi lingkaran atau kotak membulat,
+  # sesuai peluncur masing-masing ponsel. Lambang ini kelopaknya menyentuh
+  # tepi kanvas, jadi diberi ruang 18% supaya tidak ada yang terpotong.
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/ikon/logo_sekolah.png"
+  adaptive_icon_foreground_inset: 18

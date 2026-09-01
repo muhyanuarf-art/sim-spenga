@@ -73,6 +73,13 @@ Route::post('aplikasi/masuk', [AplikasiMobileController::class, 'masuk'])
 Route::get('aplikasi/masuk-otomatis/{user}', [AplikasiMobileController::class, 'masukOtomatis'])
     ->name('aplikasi.masuk-otomatis')->middleware('signed');
 
+// Lupa kata sandi lewat aplikasi: kode OTP dikirim ke WhatsApp nomor
+// milik akun, lalu kata sandinya dikembalikan ke setelan awal.
+Route::post('aplikasi/lupa-sandi', [AplikasiMobileController::class, 'lupaSandi'])
+    ->name('aplikasi.lupa-sandi')->middleware('throttle:reset-sandi');
+Route::post('aplikasi/lupa-sandi/verifikasi', [AplikasiMobileController::class, 'verifikasiLupaSandi'])
+    ->name('aplikasi.lupa-sandi.verifikasi')->middleware('throttle:reset-sandi');
+
 Route::get('aktivasi', [AktivasiController::class, 'form'])->name('aktivasi.form');
 Route::post('aktivasi', [AktivasiController::class, 'simpan'])->name('aktivasi.simpan')->middleware('throttle:aktivasi');
 

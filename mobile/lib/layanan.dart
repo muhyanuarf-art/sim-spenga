@@ -162,4 +162,110 @@ class Layanan {
       pesan: 'Server membalas dengan kode ${res.statusCode}. Hubungi Admin sekolah.',
     );
   }
+
+  /// LUPA KATA SANDI — langkah 1: minta kode dikirim ke WhatsApp.
+  ///
+  /// Jawaban server sengaja seragam, jadi berhasil di sini hanya berarti
+  /// "permintaan diterima", bukan "akun itu ada".
+  static Future<HasilAksi> mintaKodeReset(String email) async {
+    return _kirimAksi('/aplikasi/lupa-sandi', {'email': email});
+  }
+
+  /// LUPA KATA SANDI — langkah 2: kirim kodenya.
+  ///
+  /// Bila cocok, `sandiBaru` berisi kata sandi awal yang kini berlaku.
+  static Future<HasilAksi> verifikasiKodeReset(String email, String kode) async {
+    return _kirimAksi('/aplikasi/lupa-sandi/verifikasi', {
+      'email': email,
+      'kode': kode,
+    });
+  }
+
+  /// Satu jalur untuk kedua langkah di atas: keduanya mengirim JSON dan
+  /// menerima {pesan, ...} dengan pola galat yang persis sama.
+  static Future<HasilAksi> _kirimAksi(
+    String jalur,
+    Map<String, String> isi,
+  ) async {
+    final alamat = await alamatServer();
+
+    http.Response res;
+    try {
+      res = await http
+          .post(
+            Uri.parse('$alamat$jalur'),
+            headers: const {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(isi),
+          )
+          .timeout(const Duration(seconds: 30));
+    } catch (e) {
+      return HasilAksi(
+        berhasil: false,
+        pesan: 'Tidak bisa menghubungi server di $alamat.\n\n'
+            'Periksa: ponsel tersambung wifi sekolah, alamat servernya benar, '
+            'dan komputer servernya menyala.',
+      );
+    }
+
+    Map<String, dynamic> badan;
+    try {
+      badan = jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      badan = {};
+    }
+
+    if (res.statusCode == 200) {
+      return HasilAksi(
+        berhasil: true,
+        pesan: badan['pesan'] as String? ?? 'Berhasil.',
+        sandiBaru: badan['sandi_baru'] as String?,
+      );
+    }
+
+    // Pembatasan laju: mengirim WhatsApp berbiaya, jadi server membatasi
+    // berapa kali kode boleh diminta.
+    if (res.statusCode == 429) {
+      return const HasilAksi(
+        berhasil: false,
+        pesan: 'Terlalu banyak permintaan. Tunggu beberapa menit, '
+            'lalu coba lagi.',
+      );
+    }
+
+    if (badan['pesan'] is String) {
+      return HasilAksi(berhasil: false, pesan: badan['pesan'] as String);
+    }
+
+    if (badan['errors'] is Map) {
+      final errors = badan['errors'] as Map;
+      final pertama = errors.values.first;
+      if (pertama is List && pertama.isNotEmpty) {
+        return HasilAksi(berhasil: false, pesan: pertama.first.toString());
+      }
+    }
+
+    return HasilAksi(
+      berhasil: false,
+      pesan: 'Server membalas dengan kode ${res.statusCode}. Hubungi Admin sekolah.',
+    );
+  }
+}
+
+/// Hasil satu langkah yang tidak menghasilkan sesi — dipakai alur lupa
+/// kata sandi. Dipisah dari HasilMasuk karena tidak membawa tautan masuk.
+class HasilAksi {
+  final bool berhasil;
+  final String pesan;
+
+  /// Hanya terisi sesudah reset berhasil.
+  final String? sandiBaru;
+
+  const HasilAksi({
+    required this.berhasil,
+    required this.pesan,
+    this.sandiBaru,
+  });
 }
