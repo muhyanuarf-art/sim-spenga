@@ -9,7 +9,15 @@
 @endphp
 
 <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-       class="sidebar fixed z-40 inset-y-0 left-0 w-[17rem] flex flex-col transform transition-transform duration-200 lg:translate-x-0 lg:static"
+       {{-- Di layar besar sidebar dibuat "sticky" setinggi layar, bukan
+            "static". Dengan static, tingginya ikut memanjang mengikuti isi
+            halaman: pada halaman bertabel panjang, menunya ikut tergulir
+            ke atas dan hilang dari pandangan, dan daftar menunya sendiri
+            tidak pernah punya batas tinggi untuk digulir sendiri.
+            Dengan tinggi terkunci selayar, <nav> di dalamnya (flex-1 +
+            overflow-y-auto) yang menggulir, sementara menunya tetap di
+            tempat. Di ponsel tetap "fixed" seperti sebelumnya. --}}
+       class="sidebar fixed z-40 inset-y-0 left-0 w-[17rem] flex flex-col transform transition-transform duration-200 lg:translate-x-0 lg:sticky lg:inset-auto lg:top-0 lg:h-screen"
        x-data="{ cari: '' }">
 
     {{-- Identitas aplikasi --}}
@@ -73,7 +81,8 @@
 
                                 <div x-show="open || cari !== ''" x-collapse x-cloak class="nav-sub">
                                     @foreach($item['anak'] as $anak)
-                                        <a href="{{ $anak['url'] }}"
+                                        <a href="{{ $anak['url'] }}" wire:navigate
+                                           @click="sidebarOpen = false"
                                            x-show="cari === '' || @js($anak['cari']).includes(cari.toLowerCase()) || @js($item['cari']).includes(cari.toLowerCase())"
                                            class="nav-sublink {{ $anak['aktif'] ? 'nav-sublink-active' : '' }}">
                                             <span class="nav-dot"></span>
@@ -83,7 +92,8 @@
                                 </div>
                             </div>
                         @else
-                            <a href="{{ $item['url'] }}"
+                            <a href="{{ $item['url'] }}" wire:navigate
+                               @click="sidebarOpen = false"
                                x-show="cari === '' || @js($item['cari']).includes(cari.toLowerCase())"
                                class="nav-link {{ $item['aktif'] ? 'nav-active' : '' }}">
                                 <span class="nav-icon"><i class="fa-solid {{ $item['icon'] }}"></i></span>

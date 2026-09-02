@@ -40,6 +40,9 @@ class _LayarWebState extends State<LayarWeb> {
   bool _memuat = true;
   String? _galat;
 
+  /// Penjaga agar layar ini hanya ditutup sekali — lihat [_periksaTerlempar].
+  bool _sudahDipulangkan = false;
+
   @override
   void initState() {
     super.initState();
@@ -59,19 +62,17 @@ class _LayarWebState extends State<LayarWeb> {
           onPageFinished: (url) {
             if (!mounted) return;
             setState(() => _memuat = false);
-
-            // Sesi web bisa kedaluwarsa (bawaannya beberapa jam). Kalau
-            // itu terjadi, server mengalihkan ke halaman login web —
-            // yang bukan tempat pengguna aplikasi ini seharusnya berada.
-            // Dikembalikan ke layar masuk native supaya jalannya tetap
-            // satu: masuk lewat aplikasi, bukan lewat halaman web.
-            if (url.contains('/login') || url.contains('/aktivasi')) {
-              _kembaliKeMasuk(
-                url.contains('/aktivasi')
-                    ? 'Aplikasi di server belum diaktifkan untuk alamat ini. Hubungi Admin sekolah.'
-                    : 'Sesi Anda sudah berakhir. Silakan masuk lagi.',
-              );
-            }
+            _periksaTerlempar(url);
+          },
+          // Menu di aplikasi web berpindah halaman lewat wire:navigate,
+          // yang memakai History API — bukan memuat ulang halaman. Untuk
+          // perpindahan seperti itu onPageFinished TIDAK berbunyi sama
+          // sekali. Tanpa pemeriksaan di sini, sesi yang berakhir di
+          // tengah pemakaian tidak akan pernah tertangkap aplikasi dan
+          // pengguna hanya melihat halaman login web di dalam WebView.
+          onUrlChange: (perubahan) {
+            final url = perubahan.url;
+            if (url != null) _periksaTerlempar(url);
           },
           onWebResourceError: (e) {
             // Galat sumber daya kecil (gambar gagal dimuat) tidak perlu
@@ -88,6 +89,27 @@ class _LayarWebState extends State<LayarWeb> {
         ),
       )
       ..loadRequest(Uri.parse(widget.urlMasuk));
+  }
+
+  /// Server mengalihkan ke halaman login web ketika sesi berakhir, dan ke
+  /// halaman aktivasi ketika lisensinya belum aktif untuk alamat itu.
+  /// Keduanya bukan tempat pengguna aplikasi ini seharusnya berada:
+  /// jalan masuknya harus tetap satu, yaitu layar masuk native.
+  ///
+  /// Dipanggil dari DUA tempat — pemuatan halaman biasa dan perpindahan
+  /// lewat History API — jadi dijaga [_sudahDipulangkan] supaya layarnya
+  /// tidak ditutup dua kali kalau keduanya berbunyi untuk alamat sama.
+  void _periksaTerlempar(String url) {
+    if (!mounted || _sudahDipulangkan) return;
+    if (!url.contains('/login') && !url.contains('/aktivasi')) return;
+
+    _sudahDipulangkan = true;
+
+    _kembaliKeMasuk(
+      url.contains('/aktivasi')
+          ? 'Aplikasi di server belum diaktifkan untuk alamat ini. Hubungi Admin sekolah.'
+          : 'Sesi Anda sudah berakhir. Silakan masuk lagi.',
+    );
   }
 
   Future<void> _kembaliKeMasuk(String pesan) async {

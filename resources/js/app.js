@@ -1,4 +1,3 @@
-import Alpine from 'alpinejs';
 import collapse from '@alpinejs/collapse';
 
 // Font Awesome (dulu dari cdnjs, sekarang di-bundle & di-self-host oleh Vite)
@@ -182,9 +181,23 @@ window.barisNilai = function (dataAwal, skema) {
     };
 };
 
-Alpine.plugin(collapse);
-window.Alpine = Alpine;
-Alpine.start();
+/* =========================================================================
+   ALPINE — SEKARANG MILIK LIVEWIRE
+
+   Dulu Alpine di-import & di-start sendiri di berkas ini. Sejak Livewire
+   dipasang (demi wire:navigate — pindah halaman tanpa muat ulang),
+   Alpine dibawa DI DALAM bundel Livewire dan dimulai olehnya. Memuat
+   Alpine kedua kalinya di sini akan membuat keduanya bertabrakan.
+
+   Yang masih perlu dikerjakan tinggal satu: plugin x-collapse TIDAK ikut
+   dalam bundel Livewire, padahal akordeon menu di sidebar memakainya.
+   Plugin itu didaftarkan ke Alpine milik Livewire lewat 'livewire:init'
+   — peristiwa yang sengaja dibunyikan SEBELUM Alpine.start(), tepat
+   supaya plugin sempat masuk.
+   ========================================================================= */
+document.addEventListener('livewire:init', () => {
+    window.Alpine.plugin(collapse);
+});
 
 /**
  * Cetak HANYA 1 bagian tertentu di halaman — bagian yang tombol Cetak-nya

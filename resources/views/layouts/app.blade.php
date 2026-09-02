@@ -7,6 +7,7 @@
     <title>@yield('title', 'Dashboard') — SIM-SPENGA</title>
     <x-ikon-aplikasi />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased" x-data="{ sidebarOpen: false }">
 
@@ -38,7 +39,7 @@
                  TIDAK diulang di sini, karena sudah tampil besar sebagai
                  judul halaman tepat di bawahnya. --}}
                 <nav class="flex items-center gap-2 text-sm min-w-0" aria-label="Breadcrumb">
-                    <a href="{{ route('dashboard') }}" class="text-slate-400 hover:text-brand-600 shrink-0" title="Beranda">
+                    <a href="{{ route('dashboard') }}" wire:navigate class="text-slate-400 hover:text-brand-600 shrink-0" title="Beranda">
                         <i class="fa-solid fa-house"></i>
                     </a>
                     @if($halaman)
@@ -166,6 +167,43 @@
         </footer>
     </div>
 </div>
+
+@livewireScripts
+
+<script>
+    /* =====================================================================
+       MENU TETAP TERLIHAT SETELAH DIKLIK
+
+       Pindah halaman kini memakai wire:navigate, jadi isi <body> ditukar
+       dan sidebar dirender ulang beserta penanda menu aktifnya. Yang
+       tidak ikut terbawa adalah posisi gulir daftar menu: ia kembali ke
+       atas, sehingga menu yang baru saja diklik bisa berada di luar
+       layar — terasa seperti kehilangan jejak.
+
+       Fungsi di bawah menggeser daftar menu supaya menu aktif berada di
+       tengah. Dipanggil saat halaman pertama dibuka DAN setiap kali
+       selesai berpindah.
+       ===================================================================== */
+    function fokuskanMenuAktif() {
+        var wadah = document.querySelector('.nav-scroll');
+        if (!wadah) return;
+
+        var aktif = wadah.querySelector('.nav-active, .nav-sublink-active');
+        if (!aktif) return;
+
+        // Dihitung manual, bukan scrollIntoView(): yang boleh bergeser
+        // hanya daftar menunya, sedangkan halaman di sebelahnya harus
+        // tetap di tempatnya.
+        var geser = aktif.getBoundingClientRect().top
+            - wadah.getBoundingClientRect().top
+            - (wadah.clientHeight / 2)
+            + (aktif.offsetHeight / 2);
+
+        wadah.scrollTop += geser;
+    }
+
+    document.addEventListener('livewire:navigated', fokuskanMenuAktif);
+</script>
 
 </body>
 </html>

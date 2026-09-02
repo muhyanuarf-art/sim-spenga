@@ -329,3 +329,36 @@ body { -webkit-font-smoothing: antialiased; }
         overscroll-behavior-x: contain;
     }
 }
+
+/* =========================================================================
+   FOKUS MENU
+
+   Sesudah pindah halaman, menu yang sedang dibuka digulir ke tengah oleh
+   fokuskanMenuAktif() di layouts/app.blade.php. Di sini bagian yang
+   TERLIHAT: penanda di sisi kiri supaya menu aktif langsung ketemu saat
+   mata menyapu daftar, dan cincin fokus untuk yang menelusuri memakai
+   papan ketik (Tab) — sebelumnya tidak ada penanda sama sekali di sana.
+   ========================================================================= */
+.nav-active,
+.nav-sublink-active {
+    position: relative;
+}
+.nav-active::before,
+.nav-sublink-active::before {
+    content: '';
+    position: absolute;
+    left: -.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: .18rem;
+    height: 55%;
+    border-radius: 999px;
+    background: #fff;
+    opacity: .9;
+}
+
+.nav-link:focus-visible,
+.nav-sublink:focus-visible {
+    outline: 2px solid #8ecbff;
+    outline-offset: 1px;
+}

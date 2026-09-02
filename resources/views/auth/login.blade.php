@@ -6,6 +6,15 @@
     <title>Masuk — SIM-SPENGA</title>
     <x-ikon-aplikasi />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Halaman ini berdiri sendiri (tidak memakai layouts.app), jadi
+         skrip Livewire harus diminta sendiri. Bukan karena ada komponen
+         Livewire di sini — tidak ada — melainkan karena ALPINE dibawa di
+         dalam bundel itu sejak wire:navigate dipakai, dan tombol mata
+         pada isian kata sandi di bawah memerlukannya. Efek sampingnya
+         menguntungkan: berkasnya ikut ter-cache sejak halaman pertama,
+         sehingga halaman sesudah login terbuka lebih cepat. --}}
+    @livewireStyles
+    @livewireScripts
 </head>
 <body class="font-sans bg-gradient-to-br from-brand-900 via-brand-800 to-brand-600 min-h-screen flex items-center justify-center p-4">
 

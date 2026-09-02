@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // URUTAN SKRIP — jangan dihapus.
+        //
+        // Livewire membawa Alpine-nya sendiri dan memulainya begitu
+        // skripnya jalan. Tanpa 'defer', skrip itu (di ujung <body>)
+        // berjalan LEBIH DULU daripada app.js yang dimuat Vite sebagai
+        // module di <head> — padahal app.js-lah yang mendaftarkan plugin
+        // x-collapse dan mendefinisikan window.barisNilai yang dipakai
+        // langsung di dalam x-data. Dengan 'defer', keduanya menjadi
+        // skrip tertunda dan dijalankan sesuai urutan di dokumen:
+        // app.js dulu, Livewire menyusul.
+        Livewire::useScriptTagAttributes(['defer' => true]);
+
         // Periode yang sedang DILIHAT pengguna dipakai di banyak lembar
         // cetak (kop surat, judul rekap), jadi disediakan ke SEMUA view —
         // bukan cuma layouts.app — dengan alasan yang sama seperti
