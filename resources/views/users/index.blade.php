@@ -70,6 +70,23 @@
                                      setelan awal hanya menjebak, dan tombol Edit sudah
                                      menyediakan cara yang benar. Server tetap menolaknya
                                      juga, jadi ini semata-mata supaya tidak menggoda. --}}
+                                {{-- Nonaktifkan / aktifkan. Tidak ditampilkan pada
+                                     baris akun sendiri, dengan alasan yang sama
+                                     seperti Reset Sandi: mengunci diri sendiri
+                                     hanya menjebak. Server juga menolaknya. --}}
+                                @if(auth()->id() !== $u->id)
+                                    <form method="POST" action="{{ route('users.toggle-aktif', $u) }}"
+                                          onsubmit="return confirm('{{ $u->is_active
+                                              ? 'Nonaktifkan akun '.$u->name.'?\n\nIa tidak akan bisa masuk lagi, dan sesi yang sedang berjalan ikut terputus. Seluruh data lamanya tetap utuh.'
+                                              : 'Aktifkan kembali akun '.$u->name.'?' }}')">
+                                        @csrf
+                                        <button class="btn-chip {{ $u->is_active ? 'btn-chip-cancel' : 'btn-chip-success' }}">
+                                            <i class="fa-solid {{ $u->is_active ? 'fa-user-slash' : 'fa-user-check' }} mr-1.5"></i>
+                                            {{ $u->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </button>
+                                    </form>
+                                @endif
+
                                 @if(auth()->id() !== $u->id)
                                     <form method="POST" action="{{ route('users.reset-password', $u) }}"
                                           onsubmit="return confirm('Kembalikan kata sandi {{ $u->name }} ke setelan awal?\n\nKata sandi lamanya akan langsung tidak berlaku.')">

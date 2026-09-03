@@ -521,5 +521,10 @@ Route::middleware('auth')->group(function () {
         // sekalipun mengetahui alamat rutenya.
         Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])
             ->name('users.reset-password');
+
+        // Menonaktifkan akun (mis. guru pensiun) tanpa menghapusnya, supaya
+        // jejaknya di jurnal, nilai, dan catatan BK tetap utuh.
+        Route::post('users/{user}/toggle-aktif', [UserController::class, 'toggleAktif'])
+            ->name('users.toggle-aktif');
     });
 });

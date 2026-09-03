@@ -92,6 +92,54 @@ class UserController extends Controller
             .User::PASSWORD_DEFAULT.'". Minta yang bersangkutan segera menggantinya setelah masuk.');
     }
 
+    /**
+     * Nonaktifkan / aktifkan kembali sebuah akun — satu tombol, dua arah.
+     *
+     * =====================================================================
+     * KENAPA DINONAKTIFKAN, BUKAN DIHAPUS
+     * =====================================================================
+     * Guru yang pensiun meninggalkan jejak di mana-mana: jurnal mengajar,
+     * nilai yang ia input, catatan BK, penugasan wali kelas bertahun-tahun
+     * lampau. Menghapus akunnya akan ditolak database (penunjuk ke users
+     * bersifat RESTRICT), dan seandainya berhasil pun laporan tahun-tahun
+     * itu kehilangan nama penanggung jawabnya.
+     *
+     * Menonaktifkan menutup pintu masuknya tanpa merusak riwayat: namanya
+     * tetap tercantum di data lama, tetapi ia tidak bisa masuk lagi —
+     * lewat web maupun aplikasi Android.
+     *
+     * Sesi yang SEDANG berjalan ikut diputus pada klik berikutnya oleh
+     * App\Http\Middleware\EnsureAkunAktif, dan `remember_token` dikosongkan
+     * di sini supaya cookie "Ingat saya" yang terlanjur tersimpan di
+     * komputer ruang guru tidak bisa membangun sesi baru.
+     */
+    public function toggleAktif(Request $request, User $user)
+    {
+        if ($request->user()->id === $user->id) {
+            return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
+        }
+
+        // Penjaga yang sama dengan destroy(): jangan sampai sekolah
+        // kehilangan satu-satunya pintu masuk Admin.
+        if ($user->is_active && $user->role === 'admin' && User::where('role', 'admin')->where('is_active', true)->count() <= 1) {
+            return back()->with('error', 'Tidak dapat menonaktifkan admin aktif yang terakhir tersisa.');
+        }
+
+        $akanAktif = ! $user->is_active;
+
+        $user->forceFill([
+            'is_active' => $akanAktif,
+            // Dikosongkan pada KEDUA arah: saat dinonaktifkan agar cookie
+            // lama mati, dan saat diaktifkan lagi agar tidak ada cookie
+            // lama yang tiba-tiba hidup kembali.
+            'remember_token' => null,
+        ])->save();
+
+        return back()->with('success', $akanAktif
+            ? "Akun {$user->name} diaktifkan kembali dan sudah bisa dipakai masuk."
+            : "Akun {$user->name} dinonaktifkan. Ia tidak dapat masuk lagi, dan sesi yang sedang berjalan ikut terputus. Seluruh data lamanya tetap utuh.");
+    }
+
     public function destroy(Request $request, User $user)
     {
         if ($request->user()->id === $user->id) {

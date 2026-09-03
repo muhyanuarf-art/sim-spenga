@@ -41,6 +41,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureLisensiAktif::class,
         ]);
         $middleware->appendToGroup('web', [
+            // Akun yang dinonaktifkan diputus pada permintaan BERIKUTNYA,
+            // bukan menunggu ia login lagi — lihat penjelasan lengkapnya
+            // di App\Http\Middleware\EnsureAkunAktif. Dipasang ke grup
+            // 'web' supaya tidak ada rute yang bisa lupa dipasangi.
+            \App\Http\Middleware\EnsureAkunAktif::class,
             \App\Http\Middleware\NoCacheHeaders::class,
             \App\Http\Middleware\QueryDebugBadge::class,
         ]);
