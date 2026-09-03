@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Kelas;
 use App\Models\PrestasiSiswa;
 use App\Models\Siswa;
+use App\Rules\DalamPeriode;
 use App\Support\KonteksPeriode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -102,12 +103,13 @@ class PrestasiSiswaController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless($this->bolehCatat($request), 403, 'Anda tidak berhak mencatat prestasi.');
-
         $data = $this->validasi($request);
 
         $siswa = Siswa::findOrFail($data['siswa_id']);
-        $this->pastikanSiswaBoleh($request, $siswa);
+
+        if ($alasan = $this->alasanTidakBolehCatat($request, $siswa)) {
+            return back()->with('error', $alasan)->withInput();
+        }
 
         $data['dicatat_oleh'] = $request->user()->id;
         $data['tahun_ajaran_id'] = KonteksPeriode::pilihan()?->id;
@@ -128,12 +130,17 @@ class PrestasiSiswaController extends Controller
 
     public function update(Request $request, PrestasiSiswa $prestasi)
     {
-        $this->pastikanBolehUbah($request, $prestasi);
+        if ($alasan = $this->alasanTidakBolehUbah($request, $prestasi)) {
+            return back()->with('error', $alasan)->withInput();
+        }
 
         $data = $this->validasi($request);
 
         $siswa = Siswa::findOrFail($data['siswa_id']);
-        $this->pastikanSiswaBoleh($request, $siswa);
+
+        if ($alasan = $this->alasanTidakBolehCatat($request, $siswa)) {
+            return back()->with('error', $alasan)->withInput();
+        }
 
         if ($baru = $this->simpanSertifikat($request)) {
             $this->hapusSertifikat($prestasi);
@@ -147,7 +154,9 @@ class PrestasiSiswaController extends Controller
 
     public function destroy(Request $request, PrestasiSiswa $prestasi)
     {
-        $this->pastikanBolehUbah($request, $prestasi);
+        if ($alasan = $this->alasanTidakBolehUbah($request, $prestasi)) {
+            return back()->with('error', $alasan);
+        }
 
         $this->hapusSertifikat($prestasi);
         $prestasi->delete();
@@ -163,7 +172,10 @@ class PrestasiSiswaController extends Controller
      */
     public function verifikasi(Request $request, PrestasiSiswa $prestasi)
     {
-        abort_unless($this->bolehKelola($request), 403, 'Hanya Kesiswaan yang dapat memverifikasi prestasi.');
+        if (! $this->bolehKelola($request)) {
+            return back()->with('error', 'Hanya Kesiswaan yang dapat memverifikasi prestasi. '
+                .'Catatan Anda sudah tersimpan dan menunggu diperiksa.');
+        }
 
         if ($prestasi->sudahDiverifikasi()) {
             $prestasi->update(['diverifikasi_at' => null, 'diverifikasi_oleh' => null]);
@@ -212,19 +224,47 @@ class PrestasiSiswaController extends Controller
         return null;
     }
 
-    private function pastikanSiswaBoleh(Request $request, Siswa $siswa): void
+    /**
+     * PENOLAKAN DISAMPAIKAN SEBAGAI PESAN, BUKAN HALAMAN GALAT.
+     *
+     * Dua fungsi di bawah mengembalikan ALASAN penolakan (atau null bila
+     * boleh), bukan memanggil abort(403). Alasannya soal penyampaian,
+     * bukan keamanan — tindakannya sama-sama ditolak.
+     *
+     * abort(403) melempar guru ke halaman galat: layar terpisah, tanpa
+     * jalan kembali, dan seluruh isian yang sudah diketik hilang. Untuk
+     * kekeliruan yang wajar terjadi — mencoba mencatat siswa kelas
+     * sebelah, atau mengubah catatan yang keburu diverifikasi — itu
+     * hukuman yang tidak sepadan.
+     *
+     * Dengan mengembalikan alasan, pemanggilnya bisa memakai
+     * back()->with('error', ...)->withInput(): guru tetap di halamannya,
+     * membaca sebabnya di kotak merah, dan isiannya masih utuh.
+     *
+     * Yang TETAP berupa halaman 403 hanyalah pembukaan halamannya
+     * (middleware 'role:'), karena di situ memang tidak ada halaman
+     * sebelumnya untuk dikembalikan — dan untuk itu kini ada
+     * resources/views/errors/403.blade.php yang menerangkan keadaannya.
+     */
+    private function alasanTidakBolehCatat(Request $request, Siswa $siswa): ?string
     {
+        if (! $this->bolehCatat($request)) {
+            return 'Peran akun Anda tidak berhak mencatat prestasi. '
+                .'Pencatatan dilakukan oleh Wali Kelas atau Kesiswaan.';
+        }
+
         $kelasBoleh = $this->kelasYangBoleh($request);
 
         if ($kelasBoleh === null) {
-            return;
+            return null;
         }
 
-        abort_unless(
-            in_array($siswa->kelasIdSekarang(), $kelasBoleh, true),
-            403,
-            'Anda hanya dapat mencatat prestasi siswa di kelas yang Anda ampu.'
-        );
+        if (! in_array($siswa->kelasIdSekarang(), $kelasBoleh, true)) {
+            return 'Anda hanya dapat mencatat prestasi siswa di kelas yang Anda ampu. '
+                .'Untuk siswa kelas lain, sampaikan kepada wali kelasnya atau Kesiswaan.';
+        }
+
+        return null;
     }
 
     /**
@@ -233,23 +273,24 @@ class PrestasiSiswaController extends Controller
      * dan memakainya untuk laporan, catatan itu tidak boleh lagi berubah
      * tanpa sepengetahuannya.
      */
-    private function pastikanBolehUbah(Request $request, PrestasiSiswa $prestasi): void
+    private function alasanTidakBolehUbah(Request $request, PrestasiSiswa $prestasi): ?string
     {
         if ($this->bolehKelola($request)) {
-            return;
+            return null;
         }
 
-        abort_unless($this->bolehCatat($request), 403, 'Anda tidak berhak mengubah prestasi.');
-
         $prestasi->loadMissing('siswa');
-        $this->pastikanSiswaBoleh($request, $prestasi->siswa);
 
-        abort_if(
-            $prestasi->sudahDiverifikasi(),
-            403,
-            'Prestasi ini sudah diverifikasi Kesiswaan sehingga tidak dapat diubah lagi. '
-            .'Hubungi Kesiswaan bila ada yang keliru.'
-        );
+        if ($alasan = $this->alasanTidakBolehCatat($request, $prestasi->siswa)) {
+            return $alasan;
+        }
+
+        if ($prestasi->sudahDiverifikasi()) {
+            return 'Prestasi ini sudah diverifikasi Kesiswaan sehingga tidak dapat diubah lagi. '
+                .'Hubungi Kesiswaan bila ada yang keliru.';
+        }
+
+        return null;
     }
 
     // =================================================================
@@ -296,7 +337,12 @@ class PrestasiSiswaController extends Controller
             'tingkat' => ['required', Rule::in(array_keys(PrestasiSiswa::TINGKAT))],
             'peringkat' => ['required', Rule::in(array_keys(PrestasiSiswa::PERINGKAT))],
             'penyelenggara' => ['nullable', 'string', 'max:255'],
-            'tanggal' => ['required', 'date'],
+            // Tanggal harus berada di dalam periode tempat prestasi ini
+            // dicatat. Tanpa ini, baris tersimpan dengan tahun_ajaran_id
+            // periode berjalan tetapi bertanggal semester lain — dan
+            // langsung hilang dari setiap laporan yang menyaring menurut
+            // rentang tanggal. Lihat App\Rules\DalamPeriode.
+            'tanggal' => ['required', 'date', new DalamPeriode(sebutan: 'prestasi')],
             'keterangan' => ['nullable', 'string', 'max:2000'],
             'sertifikat' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ], [

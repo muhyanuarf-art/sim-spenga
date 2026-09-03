@@ -315,7 +315,11 @@ Route::middleware('auth')->group(function () {
     // create_prestasi_siswas_table). Middleware peran di sini hanya
     // saringan pertama; batas per-kelas dan penguncian catatan yang sudah
     // diverifikasi diperiksa lagi di PrestasiSiswaController.
-    Route::middleware('role:kesiswaan,kurikulum,kepala_sekolah,guru_bk,guru,admin')->group(function () {
+    // 'periode-aktif' dipasang ke SATU grup berisi GET dan POST sekaligus —
+    // itu aman, karena EnsurePeriodeTidakTerkunci meloloskan seluruh
+    // metode baca. Jadi daftar & rekap prestasi periode lampau tetap bisa
+    // dibuka dan dicetak; yang tertutup hanya pencatatan dan verifikasinya.
+    Route::middleware(['role:kesiswaan,kurikulum,kepala_sekolah,guru_bk,guru,admin', 'periode-aktif'])->group(function () {
         Route::get('prestasi', [PrestasiSiswaController::class, 'index'])->name('prestasi.index');
         Route::post('prestasi', [PrestasiSiswaController::class, 'store'])->name('prestasi.store');
         Route::put('prestasi/{prestasi}', [PrestasiSiswaController::class, 'update'])->name('prestasi.update');
