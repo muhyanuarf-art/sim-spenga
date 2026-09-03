@@ -18,14 +18,22 @@ return [
         ],
     ],
 
+    /*
+     * Driver 'eloquent-tersidik' adalah Eloquent bawaan Laravel dengan SATU
+     * perubahan: remember_token disimpan sebagai SIDIK, bukan nilai polos.
+     * Tanpa itu, salinan database beserta APP_KEY sudah cukup untuk merakit
+     * cookie "Ingat saya" milik akun mana pun dan masuk tanpa kata sandi.
+     * Penjelasan lengkap ada di App\Auth\PenyediaPenggunaTokenTersidik;
+     * pendaftarannya di App\Providers\AppServiceProvider::boot().
+     */
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
+            'driver' => 'eloquent-tersidik',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
 
         'orangtuas' => [
-            'driver' => 'eloquent',
+            'driver' => 'eloquent-tersidik',
             'model' => App\Models\OrangTua::class,
         ],
     ],

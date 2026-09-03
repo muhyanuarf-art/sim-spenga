@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Auth\PenyediaPenggunaTokenTersidik;
 use App\Support\KonteksPeriode;
 use App\Models\PengaturanSekolah;
 use App\Models\TahunAjaran;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -21,6 +23,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Penyedia autentikasi yang menyimpan remember_token sebagai SIDIK,
+        // bukan nilai polos — supaya cookie "Ingat saya" tidak bisa dirakit
+        // ulang dari salinan database. Dipakai oleh kedua guard lewat
+        // config/auth.php; lihat App\Auth\PenyediaPenggunaTokenTersidik.
+        Auth::provider('eloquent-tersidik', function ($app, array $config) {
+            return new PenyediaPenggunaTokenTersidik($app['hash'], $config['model']);
+        });
+
         // URUTAN SKRIP — jangan dihapus.
         //
         // Livewire membawa Alpine-nya sendiri dan memulainya begitu
