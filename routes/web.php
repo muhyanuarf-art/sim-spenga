@@ -495,5 +495,12 @@ Route::middleware('auth')->group(function () {
     });
     Route::middleware('role:admin')->group(function () {
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
+
+        // Mengembalikan kata sandi seorang pengguna ke setelan awal.
+        // Berada di dalam grup 'role:admin' yang sama dengan pengelolaan
+        // pengguna lainnya — jadi peran lain tidak bisa menyentuhnya
+        // sekalipun mengetahui alamat rutenya.
+        Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])
+            ->name('users.reset-password');
     });
 });

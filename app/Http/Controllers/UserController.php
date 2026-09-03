@@ -64,6 +64,34 @@ class UserController extends Controller
         return back()->with('success', 'Pengguna berhasil diperbarui.');
     }
 
+    /**
+     * Kembalikan kata sandi seorang pengguna ke setelan awal.
+     *
+     * Dipakai saat guru lupa kata sandinya dan tidak bisa memakai jalur
+     * mandiri lewat aplikasi Android — mis. nomor WhatsApp-nya belum
+     * terdaftar, atau nomornya sudah berganti. Sengaja TIDAK meminta
+     * Admin mengarang kata sandi baru: yang perlu diucapkan lewat telepon
+     * cukup satu kata yang sama untuk semua orang, dan pemiliknya wajib
+     * segera menggantinya sendiri.
+     *
+     * Akun sendiri ditolak, mengikuti penjaga yang sama di destroy():
+     * Admin yang mereset dirinya sendiri hanya akan mengunci diri di
+     * belakang kata sandi yang mungkin ia lupa sudah berubah. Untuk
+     * mengganti kata sandinya sendiri, tombol Edit sudah menyediakannya.
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        if ($request->user()->id === $user->id) {
+            return back()->with('error', 'Untuk mengganti kata sandi Anda sendiri, gunakan tombol Edit.');
+        }
+
+        // Cast 'hashed' di model User yang mengubahnya menjadi hash.
+        $user->forceFill(['password' => User::PASSWORD_DEFAULT])->save();
+
+        return back()->with('success', "Kata sandi {$user->name} dikembalikan ke \""
+            .User::PASSWORD_DEFAULT.'". Minta yang bersangkutan segera menggantinya setelah masuk.');
+    }
+
     public function destroy(Request $request, User $user)
     {
         if ($request->user()->id === $user->id) {

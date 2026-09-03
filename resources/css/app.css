@@ -136,6 +136,8 @@ body { -webkit-font-smoothing: antialiased; }
 .btn-chip-delete:hover { background: #e0392f; color: #fff; box-shadow: 0 2px 6px 0 rgba(224, 57, 47, .35); }
 .btn-chip-success { background: #e6f8f0; color: #0f9d63; }
 .btn-chip-success:hover { background: #0fa968; color: #fff; box-shadow: 0 2px 6px 0 rgba(15, 169, 104, .35); }
+.btn-chip-reset { background: #fff5e6; color: #b45309; }
+.btn-chip-reset:hover { background: #d97706; color: #fff; box-shadow: 0 2px 6px 0 rgba(217, 119, 6, .35); }
 .btn-chip-cancel { background: #f1f5f9; color: #64748b; }
 .btn-chip-cancel:hover { background: #e2e8f0; color: #334155; }
 .btn-chip-icon { padding: .4rem; width: 2rem; height: 2rem; justify-content: center; }

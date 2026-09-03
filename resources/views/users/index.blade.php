@@ -64,6 +64,20 @@
                         <td class="td-aksi">
                             <div class="action-buttons">
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
+
+                                {{-- Reset kata sandi. Tidak ditampilkan pada baris
+                                     akun sendiri: mengembalikan kata sandi sendiri ke
+                                     setelan awal hanya menjebak, dan tombol Edit sudah
+                                     menyediakan cara yang benar. Server tetap menolaknya
+                                     juga, jadi ini semata-mata supaya tidak menggoda. --}}
+                                @if(auth()->id() !== $u->id)
+                                    <form method="POST" action="{{ route('users.reset-password', $u) }}"
+                                          onsubmit="return confirm('Kembalikan kata sandi {{ $u->name }} ke setelan awal?\n\nKata sandi lamanya akan langsung tidak berlaku.')">
+                                        @csrf
+                                        <button class="btn-chip btn-chip-reset"><i class="fa-solid fa-key mr-1.5"></i> Reset Sandi</button>
+                                    </form>
+                                @endif
+
                                 <form method="POST" action="{{ route('users.destroy', $u) }}" onsubmit="return confirm('Hapus pengguna ini?')">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
