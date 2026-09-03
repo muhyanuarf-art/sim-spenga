@@ -68,7 +68,7 @@
                         </td>
                         <td><x-kelas-badge :nama="$d->kelas->nama_kelas ?? '-'" /></td>
                         <td class="td-aksi">
-                            <form method="POST" action="{{ route('kurikulum.guru-bk.destroy', $d) }}" onsubmit="return confirm('Hapus mapping ini?')">
+                            <form method="POST" action="{{ route('kurikulum.guru-bk.destroy', $d) }}" data-konfirmasi="Hapus mapping ini?">
                                 @csrf @method('DELETE')
                                 <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                             </form>

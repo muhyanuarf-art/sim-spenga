@@ -25,7 +25,7 @@
                 Siapkan Tahun Ajaran <span class="font-bold">{{ $namaTahunAjaranBerikutnya }}</span> (Semester Ganjil & Genap langsung dibuat, status Akan Datang — tidak langsung aktif).
             </p>
             <form method="POST" action="{{ route('tahun-ajaran.buat-baru') }}"
-                  onsubmit="return confirm('Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }} (Semester Ganjil & Genap)?')">
+                  data-konfirmasi="Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }} (Semester Ganjil & Genap)?">
                 @csrf
                 <input type="hidden" name="nama" value="{{ $namaTahunAjaranBerikutnya }}">
                 <button class="btn-primary whitespace-nowrap">+ Buat Tahun Ajaran {{ $namaTahunAjaranBerikutnya }}</button>
@@ -108,9 +108,9 @@
                                 @endphp
                                 <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $t) }}"
                                     @if($periodeAktifBelumTerkunci)
-                                        onsubmit="return confirm('PERHATIAN: {{ $periodeAktif->labelPeriode() }} masih AKTIF dan BELUM DIKUNCI.\nMengaktifkan {{ $t->labelPeriode() }} akan memindahkan status periode aktif sekolah, tapi data {{ $periodeAktif->labelPeriode() }} (jurnal, absensi, jadwal, dll) tetap bisa diubah sampai Anda menutup/menguncinya sendiri lewat tombol \'Tutup Semester\'.\nYakin ingin mengaktifkan {{ $t->labelPeriode() }} sekarang?')"
+                                        data-konfirmasi="PERHATIAN: {{ $periodeAktif->labelPeriode() }} masih AKTIF dan BELUM DIKUNCI.\nMengaktifkan {{ $t->labelPeriode() }} akan memindahkan status periode aktif sekolah, tapi data {{ $periodeAktif->labelPeriode() }} (jurnal, absensi, jadwal, dll) tetap bisa diubah sampai Anda menutup/menguncinya sendiri lewat tombol 'Tutup Semester'.\nYakin ingin mengaktifkan {{ $t->labelPeriode() }} sekarang?"
                                     @else
-                                        onsubmit="return confirm('Aktifkan {{ $t->labelPeriode() }} sebagai periode aktif sekolah?')"
+                                        data-konfirmasi="Aktifkan {{ $t->labelPeriode() }} sebagai periode aktif sekolah?"
                                     @endif
                                 >
                                     @csrf
@@ -119,19 +119,19 @@
                                 @endunless
                                 @if($t->isTerkunci())
                                     @if(auth()->user()->isAdmin())
-                                    <form method="POST" action="{{ route('tahun-ajaran.buka-kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} ini sudah terkunci.\nMembuka kembali akan memungkinkan perubahan data historis.\nLanjutkan?')">
+                                    <form method="POST" action="{{ route('tahun-ajaran.buka-kunci', $t) }}" data-konfirmasi="Semester {{ $t->semester }} ini sudah terkunci.\nMembuka kembali akan memungkinkan perubahan data historis.\nLanjutkan?">
                                         @csrf
                                         <button class="btn-chip btn-chip-success"><i class="fa-solid fa-lock-open mr-1.5"></i> Buka Kembali</button>
                                     </form>
                                     @endif
                                 @else
-                                <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" onsubmit="return confirm('Semester {{ $t->semester }} akan ditutup.\nSetelah ditutup, SELURUH data pada semester ini (jurnal, absensi, jadwal, guru mengajar, BK, dst) tidak dapat diubah oleh pengguna biasa — tapi tetap bisa dilihat & dijadikan sumber Salin Data.\nAnda yakin ingin melanjutkan?')">
+                                <form method="POST" action="{{ route('tahun-ajaran.kunci', $t) }}" data-konfirmasi="Semester {{ $t->semester }} akan ditutup.\nSetelah ditutup, SELURUH data pada semester ini (jurnal, absensi, jadwal, guru mengajar, BK, dst) tidak dapat diubah oleh pengguna biasa — tapi tetap bisa dilihat & dijadikan sumber Salin Data.\nAnda yakin ingin melanjutkan?">
                                     @csrf
                                     <button class="btn-chip btn-chip-cancel"><i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester</button>
                                 </form>
                                 @endif
                                 @unless($t->isTerkunci())
-                                <form method="POST" action="{{ route('tahun-ajaran.destroy', $t) }}" onsubmit="return confirm('Hapus tahun ajaran ini?')">
+                                <form method="POST" action="{{ route('tahun-ajaran.destroy', $t) }}" data-konfirmasi="Hapus tahun ajaran ini?">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>
@@ -144,7 +144,7 @@
                     <tr x-show="salin" x-cloak>
                         <td colspan="7" class="bg-brand-50/40">
                             <form method="GET" action="{{ route('tahun-ajaran.duplikasi.preview') }}" class="grid sm:grid-cols-3 gap-3 items-end py-2"
-                                  onsubmit="return confirm('Anda akan menyalin data dari {{ $t->nama }} - Semester {{ $t->semester }} ke periode tujuan yang dipilih. Lanjutkan?')">
+                                  data-konfirmasi="Anda akan menyalin data dari {{ $t->nama }} - Semester {{ $t->semester }} ke periode tujuan yang dipilih. Lanjutkan?">
                                 <input type="hidden" name="dari_tahun_ajaran_id" value="{{ $t->id }}">
                                 <div class="sm:col-span-2">
                                     <label class="block text-xs font-semibold text-slate-500 mb-1">

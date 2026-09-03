@@ -61,7 +61,7 @@
                                 title="Edit Jenis Surat">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-                        <form method="POST" action="{{ route('jenis-surat.destroy', $j) }}" onsubmit="return confirm('Hapus jenis surat ini?')">
+                        <form method="POST" action="{{ route('jenis-surat.destroy', $j) }}" data-konfirmasi="Hapus jenis surat ini?">
                             @csrf @method('DELETE')
                             <button type="submit"
                                     class="w-10 h-10 flex items-center justify-center rounded-lg text-red-500 cursor-pointer hover:bg-red-50 active:bg-red-100 active:text-red-700 transition"

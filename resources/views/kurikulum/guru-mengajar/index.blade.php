@@ -113,7 +113,7 @@
                                     <span class="text-xs text-slate-400"><i class="fa-solid fa-lock mr-1.5"></i> Tidak dapat diubah</span>
                                 @else
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
-                                <form method="POST" action="{{ route('kurikulum.guru-mengajar.destroy', $d) }}" onsubmit="return confirm('Hapus mapping ini?')">
+                                <form method="POST" action="{{ route('kurikulum.guru-mengajar.destroy', $d) }}" data-konfirmasi="Hapus mapping ini?">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>

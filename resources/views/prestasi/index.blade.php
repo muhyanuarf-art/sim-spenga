@@ -248,7 +248,7 @@
                                             <i class="fa-solid fa-pen mr-1.5"></i> Edit
                                         </button>
                                         <form method="POST" action="{{ route('prestasi.destroy', $p) }}"
-                                              onsubmit="return confirm('Hapus catatan prestasi ini?')">
+                                              data-konfirmasi="Hapus catatan prestasi ini?">
                                             @csrf @method('DELETE')
                                             <button class="btn-chip btn-chip-delete">
                                                 <i class="fa-solid fa-trash mr-1.5"></i> Hapus

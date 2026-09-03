@@ -35,7 +35,10 @@
             (jadwal/absensi yang sudah terekam pada jam tersebut tidak ikut terhapus); jam ke lain yang berlebih di
             hari tujuan akan dihapus.
         </p>
-        <form method="POST" action="{{ route('jam-pelajaran.salin') }}" class="space-y-4">
+        <form method="POST" action="{{ route('jam-pelajaran.salin') }}" class="space-y-4"
+              data-konfirmasi="Salin jam pelajaran sekarang?&#10;&#10;Jam pelajaran di hari tujuan yang nomor jamnya tidak ada di hari sumber akan DIHAPUS."
+              data-konfirmasi-judul="Salin Jam Pelajaran"
+              data-konfirmasi-lanjut="Ya, Salin">
             @csrf
             @php($hariDefault = old('hari', request('hari', $hariList[0])))
             <div>
@@ -58,7 +61,10 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="btn-primary" onclick="return confirm('Yakin salin jam pelajaran? Data jam pelajaran di hari tujuan yang jam ke-nya tidak ada di hari sumber akan dihapus.')">Salin Sekarang</button>
+                {{-- Konfirmasinya pindah ke <form> (lihat atribut
+                     data-konfirmasi di sana), bukan lagi onclick di tombol —
+                     supaya memakai dialog aplikasi yang hurufnya besar. --}}
+                <button type="submit" class="btn-primary">Salin Sekarang</button>
                 <button type="button" @click="showSalin = false" class="btn-outline">Batal</button>
             </div>
         </form>
@@ -113,7 +119,7 @@
                         <td class="td-aksi">
                             <div class="action-buttons">
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
-                                <form method="POST" action="{{ route('jam-pelajaran.destroy', $j) }}" onsubmit="return confirm('Hapus jam pelajaran ini?')">
+                                <form method="POST" action="{{ route('jam-pelajaran.destroy', $j) }}" data-konfirmasi="Hapus jam pelajaran ini?">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>

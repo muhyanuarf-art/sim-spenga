@@ -203,7 +203,7 @@
 
         @if($adaToken)
             <form method="POST" action="{{ route('pengaturan-notifikasi.hapus-token') }}" class="mt-5 pt-4 border-t border-slate-100"
-                  onsubmit="return confirm('Hapus token perangkat yang tersimpan? Pengingat akan ikut dimatikan sampai token baru diisi.')">
+                  data-konfirmasi="Hapus token perangkat yang tersimpan? Pengingat akan ikut dimatikan sampai token baru diisi.">
                 @csrf @method('DELETE')
                 <button type="submit" class="text-xs font-semibold text-red-500 hover:text-red-700 cursor-pointer">
                     <i class="fa-solid fa-trash mr-1"></i> Hapus token perangkat yang tersimpan

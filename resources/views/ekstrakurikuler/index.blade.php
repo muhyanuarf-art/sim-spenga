@@ -120,7 +120,7 @@
                                 title="Edit Kegiatan" aria-label="Edit Kegiatan {{ $e->nama_ekstrakurikuler }}">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-                        <form method="POST" action="{{ route('ekstrakurikuler.destroy', $e) }}" onsubmit="return confirm('Hapus kegiatan ekstrakurikuler ini?')">
+                        <form method="POST" action="{{ route('ekstrakurikuler.destroy', $e) }}" data-konfirmasi="Hapus kegiatan ekstrakurikuler ini?">
                             @csrf @method('DELETE')
                             <button type="submit"
                                     class="w-10 h-10 flex items-center justify-center rounded-lg text-red-500 cursor-pointer hover:bg-red-50 active:bg-red-100 active:text-red-700 transition"
@@ -253,7 +253,7 @@
                         seluruh datanya ikut hilang dan tidak bisa dikembalikan.
                     </p>
                     <form method="POST" action="{{ route('ekstrakurikuler.destroy', $e) }}"
-                          onsubmit="return confirm('HAPUS PERMANEN kegiatan &quot;{{ $e->nama_ekstrakurikuler }}&quot;?\n\nIkut terhapus: {{ $e->anggotas_count }} anggota dan {{ $e->absensis_count }} sesi absensi beserta seluruh data kehadirannya.\n\nTindakan ini tidak bisa dibatalkan.')">
+                          data-konfirmasi="HAPUS PERMANEN kegiatan &quot;{{ $e->nama_ekstrakurikuler }}&quot;?\n\nIkut terhapus: {{ $e->anggotas_count }} anggota dan {{ $e->absensis_count }} sesi absensi beserta seluruh data kehadirannya.\n\nTindakan ini tidak bisa dibatalkan.">
                         @csrf @method('DELETE')
                         <input type="hidden" name="paksa" value="1">
                         <button type="submit" class="inline-flex items-center gap-2 h-[38px] px-4 rounded-lg border border-red-300 text-red-600 text-sm font-semibold cursor-pointer hover:bg-red-50 active:bg-red-100 transition">

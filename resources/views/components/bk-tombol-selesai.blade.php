@@ -32,7 +32,7 @@
 ])
 
 <form method="POST" action="{{ $action }}" class="inline-block"
-      @if($selesai && $konfirmasiBuka) onsubmit="return confirm('Buka kembali catatan ini? Statusnya akan kembali menjadi Belum Selesai.')" @endif>
+      @if($selesai && $konfirmasiBuka) data-konfirmasi="Buka kembali catatan ini? Statusnya akan kembali menjadi Belum Selesai." @endif>
     @csrf
     @method($metode)
     <input type="hidden" name="status" value="{{ $selesai ? $statusBuka : $statusSelesai }}">

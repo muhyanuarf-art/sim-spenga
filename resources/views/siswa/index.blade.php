@@ -17,7 +17,7 @@
                 {{-- Sekali klik untuk seluruh siswa yang belum punya akun portal.
                      Aman diulang: siswa yang sudah punya akun dilewati. --}}
                 <form method="POST" action="{{ route('akun-ortu.buat-semua') }}"
-                      onsubmit="return confirm('Buatkan akun portal orang tua untuk {{ $siswaTanpaAkunOrtu }} siswa yang belum punya? Login memakai NIS masing-masing, password awal &quot;{{ \App\Models\OrangTua::PASSWORD_DEFAULT }}&quot;.')">
+                      data-konfirmasi="Buatkan akun portal orang tua untuk {{ $siswaTanpaAkunOrtu }} siswa yang belum punya? Login memakai NIS masing-masing, password awal &quot;{{ \App\Models\OrangTua::PASSWORD_DEFAULT }}&quot;.">
                     @csrf
                     <button class="btn-outline">
                         <i class="fa-solid fa-user-plus mr-1.5"></i> Buatkan Akun Ortu ({{ $siswaTanpaAkunOrtu }})
@@ -87,7 +87,7 @@
                         <td>
                             @if(! $s->orangTua)
                                 <form method="POST" action="{{ route('akun-ortu.buat-satu', $s) }}" class="inline-block"
-                                      onsubmit="return confirm('Buatkan akun portal untuk orang tua {{ $s->nama }}? Login memakai NIS {{ $s->nis }}, password awal &quot;{{ \App\Models\OrangTua::PASSWORD_DEFAULT }}&quot;.')">
+                                      data-konfirmasi="Buatkan akun portal untuk orang tua {{ $s->nama }}? Login memakai NIS {{ $s->nis }}, password awal &quot;{{ \App\Models\OrangTua::PASSWORD_DEFAULT }}&quot;.">
                                     @csrf
                                     <button class="btn-chip btn-chip-cancel" title="Orang tua belum bisa login">
                                         <i class="fa-solid fa-user-plus"></i> Buatkan
@@ -107,7 +107,7 @@
                                         </span>
                                     @endif
                                     <form method="POST" action="{{ route('akun-ortu.reset-password', $s->orangTua) }}" class="inline-block"
-                                          onsubmit="return confirm('Reset password akun orang tua {{ $s->nama }} ke &quot;{{ \App\Models\OrangTua::PASSWORD_DEFAULT }}&quot;?')">
+                                          data-konfirmasi="Reset password akun orang tua {{ $s->nama }} ke &quot;{{ \App\Models\OrangTua::PASSWORD_DEFAULT }}&quot;?">
                                         @csrf
                                         <button class="btn-chip btn-chip-cancel btn-chip-icon" title="Reset password ke default">
                                             <i class="fa-solid fa-key"></i>
@@ -125,7 +125,7 @@
                                 <a href="{{ route('siswa.riwayat-kelas', $s) }}" class="btn-chip btn-chip-cancel"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i> Riwayat Kelas</a>
                                 <button type="button" @click="pindah = true" class="btn-chip btn-chip-cancel"><i class="fa-solid fa-right-left mr-1.5"></i> Pindah Kelas</button>
                                 <button type="button" @click="editing = true" class="btn-chip btn-chip-edit"><i class="fa-solid fa-pen mr-1.5"></i> Edit</button>
-                                <form method="POST" action="{{ route('siswa.destroy', $s) }}" onsubmit="return confirm('Hapus siswa ini?')">
+                                <form method="POST" action="{{ route('siswa.destroy', $s) }}" data-konfirmasi="Hapus siswa ini?">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>

@@ -105,7 +105,7 @@
                         <td>{{ $a->siswa->kelas->nama_kelas ?? '—' }}</td>
                         <td>{{ $a->tanggal_gabung?->translatedFormat('d M Y') ?? '—' }}</td>
                         <td class="td-aksi">
-                            <form method="POST" action="{{ route('ekstrakurikuler.anggota.destroy', [$ekstrakurikuler, $a]) }}" onsubmit="return confirm('Keluarkan {{ $a->siswa->nama }} dari kegiatan ini?')">
+                            <form method="POST" action="{{ route('ekstrakurikuler.anggota.destroy', [$ekstrakurikuler, $a]) }}" data-konfirmasi="Keluarkan {{ $a->siswa->nama }} dari kegiatan ini?">
                                 @csrf @method('DELETE')
                                 <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-user-minus mr-1.5"></i> Keluarkan</button>
                             </form>

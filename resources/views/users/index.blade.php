@@ -76,9 +76,9 @@
                                      hanya menjebak. Server juga menolaknya. --}}
                                 @if(auth()->id() !== $u->id)
                                     <form method="POST" action="{{ route('users.toggle-aktif', $u) }}"
-                                          onsubmit="return confirm('{{ $u->is_active
+                                          data-konfirmasi="{{ $u->is_active
                                               ? 'Nonaktifkan akun '.$u->name.'?\n\nIa tidak akan bisa masuk lagi, dan sesi yang sedang berjalan ikut terputus. Seluruh data lamanya tetap utuh.'
-                                              : 'Aktifkan kembali akun '.$u->name.'?' }}')">
+                                              : 'Aktifkan kembali akun '.$u->name.'?' }}">
                                         @csrf
                                         <button class="btn-chip {{ $u->is_active ? 'btn-chip-cancel' : 'btn-chip-success' }}">
                                             <i class="fa-solid {{ $u->is_active ? 'fa-user-slash' : 'fa-user-check' }} mr-1.5"></i>
@@ -89,13 +89,13 @@
 
                                 @if(auth()->id() !== $u->id)
                                     <form method="POST" action="{{ route('users.reset-password', $u) }}"
-                                          onsubmit="return confirm('Kembalikan kata sandi {{ $u->name }} ke setelan awal?\n\nKata sandi lamanya akan langsung tidak berlaku.')">
+                                          data-konfirmasi="Kembalikan kata sandi {{ $u->name }} ke setelan awal?\n\nKata sandi lamanya akan langsung tidak berlaku.">
                                         @csrf
                                         <button class="btn-chip btn-chip-reset"><i class="fa-solid fa-key mr-1.5"></i> Reset Sandi</button>
                                     </form>
                                 @endif
 
-                                <form method="POST" action="{{ route('users.destroy', $u) }}" onsubmit="return confirm('Hapus pengguna ini?')">
+                                <form method="POST" action="{{ route('users.destroy', $u) }}" data-konfirmasi="Hapus pengguna ini?">
                                     @csrf @method('DELETE')
                                     <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                                 </form>

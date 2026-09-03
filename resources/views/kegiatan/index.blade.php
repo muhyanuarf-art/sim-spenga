@@ -110,7 +110,7 @@
                                 @if($bolehKelola)
                                     <button type="button" @click="edit = !edit" class="btn-chip btn-chip-cancel"><i class="fa-solid fa-pen"></i> Ubah</button>
                                     <form method="POST" action="{{ route('kegiatan.destroy', $k) }}"
-                                          onsubmit="return confirm('Hapus kegiatan {{ $k->nama }}? Tindakan ini tidak dapat dibatalkan.')">
+                                          data-konfirmasi="Hapus kegiatan {{ $k->nama }}? Tindakan ini tidak dapat dibatalkan.">
                                         @csrf @method('DELETE')
                                         <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-trash"></i> Hapus</button>
                                     </form>

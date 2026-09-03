@@ -1,5 +1,13 @@
 import collapse from '@alpinejs/collapse';
 
+// Dialog konfirmasi milik aplikasi — menggantikan confirm() bawaan
+// peramban yang hurufnya kecil dan tidak bisa diperbesar. Lihat
+// alasan lengkapnya di berkas itu sendiri.
+import { konfirmasi, pasangPenyadapForm } from './dialog-konfirmasi';
+
+window.konfirmasi = konfirmasi;
+pasangPenyadapForm();
+
 // Font Awesome (dulu dari cdnjs, sekarang di-bundle & di-self-host oleh Vite)
 import '@fortawesome/fontawesome-free/css/all.min.css';
 

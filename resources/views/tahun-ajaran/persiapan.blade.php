@@ -173,7 +173,7 @@
                 semua input baru (jurnal, absensi, BK, dll) otomatis masuk ke periode ini.
             </p>
             <form method="POST" action="{{ route('tahun-ajaran.aktifkan', $tahunAjaran) }}"
-                  onsubmit="return confirm('Setelah diaktifkan, {{ $tahunAjaran->nama }} Semester 1 akan menjadi periode aktif sistem. Lanjutkan?')">
+                  data-konfirmasi="Setelah diaktifkan, {{ $tahunAjaran->nama }} Semester 1 akan menjadi periode aktif sistem. Lanjutkan?">
                 @csrf
                 <button class="btn-primary"><i class="fa-solid fa-circle-check mr-1.5"></i> Aktifkan Tahun Ajaran {{ $tahunAjaran->nama }}</button>
             </form>

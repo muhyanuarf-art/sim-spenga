@@ -77,7 +77,7 @@
                         <i class="fa-solid fa-floppy-disk mr-1.5"></i> Simpan Nilai
                     </button>
                     <form method="POST" action="{{ route('nilai.finalisasi', ['kelas' => $kelas->id, 'mapel' => $mapel->id]) }}"
-                          onsubmit="return confirm('Finalisasi daftar nilai ini? Setelah difinalisasi nilai terkunci dan hanya Kurikulum/Admin yang dapat membukanya kembali.')">
+                          data-konfirmasi="Finalisasi daftar nilai ini? Setelah difinalisasi nilai terkunci dan hanya Kurikulum/Admin yang dapat membukanya kembali.">
                         @csrf
                         <button class="btn-outline"><i class="fa-solid fa-lock mr-1.5"></i> Finalisasi</button>
                     </form>
@@ -85,7 +85,7 @@
 
                 @if($terkunci && (auth()->user()->isKurikulum() || auth()->user()->isAdmin()))
                     <form method="POST" action="{{ route('nilai.buka-kunci', ['kelas' => $kelas->id, 'mapel' => $mapel->id]) }}"
-                          onsubmit="return confirm('Buka kunci daftar nilai ini supaya guru mata pelajaran dapat mengoreksinya kembali?')">
+                          data-konfirmasi="Buka kunci daftar nilai ini supaya guru mata pelajaran dapat mengoreksinya kembali?">
                         @csrf
                         <button class="btn-outline"><i class="fa-solid fa-lock-open mr-1.5"></i> Buka Kunci</button>
                     </form>

@@ -68,7 +68,17 @@
                         @if(in_array($user->role,['guru_bk','admin']))
                         <td class="td-aksi">
                             @if(!$p->dibatalkan_at)
-                            <form method="POST" action="{{ route('bk.pengurangan.batalkan', $p) }}" onsubmit="return confirm('Batalkan transaksi ini?') && (this.querySelector('[name=alasan_pembatalan]').value = prompt('Alasan pembatalan:') || false)">
+                            {{-- Dulu memakai confirm() lalu prompt() berturut-turut:
+                                 dua kotak kecil bawaan peramban yang muncul
+                                 bergantian. Sekarang satu dialog dengan huruf
+                                 besar berikut kotak isian alasannya. Alasan yang
+                                 dikosongkan tetap membatalkan aksi, sama seperti
+                                 perilaku prompt() sebelumnya. --}}
+                            <form method="POST" action="{{ route('bk.pengurangan.batalkan', $p) }}"
+                                  data-konfirmasi="Batalkan transaksi pengurangan poin ini?"
+                                  data-konfirmasi-judul="Batalkan Transaksi"
+                                  data-konfirmasi-isian="Tuliskan alasan pembatalannya:"
+                                  data-konfirmasi-isian-untuk="alasan_pembatalan">
                                 @csrf
                                 <input type="hidden" name="alasan_pembatalan" value="">
                                 <button class="btn-chip btn-chip-delete"><i class="fa-solid fa-ban mr-1.5"></i> Batalkan</button>

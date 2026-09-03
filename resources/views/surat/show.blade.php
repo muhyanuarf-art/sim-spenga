@@ -22,7 +22,7 @@
                      .btn-primary yang ukurannya penuh. Ketiganya didefinisikan
                      dalam satu aturan yang sama di resources/css/app.css, jadi
                      tinggi, padding, sudut, dan ukuran hurufnya persis sama. --}}
-                <form method="POST" action="{{ route('surat.destroy', $surat) }}" onsubmit="return confirm('Hapus surat ini?')">
+                <form method="POST" action="{{ route('surat.destroy', $surat) }}" data-konfirmasi="Hapus surat ini?">
                     @csrf @method('DELETE')
                     <button class="btn-danger"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</button>
                 </form>

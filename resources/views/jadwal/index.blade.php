@@ -150,7 +150,7 @@
                                 <span class="text-xs text-slate-400" title="Tidak dapat diubah"><i class="fa-solid fa-lock"></i></span>
                             @else
                             <button type="button" @click="editing = true" class="btn-chip btn-chip-edit btn-chip-icon" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                            <form method="POST" action="{{ route('jadwal.destroy', $j) }}" onsubmit="return confirm('Hapus jadwal ini?')">
+                            <form method="POST" action="{{ route('jadwal.destroy', $j) }}" data-konfirmasi="Hapus jadwal ini?">
                                 @csrf @method('DELETE')
                                 <button class="btn-chip btn-chip-delete btn-chip-icon" title="Hapus"><i class="fa-solid fa-trash"></i></button>
                             </form>
