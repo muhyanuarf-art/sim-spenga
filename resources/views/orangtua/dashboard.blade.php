@@ -127,6 +127,49 @@
             @endforelse
         </div>
 
+        {{-- PRESTASI. Sengaja diletakkan SEBELUM bagian kedisiplinan:
+             kalau ada yang membanggakan, itu yang pertama dilihat orang
+             tua saat membuka halaman ini. --}}
+        <div class="bg-white rounded-2xl shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+                <p class="font-bold text-slate-800">Prestasi</p>
+                @if($prestasi->count() > 0)
+                    <span class="text-sm text-slate-500">
+                        Total: <strong class="text-slate-800">{{ $prestasi->count() }}</strong>
+                    </span>
+                @endif
+            </div>
+
+            @forelse($prestasi as $p)
+                <div class="flex items-start gap-3 border-b border-slate-50 py-3 last:border-0">
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-semibold text-slate-700 text-sm">{{ $p->nama }}</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            {{ $p->ringkas() }} · {{ $p->labelBidang() }}
+                        </p>
+                        <p class="text-xs text-slate-400 mt-0.5">
+                            {{ $p->tanggal->translatedFormat('d F Y') }}
+                            @if($p->penyelenggara) · {{ $p->penyelenggara }} @endif
+                        </p>
+                        @unless($p->sudahDiverifikasi())
+                            <span class="inline-block mt-1 text-[11px] text-amber-700 bg-amber-50 rounded px-2 py-0.5">
+                                Menunggu verifikasi sekolah
+                            </span>
+                        @endunless
+                    </div>
+                </div>
+            @empty
+                <p class="text-sm text-slate-400 py-4 text-center">
+                    Belum ada prestasi yang tercatat.<br>
+                    <span class="text-xs">Bila putra/putri Anda pernah meraih prestasi tetapi belum tampil di sini,
+                    sampaikan kepada wali kelas agar dicatatkan.</span>
+                </p>
+            @endforelse
+        </div>
+
         <div class="bg-white rounded-2xl shadow-sm p-6">
             <div class="flex items-center justify-between mb-4">
                 <p class="font-bold text-slate-800">Kedisiplinan (BK)</p>

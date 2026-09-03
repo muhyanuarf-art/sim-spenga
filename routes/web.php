@@ -43,6 +43,7 @@ use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\AplikasiMobileController;
 use App\Http\Controllers\BerkasTerlindungiController;
 use App\Http\Controllers\PengaturanNotifikasiController;
+use App\Http\Controllers\PrestasiSiswaController;
 use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SiswaController;
@@ -306,6 +307,20 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kesiswaan,kurikulum,kepala_sekolah,guru_bk,admin')->group(function () {
         Route::get('kegiatan', [KegiatanSekolahController::class, 'index'])->name('kegiatan.index');
         Route::get('kegiatan/{kegiatan}', [KegiatanSekolahController::class, 'show'])->name('kegiatan.show');
+    });
+
+    // ===== PRESTASI SISWA =====
+    // 'guru' ikut masuk daftar karena WALI KELAS mencatat prestasi siswa
+    // kelasnya sendiri — itu inti perbaikannya (lihat migrasi
+    // create_prestasi_siswas_table). Middleware peran di sini hanya
+    // saringan pertama; batas per-kelas dan penguncian catatan yang sudah
+    // diverifikasi diperiksa lagi di PrestasiSiswaController.
+    Route::middleware('role:kesiswaan,kurikulum,kepala_sekolah,guru_bk,guru,admin')->group(function () {
+        Route::get('prestasi', [PrestasiSiswaController::class, 'index'])->name('prestasi.index');
+        Route::post('prestasi', [PrestasiSiswaController::class, 'store'])->name('prestasi.store');
+        Route::put('prestasi/{prestasi}', [PrestasiSiswaController::class, 'update'])->name('prestasi.update');
+        Route::delete('prestasi/{prestasi}', [PrestasiSiswaController::class, 'destroy'])->name('prestasi.destroy');
+        Route::post('prestasi/{prestasi}/verifikasi', [PrestasiSiswaController::class, 'verifikasi'])->name('prestasi.verifikasi');
     });
     Route::middleware(['role:kesiswaan,kurikulum,admin', 'periode-aktif'])->group(function () {
         Route::post('kegiatan', [KegiatanSekolahController::class, 'store'])->name('kegiatan.store');

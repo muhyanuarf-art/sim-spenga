@@ -277,6 +277,21 @@ class Navigasi
                         'deskripsi' => 'Kelola kegiatan ekstrakurikuler, pembina, dan anggotanya.',
                         'roles' => ['kesiswaan', 'admin'],
                     ],
+                    [
+                        // WALI KELAS ikut melihat menu ini — itu inti
+                        // perbaikannya. Yang tahu seorang siswa juara adalah
+                        // wali kelasnya; selama hanya Kesiswaan yang boleh
+                        // mengetik, prestasi hilang di perjalanan. 'syarat'
+                        // menjaga agar guru yang BUKAN wali kelas tidak
+                        // disodori menu yang isinya kosong baginya.
+                        'label' => 'Prestasi Siswa',
+                        'icon' => 'fa-trophy',
+                        'route' => 'prestasi.index',
+                        'cocok' => ['prestasi.*'],
+                        'deskripsi' => 'Catat prestasi siswa beserta sertifikatnya. Wali kelas mencatat untuk kelasnya sendiri, Kesiswaan memverifikasi dan merekap.',
+                        'roles' => ['kesiswaan', 'kurikulum', 'kepala_sekolah', 'guru_bk', 'guru', 'admin'],
+                        'syarat' => $khususWaliKelas,
+                    ],
                 ],
             ],
 

@@ -56,6 +56,7 @@ class BerkasTerlindungiController extends Controller
         'bk/bukti-pelanggaran',
         'bk/bukti-pembinaan',
         'surat-lampiran',
+        'prestasi/sertifikat',
     ];
 
     public function tampilkan(Request $request, string $path): StreamedResponse

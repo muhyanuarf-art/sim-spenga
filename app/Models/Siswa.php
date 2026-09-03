@@ -145,6 +145,9 @@ class Siswa extends Model
     public function penguranganPoinBk(): HasMany { return $this->hasMany(PenguranganPoinSiswa::class, 'siswa_id'); }
     public function pemanggilanOrtuBk(): HasMany { return $this->hasMany(PemanggilanOrangTua::class, 'siswa_id'); }
 
+    /** Prestasi yang diraih siswa ini. Lihat App\Models\PrestasiSiswa. */
+    public function prestasi(): HasMany { return $this->hasMany(PrestasiSiswa::class, 'siswa_id'); }
+
     /**
      * Riwayat mutasi kelas (awal masuk, kenaikan kelas antar tahun ajaran,
      * maupun pindah kelas di tengah tahun ajaran berjalan), diurutkan dari

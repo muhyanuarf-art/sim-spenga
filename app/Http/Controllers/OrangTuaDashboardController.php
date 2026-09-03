@@ -53,8 +53,20 @@ class OrangTuaDashboardController extends Controller
         // dari tahun ke tahun), tampilkan Riwayat Kelas di dashboard ini.
         $riwayatKelas = $siswa->riwayatKelas()->with(['tahunAjaran', 'kelasAsal', 'kelas'])->get();
 
+        // PRESTASI — ditampilkan kepada orang tua bukan sekadar sebagai
+        // kabar baik, melainkan sebagai PENAGIH. Selama ini prestasi hilang
+        // karena tidak ada yang menyadari kalau catatannya tidak pernah
+        // dibuat. Orang tua yang anaknya juara dan tidak melihatnya di sini
+        // akan bertanya — dan pertanyaan itulah yang selama ini tidak ada.
+        //
+        // Yang BELUM diverifikasi ikut tampil, dengan penanda tersendiri.
+        // Menyembunyikannya justru mematikan fungsi penagih itu: catatan
+        // baru dari wali kelas biasanya belum sempat diverifikasi.
+        $prestasi = $siswa->prestasi()->with('tahunAjaran')->urutanBaku()->get();
+
         return view('orangtua.dashboard', compact(
-            'siswa', 'rekapHarian', 'ringkasan', 'kasusBk', 'poinBersih', 'bulan', 'tahun', 'riwayatKelas'
+            'siswa', 'rekapHarian', 'ringkasan', 'kasusBk', 'poinBersih', 'bulan', 'tahun',
+            'riwayatKelas', 'prestasi'
         ));
     }
 
