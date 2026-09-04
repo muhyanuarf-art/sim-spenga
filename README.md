@@ -1,7 +1,7 @@
 # SIM-SPENGA
 Sistem Informasi Manajemen Sekolah — *Memudahkan Guru dan Monitoring Siswa Beserta Guru*
 
-Dibangun dengan **Laravel 13**, MySQL, Tailwind CSS (CDN, tanpa perlu build tools), dan Alpine.js.
+Dibangun dengan **Laravel 13**, MySQL, Tailwind CSS + Vite, Alpine.js, dan Livewire (khusus `wire:navigate` — pindah halaman tanpa muat ulang).
 
 ---
 
@@ -17,7 +17,7 @@ Ikuti langkah di bawah untuk menjalankannya di komputer/server Anda.
 - PHP >= 8.3
 - Composer
 - MySQL / MariaDB
-- (Opsional) Node.js — **tidak wajib**, karena UI memakai Tailwind via CDN.
+- **Node.js** — wajib. Sejak Tailwind & Font Awesome di-bundle Vite (tidak lagi dari CDN), aset harus dibangun sebelum aplikasi dipakai.
 
 ### 2. Install dependency
 ```bash
@@ -41,7 +41,15 @@ php artisan migrate --seed
 ```
 Perintah ini akan membuat seluruh tabel **dan** mengisi data awal: akun demo, tahun ajaran, kelas 7A-9F, mata pelajaran, jam pelajaran ke-1 s.d ke-8, dan contoh siswa di kelas 7A & 7B.
 
-### 5. Jalankan aplikasi
+### 5. Bangun aset frontend
+```bash
+npm install
+npm run build
+```
+Wajib. Tanpa langkah ini halaman akan tampil tanpa gaya sama sekali, karena Tailwind dan Font Awesome
+kini di-bundle Vite (tidak lagi diambil dari CDN).
+
+### 6. Jalankan aplikasi
 ```bash
 php artisan serve
 ```
@@ -106,7 +114,7 @@ Baris yang referensinya (NIP guru / kode kelas / kode mapel) tidak ditemukan di 
 
 ## 🗂️ Struktur Basis Data (ringkas)
 
-- `users` — semua pengguna (admin, kepala_sekolah, kurikulum, guru). Wali kelas ditandai lewat kolom `wali_kelas_id` di tabel `kelas`.
+- `users` — semua pengguna (admin, kepala_sekolah, kurikulum, guru, guru_bk, kesiswaan, tu). Wali kelas dicatat di tabel tersendiri `penugasan_wali_kelas`, karena penugasannya **berlaku per semester** — guru bisa menjadi wali kelas 7A di Semester Ganjil dan tidak lagi di Genap.
 - `tahun_ajarans`, `kelas`, `siswas`, `mata_pelajarans`, `jam_pelajarans`
 - `guru_mengajar_kelas` — mapping guru ⇄ kelas ⇄ mapel (input Kurikulum)
 - `jadwal_pelajarans` — jadwal per hari/kelas/jam (input Kurikulum)
@@ -118,11 +126,64 @@ Baris yang referensinya (NIP guru / kode kelas / kode mapel) tidak ditemukan di 
 ## 🎨 Teknologi
 - Laravel 13 (PHP 8.3+)
 - MySQL
-- Tailwind CSS via CDN (tanpa Vite/npm build — ringan & cepat)
+- Tailwind CSS + Vite (di-bundle & di-self-host — tidak bergantung CDN mana pun)
 - Alpine.js untuk interaktivitas ringan (dropdown, toggle form, radio absensi)
+- Livewire — dipakai HANYA untuk `wire:navigate`; tidak ada satu pun halaman yang ditulis sebagai komponen Livewire
 - Maatwebsite/Excel untuk fitur import Excel
+- Flutter (folder `mobile/`) untuk aplikasi Android
 
 ## 📌 Pengembangan Lanjutan yang Disarankan
 - Tambahkan export PDF/Excel untuk rekap absensi bulanan (tombol cetak saat ini memakai `window.print()`).
 - Tambahkan notifikasi otomatis ke Wali Kelas jika ada siswa Alfa berturut-turut.
 - Tambahkan grafik tren kehadiran per kelas di dashboard Kepala Sekolah.
+
+---
+
+## 📚 Dokumentasi lengkap
+
+Dua panduan siap cetak ada di folder `docs/`, dibangkitkan dari skrip PHP di folder yang sama
+(`php docs/_pembuat-panduan.php`). Ubah skripnya, jangan menyunting `.docx`-nya langsung.
+
+| Berkas | Untuk siapa | Isinya |
+|---|---|---|
+| `docs/Panduan-SIM-SPENGA.docx` | Semua pengguna | Pemakaian menu harian per peran, aplikasi Android, pergantian semester |
+| `docs/Panduan-Database-Admin.docx` | Admin | Mencadangkan, memulihkan, mengosongkan, merawat database |
+
+## 🔐 Lisensi & mode pemasangan
+
+Aplikasi punya dua mode, diatur lewat `LISENSI_MODE` di `.env`:
+
+- **`lokal`** — nomor seri diperiksa di dalam aplikasi sendiri. Untuk sekolah yang memasang di servernya sendiri.
+- **`server`** — masa aktif diperiksa ke server lisensi FF Production. Untuk pemasangan yang dikelola FF Production;
+  sekolah tidak pernah mengetik apa pun. Perpanjangan cukup dilakukan dari sisi server, dan aplikasi membuka
+  sendiri pada sapaan berikutnya.
+
+Perintah terkait:
+
+```bash
+php artisan lisensi:sapa          # memperbarui surat lisensi (dijadwalkan cron)
+php artisan lisensi:buat-kunci    # membuat sepasang kunci Ed25519 (dijalankan FF Production)
+```
+
+## 💾 Cadangan data
+
+```bash
+php artisan backup:buat                    # database + storage/app + APP_KEY, terenkripsi
+php artisan backup:buka <berkas.simbak>    # membukanya kembali
+```
+
+Isi `BACKUP_SANDI` di `.env` lebih dulu — perintahnya menolak berjalan tanpa itu, karena berkas backup
+berisi seluruh data siswa beserta APP_KEY. Simpan kata sandinya **di luar** komputer server.
+
+## 📱 Aplikasi Android
+
+Ada di folder `mobile/` (Flutter). Berisi layar masuk native — lengkap dengan sidik jari dan lupa
+kata sandi lewat WhatsApp — lalu menampilkan aplikasi web ini di dalam WebView.
+
+```bash
+cd mobile
+flutter build apk --release
+```
+
+Karena isinya aplikasi web yang sama, **perbaikan di server langsung sampai ke ponsel tanpa memasang
+ulang APK**. Pemasangan ulang hanya perlu bila kode di `mobile/lib` yang berubah.

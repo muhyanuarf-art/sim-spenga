@@ -21,7 +21,7 @@ $d->sampulJudul('Panduan Database', 'SIM-SPENGA — SMP Negeri 3 Bumiayu', [
     'PEGANGAN ADMIN',
     'Mencadangkan, Memulihkan, Mengosongkan, dan Merawat Data',
     '',
-    'Edisi Agustus 2026',
+    'Edisi September 2026',
     '',
     'Dokumen ini untuk Admin. Jangan dibagikan ke pengguna umum —',
     'berisi perintah yang dapat menghapus seluruh data sekolah.',
@@ -60,7 +60,7 @@ $d->p('Seluruh data SIM-SPENGA tersimpan di **dua tempat**, dan keduanya sama pe
 $d->tabel(['Tempat', 'Isinya', 'Bila hilang'], [
     ['Database MySQL bernama `sim_spenga`', 'Semua data teks & angka: siswa, nilai, absensi, jurnal, BK, surat, pengaturan, akun', 'Seluruh catatan sekolah lenyap'],
     ['Folder `storage/app/public`', 'Berkas yang boleh dibaca siapa saja: logo sekolah & ikon aplikasi', 'Kop surat dan halaman masuk kehilangan logonya'],
-    ['Folder `storage/app/private`', 'Berkas RAHASIA: foto bukti pelanggaran & pembinaan BK, lampiran surat', 'Catatan BK masih ada, tapi foto buktinya hilang semua'],
+    ['Folder `storage/app/private`', 'Berkas RAHASIA: foto bukti pelanggaran & pembinaan BK, lampiran surat, sertifikat prestasi siswa', 'Catatan BK masih ada tapi foto buktinya hilang, dan prestasi kehilangan sertifikatnya'],
 ], [26, 50, 24]);
 
 $d->catatan('Kesalahan yang paling sering terjadi',
@@ -72,9 +72,9 @@ $d->catatan('Dua folder berkas, beda sifat — dan keduanya wajib dicadangkan',
 
 $d->h2('A.2 Tiga golongan tabel');
 
-$d->p('Database ini berisi 55 tabel. Untuk keperluan pengelolaan, semuanya masuk salah satu dari tiga golongan berikut. Pembagian inilah yang dipakai perintah pengosongan data di Bagian D.');
+$d->p('Database ini berisi 57 tabel. Untuk keperluan pengelolaan, semuanya masuk salah satu dari tiga golongan berikut. Pembagian inilah yang dipakai perintah pengosongan data di Bagian D.');
 
-$d->h3('Golongan 1 — Master data (14 tabel)');
+$d->h3('Golongan 1 — Master data (15 tabel)');
 $d->p('Daftar acuan yang disusun sekali lalu dipakai berulang. **Tidak pernah** ikut dikosongkan.');
 
 $d->tabel(['Tabel', 'Isinya di aplikasi'], [
@@ -91,10 +91,11 @@ $d->tabel(['Tabel', 'Isinya di aplikasi'], [
     ['`jenis_surats`', 'Katalog jenis surat'],
     ['`ekstrakurikulers`', 'Daftar nama kegiatan ekstrakurikuler'],
     ['`migrations`', 'Catatan struktur database — milik sistem, jangan disentuh'],
-    ['`lisensi_aplikasis`', 'Bukti aktivasi nomor seri — milik sistem, jangan disentuh'],
+    ['`lisensi_aplikasis`', 'Bukti aktivasi lisensi — milik sistem, jangan disentuh'],
+    ['`pengaturan_aplikasis`', 'Pengenal pemasangan & surat lisensi dari server — milik sistem, jangan disentuh'],
 ], [30, 70]);
 
-$d->h3('Golongan 2 — Data sekolah (35 tabel)');
+$d->h3('Golongan 2 — Data sekolah (36 tabel)');
 $d->p('Hasil pemakaian sehari-hari. Inilah yang dikosongkan bila aplikasi hendak dipakai sungguhan setelah masa uji coba.');
 
 $d->tabel(['Kelompok', 'Tabelnya'], [
@@ -106,6 +107,7 @@ $d->tabel(['Kelompok', 'Tabelnya'], [
     ['Bimbingan Konseling', '`kasus_siswas`, `pembinaan_siswas`, `evaluasi_pembinaans`, `pemanggilan_orangtuas`, `pengurangan_poin_siswas`'],
     ['Surat', '`surats`, `surat_siswa`, `surat_activities`, `surat_attachments`, `disposisi_surats`'],
     ['Kegiatan & ekstrakurikuler', '`kegiatan_sekolahs`, `kegiatan_kelas`, `ekstrakurikuler_siswas`, `ekstrakurikuler_pembinas`'],
+    ['Prestasi siswa', '`prestasi_siswas` — beserta sertifikatnya di `storage/app/private/prestasi`'],
     ['Notifikasi', '`notifikasi_was`, `notifikasi_alfa_terkirims`, `pengingat_jurnals`'],
 ], [28, 72]);
 
@@ -136,9 +138,45 @@ $d->tabel(['Waktu', 'Alasan'], [
     ['Di akhir tiap semester, disimpan permanen', 'Arsip resmi nilai & absensi semester itu'],
 ], [42, 58]);
 
-$d->h2('B.2 Cara termudah — lewat phpMyAdmin');
+$d->h2('B.2 Cara yang DIANJURKAN — satu perintah');
 
-$d->p('Cocok untuk Admin yang tidak terbiasa dengan baris perintah.');
+$d->p('Aplikasi sudah menyediakan perintah backup sendiri. **Inilah cara yang seharusnya dipakai**, dan dua cara berikutnya (phpMyAdmin & mysqldump) hanya diperlukan bila perintah ini tidak bisa dijalankan.');
+
+$d->kode("php artisan backup:buat");
+
+$d->p('Alasannya bukan sekadar lebih singkat, melainkan lebih **lengkap**. Mencadangkan database saja adalah kekeliruan yang paling sering terjadi dan paling terlambat disadari:');
+
+$d->tabel(['Yang ikut tercadang', 'Bila ini tertinggal'], [
+    ['Seluruh database', '—'],
+    ['Folder `storage/app`', 'Catatan BK pulih tanpa foto bukti, prestasi tanpa sertifikat, kop surat tanpa logo'],
+    ['**APP_KEY**', 'Token WhatsApp dan aktivasi lisensi di dalam database menjadi **sampah permanen** — tidak bisa dipulihkan siapa pun, termasuk Anda'],
+], [34, 66]);
+
+$d->catatan('APP_KEY inilah yang paling sering terlupakan',
+    'Banyak orang mencadangkan database dengan rajin, lalu saat memulihkan baru menyadari bahwa nilai-nilai terenkripsi di dalamnya tidak bisa dibaca lagi — karena kuncinya ikut hilang bersama server lama. Perintah `backup:buat` menyertakannya secara otomatis, jadi kekeliruan itu tidak mungkin terjadi.', 'FDE7E9');
+
+$d->h3('Sebelum dipakai pertama kali');
+$d->p('Isi `BACKUP_SANDI` di berkas `.env`. Perintahnya **menolak berjalan** bila kosong — backup berisi seluruh data siswa beserta APP_KEY, jadi tidak pernah dibuat tanpa enkripsi.');
+$d->kode("BACKUP_SANDI=\"kalimat rahasia yang panjang dan mudah diingat\"\nBACKUP_TUJUAN=\"C:/backup-sim-spenga\"\nBACKUP_SIMPAN=30");
+
+$d->catatan('Simpan kata sandinya DI LUAR komputer server',
+    'Di ponsel Kepala Sekolah, di brankas, atau di pengelola kata sandi. Bila kalimat itu hanya ada di komputer yang sama dan komputer itu rusak atau diambil orang, enkripsinya tidak menolong apa pun — sekaligus backup-nya menjadi tidak bisa dibuka oleh Anda sendiri.', 'FDE7E9');
+
+$d->h3('Menjadwalkannya');
+$d->p('Di Windows, buka **Task Scheduler** dan jadwalkan perintah berikut setiap hari:');
+$d->kode("cd C:\\laragon\\www\\sim-spenga && php artisan backup:buat");
+$d->p('`BACKUP_SIMPAN` menentukan berapa salinan terakhir yang disimpan; yang lebih lama dihapus sendiri. Satu backup hanya beberapa MB, jadi menyimpan 30 hari pun tidak berarti apa-apa bagi kapasitas disk.');
+
+$d->h3('Membuka kembali');
+$d->kode("php artisan backup:buka \"C:/backup-sim-spenga/sim-spenga-2026-09-03-1705.simbak\"");
+$d->p('Hasilnya berkas `.zip` biasa berisi `database.sql`, folder `storage-app/`, `RAHASIA.txt` (APP_KEY), dan `BACA-SAYA.txt` yang memuat langkah pemulihannya. Berkas hasil bukaan itu **tidak terenkripsi lagi** — hapus segera setelah selesai dipakai.');
+
+$d->catatan('Ujilah sekali, di komputer LAIN',
+    'Backup yang belum pernah dicoba dipulihkan bukan backup, melainkan harapan. Dan mengujinya di komputer yang sama tidak membuktikan apa pun tentang keadaan saat komputer itulah yang rusak — justru keadaan itu yang sedang Anda persiapkan.');
+
+$d->h2('B.2b Cara alternatif — lewat phpMyAdmin');
+
+$d->p('Cocok untuk Admin yang tidak terbiasa dengan baris perintah. **Ingat:** cara ini hanya mencadangkan databasenya saja — folder unggahan dan APP_KEY harus Anda salin sendiri (lihat B.4).');
 
 $d->langkah([
     'Buka Laragon, klik tombol **Database** (atau buka `http://localhost/phpmyadmin` di peramban).',

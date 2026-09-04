@@ -10,7 +10,7 @@ $d->sampulJudul('SIM-SPENGA', 'Sistem Informasi Manajemen Sekolah', [
     'BUKU PANDUAN LENGKAP',
     'Pemasangan, Penggunaan, dan Pemeliharaan',
     '',
-    'Edisi Agustus 2026',
+    'Edisi September 2026',
 ]);
 
 // =====================================================================
@@ -19,7 +19,7 @@ $d->p('Dokumen ini disusun berurutan. Kalau Anda baru pertama kali memakai SIM-S
 
 $d->tabel(['Bagian', 'Isi', 'Untuk siapa'], [
     ['A', 'Mengenal SIM-SPENGA & istilah pentingnya', 'Semua pengguna'],
-    ['B', 'Pemasangan di server & aktivasi nomor seri', 'Teknisi / Admin'],
+    ['B', 'Pemasangan di server, lisensi & masa aktif', 'Teknisi / Admin'],
     ['C', 'Persiapan awal — urutan yang WAJIB diikuti', 'Admin & Kurikulum'],
     ['D', 'Panduan harian per peran', 'Sesuai peran masing-masing'],
     ['E', 'Pemberitahuan WhatsApp otomatis', 'Admin, Guru, Wali Kelas'],
@@ -27,8 +27,9 @@ $d->tabel(['Bagian', 'Isi', 'Untuk siapa'], [
     ['G', 'Pergantian semester & tahun ajaran', 'Admin & Kurikulum'],
     ['H', 'Import data lewat Excel', 'Admin & Kurikulum'],
     ['I', 'Bila terjadi masalah — arti tiap pesan', 'Semua pengguna'],
-    ['J', 'Keamanan & pemeliharaan', 'Admin'],
-    ['K', 'Lampiran: daftar menu per peran', 'Semua pengguna'],
+    ['J', 'Keamanan, cadangan data & pemeliharaan', 'Admin'],
+    ['K', 'Aplikasi Android: pasang, sidik jari, lupa kata sandi', 'Guru & Staf'],
+    ['L', 'Lampiran: daftar menu per peran', 'Semua pengguna'],
 ], [10, 60, 30]);
 
 $d->catatan('Ada dokumen kedua untuk urusan database',
@@ -105,16 +106,30 @@ $d->langkah([
 $d->catatan('Wajib diperiksa sebelum dipakai sungguhan',
     'Pastikan di `.env` sudah tertulis `APP_DEBUG=false` dan `APP_ENV=production`. Bila `APP_DEBUG` masih `true`, setiap kesalahan akan menampilkan rincian teknis **beserta kata sandi database** kepada siapa pun yang membukanya.');
 
-$d->h2('B.3 Aktivasi nomor seri');
-$d->p('SIM-SPENGA hanya berjalan pada pemasangan yang sudah diaktifkan. Saat pertama dibuka, aplikasi menampilkan halaman **Aktivasi**.');
+$d->h2('B.3 Lisensi & masa aktif');
+$d->p('SIM-SPENGA hanya berjalan selama masa langganannya masih berlaku. Ada **dua cara** lisensi diperiksa, dan sekolah Anda memakai salah satunya. Tanyakan kepada penyedia bila tidak yakin yang mana.');
 
+$d->h3('Cara 1 — Dikelola penyedia (paling umum)');
+$d->p('Aplikasi dipasang dan diurus sendiri oleh penyedia di server mereka. **Tidak ada yang perlu Anda lakukan** — tidak ada nomor seri, tidak ada halaman aktivasi, tidak ada yang perlu diketik siapa pun di sekolah.');
+$d->poin([
+    'Aplikasi memeriksa masa langganannya sendiri ke server penyedia, beberapa kali sehari, diam-diam.',
+    'Gangguan internet sesaat **tidak terasa** — aplikasi menyimpan hasil pemeriksaan terakhir dan tetap berjalan hingga 24 jam tanpa hubungan.',
+    'Bila masa langganan habis, aplikasi menutup diri paling lama sehari sesudahnya.',
+    'Begitu penyedia memperpanjang, aplikasi **terbuka kembali sendiri** dalam hitungan jam. Tidak ada nomor yang perlu diketik.',
+]);
+$d->catatan('Bila muncul halaman "Masa Aktif Telah Berakhir"',
+    'Halaman itu **tidak punya isian apa pun** — memang tidak ada nomor seri yang perlu dicari maupun diketik. Hubungi penyedia untuk memperpanjang. Seluruh data sekolah tetap aman dan utuh selama masa itu; tidak ada yang hilang.');
+
+$d->p('Sesudah penyedia memperpanjang, aplikasi membuka sendiri dalam beberapa jam. Bila tidak ingin menunggu, tekan tombol **"Sudah Diperpanjang? Periksa Sekarang"** di halaman itu — aplikasi langsung menghubungi server saat itu juga dan terbuka bila memang sudah diperpanjang.');
+
+$d->h3('Cara 2 — Dipasang di server sekolah sendiri');
+$d->p('Dipakai bila sekolah menuntut aplikasinya berada di gedung sendiri. Di sini aktivasi memakai nomor seri.');
 $d->langkah([
     'Buka alamat aplikasi di peramban. Halaman Aktivasi muncul otomatis.',
     'Ketik nomor seri yang Anda terima dari penyedia aplikasi.',
     'Klik **Aktifkan Sekarang**.',
     'Bila benar, Anda langsung diarahkan ke halaman Masuk. Aktivasi cukup sekali.',
 ]);
-
 $d->p('Huruf besar/kecil dan tanda hubung tidak masalah — yang penting urutan karakternya benar.');
 
 $d->catatan('Simpan nomor seri Anda baik-baik',
@@ -152,8 +167,32 @@ $d->langkah([
     'Pilih **Peran**: Guru, Guru BK, Kurikulum, Kesiswaan, TU, Kepala Sekolah, atau Admin.',
     'Ulangi untuk seluruh guru dan staf.',
 ]);
-$d->catatan('Jangan menghapus pengguna, nonaktifkan saja',
-    'Guru yang pindah atau pensiun sebaiknya **dinonaktifkan** (matikan tombol Aktif di form Edit), bukan dihapus. Menghapusnya akan ditolak aplikasi bila namanya masih menempel di jadwal, jurnal, atau penugasan — dan itu memang disengaja supaya riwayat sekolah tetap utuh.');
+$d->h3('Tiga tombol di setiap baris pengguna');
+$d->tabel(['Tombol', 'Kapan dipakai', 'Akibatnya'], [
+    [
+        '**Edit**',
+        'Mengubah nama, NIP, email, peran, atau nomor HP',
+        'Data pengguna berubah. Kata sandi hanya berganti bila kolomnya diisi',
+    ],
+    [
+        '**Reset Sandi**',
+        'Guru lupa kata sandinya dan tidak bisa memakai jalur mandiri lewat aplikasi Android',
+        'Kata sandi kembali menjadi `password`. Yang lama langsung tidak berlaku — mintalah guru segera menggantinya setelah masuk',
+    ],
+    [
+        '**Nonaktifkan**',
+        'Guru pensiun, pindah tugas, atau berhenti',
+        'Tidak bisa masuk lagi — lewat web maupun aplikasi Android — dan **sesi yang sedang berjalan ikut terputus**. Seluruh data lamanya tetap utuh',
+    ],
+], [22, 34, 44]);
+
+$d->catatan('Nonaktifkan, jangan dihapus',
+    'Guru yang pensiun meninggalkan jejak di jurnal, nilai, catatan BK, dan penugasan wali kelas bertahun-tahun lampau. Menghapus akunnya akan ditolak aplikasi bila namanya masih menempel di data itu — dan itu memang disengaja, supaya laporan tahun-tahun lalu tidak kehilangan nama penanggung jawabnya. Menonaktifkan menutup pintu masuknya tanpa merusak riwayat apa pun.');
+
+$d->catatan('Penonaktifan berlaku SAAT ITU JUGA',
+    'Bila guru tersebut sedang membuka aplikasi ketika akunnya dinonaktifkan, ia akan terlempar ke halaman masuk pada klik berikutnya — tidak menunggu sampai besok. Cukup penting untuk kasus pensiun, karena sesi yang terbuka di komputer ruang guru sering terlupakan.');
+
+$d->p('Ketiga tombol itu **tidak muncul di baris akun Anda sendiri**. Untuk mengganti kata sandi sendiri, gunakan tombol Edit.');
 
 $d->h2('Langkah 3 — Tahun Ajaran');
 $d->p('Menu: **Data Master → Tahun Ajaran**');
@@ -294,6 +333,21 @@ $d->tabel(['Menu', 'Isinya'], [
 $d->p('**Laporan Akhir Semester** adalah lembar yang dipakai saat rapat penerimaan rapor — menggabungkan empat hal yang dulu harus dibuka di empat menu berbeda.');
 $d->p('Semua lembar punya tombol **Cetak**. Kop surat, nama & NIP wali kelas, serta kepala sekolah terisi otomatis dari Pengaturan Sekolah.');
 
+$d->h3('Mencatat prestasi siswa kelas Anda');
+$d->p('Menu **Kesiswaan → Prestasi Siswa** juga terbuka untuk wali kelas — tetapi hanya berisi siswa kelas perwalian Anda, sehingga daftarnya pendek dan tidak perlu dicari.');
+
+$d->langkah([
+    'Klik **Catat Prestasi**.',
+    'Pilih siswa dari daftar (hanya kelas Anda yang muncul), isi nama lomba, peringkat, dan tanggalnya.',
+    'Unggah sertifikatnya bila ada — boleh menyusul belakangan.',
+    'Catatan Anda berstatus **Menunggu** sampai Kesiswaan memeriksanya.',
+]);
+
+$d->catatan('Catat saat itu juga, jangan ditunda',
+    'Inilah alasan menu ini dibuka untuk wali kelas: Anda yang tahu, dan Anda bisa langsung mencatatnya tanpa menitip ke siapa pun. Prestasi yang ditunda pencatatannya hampir selalu berakhir terlupakan. Bila ada yang keliru, Anda masih bisa memperbaikinya sendiri selama Kesiswaan belum memverifikasi.');
+
+$d->p('Orang tua siswa **dapat melihat** prestasi anaknya di portal orang tua, termasuk yang masih menunggu verifikasi. Jadi bila ada prestasi yang belum tercatat, biasanya orang tuanya sendiri yang akan menanyakannya.');
+
 $d->h2('D.3 Guru BK');
 $d->p('Menu: **Kesiswaan → Bimbingan Konseling**. Seluruh pencatatan BK berpangkal dari sini, terbagi dalam lima tab:');
 $d->tabel(['Tab', 'Untuk mencatat'], [
@@ -343,6 +397,31 @@ $d->langkah([
 ]);
 $d->catatan('Pembina berlaku per semester',
     'Bila pembina Pramuka berganti di Semester Genap, ubah saja di semester itu — Semester Ganjil tetap mencatat pembina yang lama, sehingga rekap absensi ekskul semester lalu tetap menyebut nama yang benar.');
+
+$d->h3('Prestasi Siswa');
+$d->p('Satu tempat untuk seluruh prestasi siswa beserta sertifikatnya. Dibuat untuk mengatasi masalah yang sudah lama: prestasi tercatat di buku wali kelas, di pesan WhatsApp, di folder sertifikat yang tercecer — lalu saat dibutuhkan untuk laporan atau akreditasi, datanya tidak lengkap.');
+
+$d->p('**Yang membuatnya berbeda: wali kelas boleh mencatat sendiri.** Yang tahu seorang siswa juara adalah wali kelasnya. Selama hanya Kesiswaan yang boleh mengetik, setiap prestasi harus melewati satu perantara — dan di situlah selama ini datanya hilang.');
+
+$d->langkah([
+    'Menu **Kesiswaan → Prestasi Siswa**, klik **Catat Prestasi**.',
+    'Cukup isi empat hal: siswa, nama lomba, peringkat, dan tanggal. Bidang, tingkat, penyelenggara, keterangan, dan sertifikat boleh menyusul.',
+    'Sertifikat boleh diunggah berupa JPG, PNG, atau PDF (maksimal 4 MB).',
+    'Prestasi yang dicatat Kesiswaan langsung berstatus **terverifikasi**.',
+]);
+
+$d->h3('Memverifikasi catatan wali kelas');
+$d->p('Prestasi yang dicatat wali kelas berstatus **Menunggu**. Kesiswaan memeriksanya lalu menekan **Verifikasi** — satu klik, tidak ada formulir. Hanya yang sudah terverifikasi yang layak dipakai untuk laporan resmi.');
+
+$d->tabel(['Status', 'Artinya', 'Siapa yang bisa mengubah'], [
+    ['**Menunggu**', 'Baru dicatat wali kelas, belum diperiksa Kesiswaan', 'Wali kelas yang mencatatnya, dan Kesiswaan'],
+    ['**Terverifikasi**', 'Sudah dipastikan benar, boleh dipakai untuk laporan', 'Hanya Kesiswaan'],
+]);
+
+$d->catatan('Kenapa catatan terverifikasi terkunci bagi wali kelas',
+    'Begitu Kesiswaan memastikan sebuah catatan dan memakainya untuk laporan, catatan itu tidak boleh lagi berubah tanpa sepengetahuannya. Wali kelas akan melihat tulisan **Terkunci** di baris tersebut. Bila memang ada yang keliru, Kesiswaan dapat menekan **Batal Verifikasi** untuk membukanya kembali.');
+
+$d->p('Angka di bagian atas halaman menunjukkan **Menunggu Verifikasi** — itulah daftar pekerjaan Kesiswaan. Bila angkanya nol, semua sudah diperiksa.');
 
 $d->h3('Menghentikan atau menghapus sebuah kegiatan');
 $d->p('Dua hal yang sering tertukar. Pilih yang sesuai keadaannya:');
@@ -501,7 +580,6 @@ $d->tabel(['Gejala', 'Penyebab yang paling mungkin'], [
     ['Banyak berstatus **Kedaluwarsa**', 'Pekerja antrian sempat mati berjam-jam atau semalaman, sehingga pesannya baru diproses setelah harinya lewat'],
 ], [45, 55]);
 
-// =====================================================================
 $d->h1('Bagian F — Melihat Data Semester Lampau');
 $d->p('Di kanan atas setiap halaman ada **kotak pemilih periode**. Isinya seluruh periode yang pernah ada.');
 
@@ -640,9 +718,28 @@ $d->poin([
 ]);
 
 $d->h2('J.2 Cadangan data (backup)');
-$d->p('Cadangkan database **setiap minggu**, dan **wajib** sebelum pergantian semester atau tahun ajaran.');
-$d->kode("mysqldump -u pengguna -p --no-tablespaces --single-transaction sim_spenga > cadangan-2026-08-29.sql");
-$d->p('Cadangkan juga seluruh folder `storage/app` yang berisi berkas unggahan. Di dalamnya ada **dua** folder dan keduanya sama-sama wajib: `public` (logo sekolah & ikon aplikasi) dan `private` (foto bukti pelanggaran & pembinaan BK, serta lampiran surat). Database saja belum lengkap — bila foldernya tidak ikut, catatan BK akan pulih tanpa foto buktinya dan kop surat kehilangan logonya.');
+$d->p('Aplikasi sudah menyediakan perintah backup sendiri. **Pakailah itu**, jangan mencadangkan database saja — sebab database saja tidak pernah cukup.');
+
+$d->kode("php artisan backup:buat");
+
+$d->p('Satu perintah itu menghasilkan **satu berkas terenkripsi** berisi tiga hal yang harus selalu berpasangan:');
+$d->tabel(['Isi', 'Kenapa wajib ikut'], [
+    ['Seluruh database', 'Nilai, absensi, catatan BK, prestasi — inti dari semuanya'],
+    ['Folder `storage/app`', 'Sertifikat prestasi, foto bukti BK, lampiran surat, logo sekolah. Tanpa ini, catatan BK pulih tanpa foto buktinya dan kop surat kehilangan logonya'],
+    ['APP_KEY', 'Tanpa ini, token WhatsApp dan aktivasi lisensi di dalam database menjadi sampah yang **tidak bisa dipulihkan siapa pun**, termasuk Anda'],
+], [26, 74]);
+
+$d->catatan('Backup selalu terenkripsi — dan itu disengaja',
+    'Berkas backup berisi seluruh data siswa beserta APP_KEY. Ia setara kunci induk sekolah, bukan arsip biasa. Karena itu perintahnya **menolak jalan** bila `BACKUP_SANDI` belum diisi di berkas `.env`. Isilah dengan kalimat panjang, lalu **simpan kalimat itu di luar komputer server** — di ponsel Kepala Sekolah atau brankas. Bila kata sandinya ikut hilang bersama komputernya, backup terenkripsi tidak menolong siapa pun.', 'FDE7E9');
+
+$d->h3('Menyalinnya keluar dari komputer server');
+$d->p('Backup yang tersimpan di disk yang sama dengan aplikasinya **bukan backup** — ia mati bersama yang aslinya. Cara paling praktis untuk sekolah: pasang **Google Drive Desktop** atau **OneDrive** di komputer server, lalu arahkan `BACKUP_TUJUAN` di `.env` ke folder sinkronnya. Salinannya otomatis keluar tanpa siapa pun perlu ingat mencolok flashdisk.');
+
+$d->h3('Menguji pemulihan');
+$d->p('Sekali waktu, buktikan bahwa backup Anda benar-benar bisa dibuka:');
+$d->kode("php artisan backup:buka \"C:/backup-sim-spenga/sim-spenga-2026-09-03-1705.simbak\"");
+$d->catatan('Backup yang belum pernah dicoba dipulihkan bukan backup',
+    'Ia hanya harapan. Ujilah **di komputer lain**, bukan di server yang sama — karena menguji di komputer yang sama tidak membuktikan apa pun tentang keadaan saat komputer itulah yang rusak. Berkas hasil bukaannya tidak terenkripsi lagi, jadi hapus segera setelah selesai diperiksa.');
 
 $d->catatan('Kenapa berkas BK terpisah di folder `private`',
     'Berkas di `public` dilayani langsung oleh peladen web, tanpa pemeriksaan login — itu memang perlu untuk logo, yang harus tampil di halaman masuk. Foto bukti pelanggaran siswa tidak boleh begitu: siapa pun yang memegang alamatnya akan bisa membukanya selamanya, bahkan setelah tidak lagi bekerja di sekolah. Karena itu berkas rahasia disimpan di `private`, di luar jangkauan peladen web, dan hanya bisa dibuka lewat aplikasi oleh pengguna yang sudah masuk.');
@@ -657,12 +754,90 @@ $d->tabel(['Perlindungan', 'Keterangan'], [
     ['Batas antar pemilik', 'Guru hanya bisa membuka kelas & mapel yang benar-benar diampunya'],
     ['Portal orang tua', 'Terpisah penuh dari area staf; hanya menampilkan data anaknya sendiri'],
     ['Perlindungan data', 'Menghapus master data yang masih dipakai ditolak, bukan dihapus diam-diam'],
-    ['Lisensi', 'Aplikasi tidak berjalan tanpa nomor seri yang sah'],
+    ['Lisensi', 'Aplikasi tidak berjalan bila masa langganannya sudah berakhir'],
     ['Token WhatsApp', 'Token perangkat kepala sekolah disimpan terenkripsi; membaca database langsung tidak memberikan tokennya'],
+    ['Akun dinonaktifkan', 'Berlaku saat itu juga — sesi yang sedang berjalan ikut terputus, tidak menunggu sampai besok'],
+    ['"Ingat saya"', 'Yang tersimpan di database hanya sidiknya, sehingga salinan database tidak bisa dipakai merakit cookie masuk'],
+    ['Berkas backup', 'Selalu terenkripsi; tanpa kata sandinya, berkas yang bocor tidak berarti apa-apa'],
+    ['Sertifikat prestasi', 'Disimpan di luar jangkauan peladen web, hanya terbuka bagi pengguna yang sudah masuk'],
 ], [30, 70]);
 
 // =====================================================================
-$d->h1('Bagian K — Lampiran: Daftar Menu per Peran');
+$d->h1('Bagian K — Aplikasi Android');
+$d->p('SIM-SPENGA punya aplikasi Android untuk guru. Isinya **sama persis** dengan versi web — bukan aplikasi terpisah dengan fitur yang berbeda-beda. Yang ditambahkannya adalah kemudahan masuk: cukup sidik jari, tanpa mengetik kata sandi setiap kali.');
+
+$d->catatan('Perbaikan di web langsung sampai ke ponsel',
+    'Karena isinya adalah aplikasi web yang sama, setiap perbaikan di server langsung terlihat di ponsel tanpa siapa pun perlu memasang ulang aplikasinya. Pemasangan ulang hanya diperlukan bila ada perubahan pada aplikasi Android-nya sendiri — misalnya layar masuk atau fitur sidik jari.');
+
+$d->h2('K.1 Memasang');
+$d->langkah([
+    'Minta berkas **app-release.apk** kepada Admin atau penyedia aplikasi.',
+    'Salin ke ponsel, lalu buka berkasnya.',
+    'Android akan meminta izin **"pasang dari sumber tak dikenal"** — izinkan sekali saja.',
+    'Ikon SIM-SPENGA muncul di layar utama.',
+]);
+$d->p('Bila memasang versi yang lebih baru, **tidak perlu mencopot yang lama** — pasang saja menimpanya, dan data Anda tidak hilang.');
+
+$d->h2('K.2 Masuk pertama kali');
+$d->langkah([
+    'Buka aplikasi. Layar masuknya mirip halaman login di komputer.',
+    'Isi **Email** dan **Kata Sandi** — sama persis dengan yang Anda pakai di komputer.',
+    'Centang **Ingat saya di perangkat ini** bila ponsel itu milik pribadi.',
+    'Tekan **Masuk**.',
+]);
+$d->catatan('Akun Admin dan orang tua tidak bisa masuk lewat aplikasi',
+    'Aplikasi Android khusus untuk guru dan staf. Pekerjaan Admin — mengelola akun, mengunci periode, mengosongkan data — menuntut layar lebar dan ketelitian, jadi sengaja hanya bisa lewat komputer. Portal orang tua juga terpisah dan dibuka lewat peramban.');
+
+$d->h2('K.3 Masuk dengan sidik jari');
+$d->p('Sesudah berhasil masuk dengan kata sandi, aplikasi menawarkan menyalakan sidik jari. Bila disetujui, pembukaan berikutnya cukup menempelkan jari.');
+$d->langkah([
+    'Masuk seperti biasa dengan kata sandi.',
+    'Muncul pertanyaan **"Masuk dengan sidik jari?"** — tekan **Nyalakan**.',
+    'Lain kali aplikasi dibuka, dialog sidik jari muncul dengan sendirinya.',
+]);
+$d->poin([
+    'Tawaran ini **tidak muncul** bila ponsel Anda belum punya sidik jari terdaftar. Periksa Setelan → Keamanan di ponsel.',
+    'Kata sandi disimpan terkunci di ponsel itu saja, dan hanya terbuka oleh sidik jari Anda — tidak dikirim ke mana pun.',
+    'Bila Admin mengganti kata sandi Anda, sidik jari otomatis dimatikan dan Anda diminta masuk dengan kata sandi baru sekali lagi.',
+]);
+
+$d->h2('K.4 Lupa kata sandi — lewat WhatsApp');
+$d->p('Guru yang lupa kata sandinya bisa mengurusnya sendiri dari aplikasi, tanpa menunggu Admin.');
+$d->langkah([
+    'Di layar masuk, tekan **Lupa kata sandi?**',
+    'Isi Email atau NIP Anda, lalu tekan **Kirim Kode**.',
+    'Kode 6 angka dikirim lewat WhatsApp ke **nomor yang terdaftar pada akun Anda** — bukan nomor yang diketik saat itu.',
+    'Ketik kodenya, lalu tekan **Atur Ulang Kata Sandi**.',
+    'Kata sandi kembali ke `password`. Segera ganti lewat menu Profil setelah masuk.',
+]);
+
+$d->catatan('Syaratnya: nomor WhatsApp Anda sudah terdaftar',
+    'Kode dikirim ke nomor yang tersimpan pada akun Anda, dan itu diisi Admin lewat menu **Kelola Pengguna** (kolom No. HP). Bila belum diisi, aplikasi akan menjawab bahwa akun ini belum punya nomor WhatsApp — mintalah Admin mengisinya lebih dulu. **Admin sebaiknya mengisi nomor seluruh guru sebelum fitur ini diumumkan.**', 'FDE7E9');
+
+$d->p('Kodenya berlaku **5 menit**, hangus setelah dipakai sekali, dan hangus pula setelah lima kali salah ketik. Permintaan kode dibatasi 3 kali per menit.');
+
+$d->h2('K.5 Bila aplikasi tidak bisa terhubung');
+$d->tabel(['Yang terlihat', 'Kemungkinan sebabnya', 'Yang perlu diperiksa'], [
+    [
+        'Tidak bisa menghubungi server',
+        'Ponsel tidak satu jaringan dengan server, atau alamatnya berubah',
+        'Bila aplikasi dipasang di server sekolah: pastikan ponsel tersambung wifi yang sama. Bila di internet: periksa sambungan data',
+    ],
+    [
+        'Server membalas dengan kode 404',
+        'Alamat servernya salah',
+        'Hubungi Admin — alamat server diatur dengan menekan lama logo di layar masuk',
+    ],
+    [
+        'Sesi Anda sudah berakhir',
+        'Terlalu lama tidak dipakai, atau akun dinonaktifkan Admin',
+        'Masuk kembali. Bila ditolak dengan pesan akun dinonaktifkan, hubungi Admin',
+    ],
+], [30, 32, 38]);
+
+// =====================================================================
+// =====================================================================
+$d->h1('Bagian L — Lampiran: Daftar Menu per Peran');
 
 $d->h2('Admin');
 $d->tabel(['Kelompok', 'Menu'], [
@@ -692,9 +867,9 @@ $d->tabel(['Kelompok', 'Menu'], [
     ['Kegiatan Mengajar', 'Absensi & Jurnal Mengajar, Absensi Kegiatan Sekolah, Absensi Ekstrakurikuler'],
     ['Penilaian', 'Daftar Nilai, Nilai Rapor Kelas, Nilai per Mata Pelajaran, Laporan Akhir Semester'],
     ['Monitoring', 'Rekap Absensi Kelas, Jurnal Mengajar Kelas, Jurnal Mengajar Guru, Kehadiran Mengajar Guru, Notifikasi WhatsApp Ortu'],
-    ['Kesiswaan', 'Bimbingan Konseling'],
+    ['Kesiswaan', 'Bimbingan Konseling; **Prestasi Siswa** (khusus wali kelas)'],
 ], [26, 74]);
-$d->p('Empat menu Penilaian & Monitoring yang berkaitan dengan kelas hanya muncul bila akun itu **sedang** menjadi wali kelas pada periode yang dilihat.');
+$d->p('Empat menu Penilaian & Monitoring yang berkaitan dengan kelas — ditambah **Prestasi Siswa** — hanya muncul bila akun itu **sedang** menjadi wali kelas pada periode yang dilihat.');
 
 $d->h2('Guru BK');
 $d->tabel(['Kelompok', 'Menu'], [
@@ -708,8 +883,8 @@ $d->tabel(['Kelompok', 'Menu'], [
 
 $d->h2('Kesiswaan, Kepala Sekolah, dan TU');
 $d->tabel(['Peran', 'Menu'], [
-    ['Kesiswaan', 'Absensi Ekstrakurikuler; Rekap Absensi Kelas; Notifikasi WhatsApp Ortu; Bimbingan Konseling; Kegiatan Sekolah; Ekstrakurikuler; Arsip Surat BK'],
-    ['Kepala Sekolah', 'Seluruh menu Penilaian & Monitoring, Bimbingan Konseling, Kegiatan Sekolah, Arsip Surat BK — semuanya lihat & cetak saja'],
+    ['Kesiswaan', 'Absensi Ekstrakurikuler; Rekap Absensi Kelas; Notifikasi WhatsApp Ortu; Bimbingan Konseling; Kegiatan Sekolah; Ekstrakurikuler; **Prestasi Siswa**; Arsip Surat BK'],
+    ['Kepala Sekolah', 'Seluruh menu Penilaian & Monitoring, Bimbingan Konseling, Kegiatan Sekolah, **Prestasi Siswa**, Arsip Surat BK — semuanya lihat & cetak saja'],
     ['Tata Usaha', 'Jenis Surat'],
 ], [22, 78]);
 

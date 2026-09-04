@@ -161,6 +161,24 @@ class TahunAjaran extends Model
             'dibuka_at' => now(),
             'dibuka_oleh_id' => $olehUser->id,
         ]);
+
+        // ARSIP SEMESTER JADI TIDAK BISA DIPERCAYA LAGI SEJAK DETIK INI.
+        //
+        // Selama periode terkunci, tidak ada satu pun data yang bisa
+        // berubah — itu dijamin EnsurePeriodeTidakTerkunci. Jadi arsip
+        // yang dibuat saat terkunci pasti masih sesuai. Membuka kunci
+        // adalah SATU-SATUNYA jalan data bisa berubah, sehingga peristiwa
+        // ini sendiri sudah cukup menjadi penandanya. Tidak perlu
+        // memeriksa 26 tabel satu per satu.
+        //
+        // Arsipnya TIDAK dihapus, hanya ditandai. Bisa jadi berkas itulah
+        // yang sudah terlanjur diserahkan ke asesor akreditasi, dan
+        // menghilangkannya justru menghapus bukti tentang apa yang dulu
+        // tercatat. Admin melihat labelnya, lalu memutuskan sendiri
+        // apakah perlu membuat yang baru.
+        \App\Models\ArsipSemester::where('tahun_ajaran_id', $this->id)
+            ->where('status', 'siap')
+            ->update(['status' => 'kedaluwarsa']);
     }
 
     /**

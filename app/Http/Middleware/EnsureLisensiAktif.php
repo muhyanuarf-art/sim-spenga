@@ -19,7 +19,18 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureLisensiAktif
 {
-    private const DIKECUALIKAN = ['aktivasi.form', 'aktivasi.simpan'];
+    /**
+     * Halaman yang tetap boleh dibuka meski lisensi tidak aktif.
+     *
+     * Dua yang pertama untuk mode 'lokal' (mengetik nomor seri), dua
+     * terakhir untuk mode 'server' (halaman terkunci beserta tombol
+     * memeriksa ulang). Tanpa pengecualian ini, pengguna terjebak di
+     * pengalihan yang berputar tanpa ujung.
+     */
+    private const DIKECUALIKAN = [
+        'aktivasi.form', 'aktivasi.simpan',
+        'lisensi.terkunci', 'lisensi.periksa-ulang',
+    ];
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -33,10 +44,19 @@ class EnsureLisensiAktif
             return $next($request);
         }
 
+        $modeServer = config('lisensi.mode') === 'server';
+
         if ($request->expectsJson()) {
-            abort(403, 'Aplikasi belum diaktifkan. Masukkan nomor seri terlebih dahulu.');
+            abort(403, $modeServer
+                ? 'Masa aktif aplikasi ini sudah berakhir. Hubungi FF Production.'
+                : 'Aplikasi belum diaktifkan. Masukkan nomor seri terlebih dahulu.');
         }
 
-        return redirect()->route('aktivasi.form');
+        // Di mode 'server' TIDAK ADA yang bisa diketik siapa pun di
+        // sekolah — nomor seri sudah ditinggalkan, dan perpanjangan
+        // dikerjakan FF Production dari sisinya. Mengarahkan ke halaman
+        // aktivasi di sini hanya menyodorkan isian yang mustahil diisi,
+        // lalu membuat guru mengira dirinya yang salah.
+        return redirect()->route($modeServer ? 'lisensi.terkunci' : 'aktivasi.form');
     }
 }

@@ -43,6 +43,8 @@ use App\Http\Controllers\OrangTuaDashboardController;
 use App\Http\Controllers\AplikasiMobileController;
 use App\Http\Controllers\BerkasTerlindungiController;
 use App\Http\Controllers\PengaturanNotifikasiController;
+use App\Http\Controllers\ArsipSemesterController;
+use App\Http\Controllers\LisensiTerkunciController;
 use App\Http\Controllers\PrestasiSiswaController;
 use App\Http\Controllers\PengaturanSekolahController;
 use App\Http\Controllers\RekapController;
@@ -80,6 +82,14 @@ Route::post('aplikasi/lupa-sandi', [AplikasiMobileController::class, 'lupaSandi'
     ->name('aplikasi.lupa-sandi')->middleware('throttle:reset-sandi');
 Route::post('aplikasi/lupa-sandi/verifikasi', [AplikasiMobileController::class, 'verifikasiLupaSandi'])
     ->name('aplikasi.lupa-sandi.verifikasi')->middleware('throttle:reset-sandi');
+
+// Halaman saat masa berlangganan berakhir (mode lisensi 'server').
+// Tanpa isian apa pun — perpanjangan dikerjakan FF Production dari
+// sisinya. Lihat App\Http\Controllers\LisensiTerkunciController.
+Route::get('lisensi-terkunci', [LisensiTerkunciController::class, 'tampil'])
+    ->name('lisensi.terkunci');
+Route::post('lisensi-terkunci/periksa', [LisensiTerkunciController::class, 'periksaUlang'])
+    ->name('lisensi.periksa-ulang')->middleware('throttle:6,1');
 
 Route::get('aktivasi', [AktivasiController::class, 'form'])->name('aktivasi.form');
 Route::post('aktivasi', [AktivasiController::class, 'simpan'])->name('aktivasi.simpan')->middleware('throttle:aktivasi');
@@ -512,6 +522,17 @@ Route::middleware('auth')->group(function () {
             ->parameters(['jam-pelajaran' => 'jamPelajaran']);
         Route::post('jam-pelajaran-salin', [JamPelajaranController::class, 'salin'])->name('jam-pelajaran.salin');
     });
+    // ===== ARSIP SEMESTER =====
+    // Dibuat & diunduh MANUAL oleh Admin, bukan otomatis saat semester
+    // ditutup — lihat alasannya di ArsipSemesterController. Sengaja TIDAK
+    // dipasangi 'periode-aktif': membuat arsip periode lampau justru
+    // pekerjaan yang paling sering diperlukan.
+    Route::middleware('role:admin')->group(function () {
+        Route::post('arsip/{tahunAjaran}/buat', [ArsipSemesterController::class, 'buat'])->name('arsip.buat');
+        Route::get('arsip/{arsip}/unduh', [ArsipSemesterController::class, 'unduh'])->name('arsip.unduh');
+        Route::delete('arsip/{arsip}', [ArsipSemesterController::class, 'hapus'])->name('arsip.hapus');
+    });
+
     Route::middleware('role:admin')->group(function () {
         Route::resource('users', UserController::class)->except(['create', 'edit', 'show']);
 
