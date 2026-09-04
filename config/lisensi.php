@@ -51,4 +51,97 @@ return [
 
     'pemegang' => env('LISENSI_PEMEGANG', 'SMP Negeri 3 Bumiayu'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | MODE LISENSI
+    |--------------------------------------------------------------------------
+    |
+    |   'lokal'  — cara lama: nomor seri diperiksa di dalam aplikasi ini
+    |              sendiri (App\Support\Lisensi). Dipertahankan supaya
+    |              pemasangan yang sudah berjalan tidak mendadak terkunci.
+    |
+    |   'server' — nomor seri ditukar ke ffproduction.com dengan SURAT
+    |              AKTIVASI bertanda tangan. Masa berlaku, perpanjangan,
+    |              dan pencabutan sepenuhnya diatur dari sana.
+    |
+    | =====================================================================
+    | SEBELUM DIEDARKAN: HAPUS SAKLAR INI
+    | =====================================================================
+    | Selama nilainya masih dibaca dari .env, siapa pun yang bisa menyunting
+    | .env di server bisa mengembalikannya ke 'lokal' dan melewati
+    | pemeriksaan. Saklar ini HANYA alat bantu masa peralihan.
+    |
+    | Begitu ffproduction.com hidup dan aktivasinya teruji, ganti baris di
+    | bawah menjadi nilai tetap:
+    |
+    |     'mode' => 'server',
+    |
+    | dan buang seluruh cabang 'lokal' dari App\Support\Lisensi. Pada
+    | pemasangan yang dikelola FF Production sendiri hal ini sebetulnya
+    | tidak kritis — sekolah tidak pernah memegang berkasnya — tetapi
+    | meninggalkan pintu yang tidak dipakai bukan kebiasaan yang baik.
+    |
+    */
+    'mode' => env('LISENSI_MODE', 'lokal'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Server Lisensi
+    |--------------------------------------------------------------------------
+    */
+    'server' => env('LISENSI_SERVER', 'https://ffproduction.com'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Kredensial Pemasangan
+    |--------------------------------------------------------------------------
+    |
+    | Diisi FF PRODUCTION sekali, saat memasang aplikasi ini di hosting —
+    | bukan oleh sekolah, dan tidak pernah diketik siapa pun di sekolah.
+    | Nilainya diperoleh dari `php artisan sekolah:daftar` di server
+    | ffproduction.com.
+    |
+    | Nomor seri sengaja ditinggalkan: ia hanya masuk akal bila penerbitnya
+    | TIDAK ikut memasang. Pada model terkelola, ia cuma menambah telepon
+    | dan salah ketik — sekaligus membuat lisensi terlihat oleh sekolah,
+    | padahal seharusnya tidak pernah terasa ada.
+    |
+    */
+    'kode' => env('LISENSI_KODE', ''),
+    'token' => env('LISENSI_TOKEN', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Kunci Publik Penandatangan
+    |--------------------------------------------------------------------------
+    |
+    | Dibuat dengan `php artisan lisensi:buat-kunci` di komputer FF
+    | Production. Yang ditaruh di sini HANYA bagian publiknya — aman
+    | dilihat siapa saja, karena ia cuma bisa MEMERIKSA tanda tangan,
+    | tidak bisa membuatnya. Pasangan rahasianya tidak boleh pernah
+    | meninggalkan server ffproduction.com.
+    |
+    */
+    'kunci_publik' => env('LISENSI_KUNCI_PUBLIK', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Umur Surat & Jarak Menyapa
+    |--------------------------------------------------------------------------
+    |
+    | Surat aktivasi berlaku singkat lalu diperbarui otomatis. Umurnya
+    | ditentukan SERVER (nilai di sini hanya cadangan bila server tidak
+    | menyebutkannya).
+    |
+    | Kenapa tidak nol — yaitu memeriksa ke server pada setiap permintaan?
+    | Karena itu menggantungkan seluruh sekolah pelanggan pada kesempurnaan
+    | ffproduction.com. Server tersendat dua jam berarti semua sekolah
+    | berhenti bekerja serentak. Bantalan 24 jam membuat gangguan singkat
+    | tidak terasa siapa pun, sementara langganan yang habis tetap menutup
+    | aplikasi dalam sehari.
+    |
+    */
+    'umur_surat_jam' => (int) env('LISENSI_UMUR_SURAT_JAM', 24),
+    'jarak_sapa_jam' => (int) env('LISENSI_JARAK_SAPA_JAM', 6),
+
 ];

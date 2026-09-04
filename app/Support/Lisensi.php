@@ -97,6 +97,10 @@ class Lisensi
             return self::$cache;
         }
 
+        if (config('lisensi.mode') === 'server') {
+            return self::$cache = self::aktifMenurutServer();
+        }
+
         // Sebelum migrasi dijalankan, tabelnya belum ada — jangan sampai
         // pemeriksaan ini justru membuat aplikasi tidak bisa dipasang.
         if (! Schema::hasTable('lisensi_aplikasis')) {
@@ -124,6 +128,42 @@ class Lisensi
         return self::$cache = hash_equals(
             self::tandaTangan((string) $baris->kunci_hash, (string) $baris->host),
             (string) $baris->tanda_tangan
+        );
+    }
+
+    /**
+     * MODE SERVER — keabsahan ditentukan surat dari ffproduction.com.
+     *
+     * Yang diperiksa hanya surat yang SUDAH TERSIMPAN; tidak ada
+     * permintaan jaringan di sini. Menyapa server adalah pekerjaan
+     * terpisah yang dijalankan berkala (lihat perintah lisensi:sapa),
+     * supaya membuka satu halaman tidak pernah menunggu jaringan.
+     *
+     * Tiga syarat, ketiganya harus terpenuhi:
+     *   1. Tanda tangannya sah menurut kunci publik — dijamin oleh
+     *      suratTersimpan(), yang mengembalikan null bila tidak.
+     *   2. Belum kedaluwarsa.
+     *   3. Memang untuk pemasangan DAN alamat ini.
+     *
+     * Syarat ketiga yang membuat penyalinan hosting tidak berguna: surat
+     * yang ikut tersalin tidak cocok dengan sidik instalasi di tempat
+     * barunya.
+     */
+    private static function aktifMenurutServer(): bool
+    {
+        if (! Schema::hasTable('pengaturan_aplikasis')) {
+            return false;
+        }
+
+        $surat = LisensiServer::suratTersimpan();
+
+        if (! $surat || ! $surat->masihBerlaku()) {
+            return false;
+        }
+
+        return $surat->cocokUntuk(
+            SidikInstalasi::nilai(),
+            request()?->getHost() ?: (gethostname() ?: 'lokal'),
         );
     }
 
