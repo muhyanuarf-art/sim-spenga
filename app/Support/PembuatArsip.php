@@ -321,6 +321,14 @@ class PembuatArsip
         // tombol Cetak: di situlah KOP surat berada.
         $tambahan = '<style>'
             .'[x-cloak]{display:revert !important}'
+            // Melepas x-cloak menyalakan SEMUA yang biasanya disembunyikan
+            // Alpine — termasuk latar gelap di balik sidebar dan dialog,
+            // yang berupa lapisan `fixed inset-0` menutup seluruh layar.
+            // Di layar ia tidak pernah terlihat karena Alpine menahannya;
+            // di sini ia muncul sebagai kabut hitam di atas seluruh
+            // halaman. Lapisan penutup semacam itu tidak pernah punya
+            // urusan di atas kertas, jadi dimatikan kembali.
+            .'[x-cloak].fixed,.fixed.inset-0{display:none !important}'
             .'.cetak-saja{display:block !important}'
             .'aside,header.sticky,.no-print{display:none !important}'
             .'@page{size:A4;margin:12mm 10mm}'
