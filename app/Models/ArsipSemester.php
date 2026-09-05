@@ -19,7 +19,7 @@ class ArsipSemester extends Model
 
     protected $fillable = [
         'tahun_ajaran_id', 'path', 'ukuran', 'jumlah_berkas',
-        'status', 'catatan', 'dibuat_oleh', 'selesai_at',
+        'status', 'progres', 'langkah', 'catatan', 'dibuat_oleh', 'selesai_at',
     ];
 
     protected function casts(): array

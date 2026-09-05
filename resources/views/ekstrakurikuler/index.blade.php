@@ -3,6 +3,12 @@
 
 @section('content')
 <div class="space-y-6" x-data="{ showForm: false }">
+
+    {{-- KOP surat: tersembunyi di layar, muncul saat dicetak maupun saat
+         masuk Arsip Semester — supaya daftar yang tercetak punya identitas
+         sekolah, bukan tabel mengambang tanpa keterangan asalnya. --}}
+    <x-kop-surat />
+
     <div class="flex justify-between items-center flex-wrap gap-3">
         <p class="text-sm text-slate-500">Daftar kegiatan ekstrakurikuler sekolah. Anggota &amp; absensi per kegiatan dikelola di menu terpisah setelah kegiatannya terdaftar di sini.</p>
         <button @click="showForm = !showForm" class="btn-primary">+ Tambah Kegiatan</button>

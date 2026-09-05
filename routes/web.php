@@ -529,6 +529,7 @@ Route::middleware('auth')->group(function () {
     // pekerjaan yang paling sering diperlukan.
     Route::middleware('role:admin')->group(function () {
         Route::post('arsip/{tahunAjaran}/buat', [ArsipSemesterController::class, 'buat'])->name('arsip.buat');
+        Route::get('arsip/{arsip}/status', [ArsipSemesterController::class, 'status'])->name('arsip.status');
         Route::get('arsip/{arsip}/unduh', [ArsipSemesterController::class, 'unduh'])->name('arsip.unduh');
         Route::delete('arsip/{arsip}', [ArsipSemesterController::class, 'hapus'])->name('arsip.hapus');
     });

@@ -4,6 +4,11 @@
 @section('content')
 <div class="space-y-6">
 
+    {{-- KOP surat: tersembunyi di layar, muncul saat dicetak maupun saat
+         masuk Arsip Semester — supaya lembar yang tercetak punya identitas
+         sekolah, bukan angka mengambang tanpa keterangan asalnya. --}}
+    <x-kop-surat />
+
     @php
         $deltaKasus = $totalKasusBulanLalu > 0
             ? round((($totalKasusBulanIni - $totalKasusBulanLalu) / $totalKasusBulanLalu) * 100)

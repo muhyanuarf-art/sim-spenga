@@ -130,6 +130,87 @@
                                     <button class="btn-chip btn-chip-cancel"><i class="fa-solid fa-lock mr-1.5"></i> Tutup Semester</button>
                                 </form>
                                 @endif
+                                {{-- ===== ARSIP SEMESTER =====
+                                     Dibuat MANUAL, tidak otomatis saat semester ditutup.
+                                     Admin sering menutup lalu membuka lagi untuk koreksi;
+                                     arsip otomatis di tiap penutupan hanya menghasilkan
+                                     tumpukan berkas setengah jadi, dan yang paling
+                                     berbahaya, Admin mengira yang pertama itu final. --}}
+                                @if(auth()->user()->isAdmin())
+                                    @php $arsip = $t->arsipTerbaru; @endphp
+
+                                    @if($arsip?->sedangDikerjakan())
+                                        {{-- Batang kemajuan. Yang mengerjakan arsip adalah
+                                             pekerja antrian — proses terpisah dari peramban
+                                             ini — jadi keadaannya ditanyakan berkala ke
+                                             server. Lihat resources/js/arsip-progres.js. --}}
+                                        <div class="w-56 text-left"
+                                             x-data="arsipProgres({{ $arsip->id }}, {{ (int) $arsip->progres }}, @js($arsip->langkah))"
+                                             x-init="mulai()">
+
+                                            <template x-if="!selesai && !gagal">
+                                                <div>
+                                                    <div class="flex items-center justify-between mb-1">
+                                                        <span class="text-xs font-semibold text-slate-600">
+                                                            <i class="fa-solid fa-gear fa-spin mr-1"></i> Membuat arsip
+                                                        </span>
+                                                        <span class="text-xs font-bold text-brand-600" x-text="persen + '%'"></span>
+                                                    </div>
+
+                                                    <div class="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                                                        <div class="h-full rounded-full bg-brand-600 transition-all duration-500"
+                                                             :style="`width:${persen}%`"></div>
+                                                    </div>
+
+                                                    <p class="text-[11px] text-slate-500 mt-1 truncate" x-text="langkah"></p>
+                                                </div>
+                                            </template>
+
+                                            <template x-if="selesai">
+                                                <div class="text-left">
+                                                    <p class="text-sm font-bold text-emerald-600 mb-1.5">
+                                                        <i class="fa-solid fa-circle-check mr-1"></i> Silakan Unduh Arsip
+                                                    </p>
+                                                    <a :href="urlUnduh" class="btn-chip btn-chip-success">
+                                                        <i class="fa-solid fa-file-zipper mr-1.5"></i> Unduh Arsip
+                                                    </a>
+                                                </div>
+                                            </template>
+
+                                            <template x-if="gagal">
+                                                <p class="text-xs text-rose-600" x-text="'Gagal: ' + gagal"></p>
+                                            </template>
+                                        </div>
+                                    @else
+                                        @if($arsip?->bisaDiunduh())
+                                            <a href="{{ route('arsip.unduh', $arsip) }}"
+                                               class="btn-chip {{ $arsip->status === 'kedaluwarsa' ? 'btn-chip-reset' : 'btn-chip-success' }}"
+                                               title="{{ $arsip->keterangan() }} · {{ $arsip->ukuranTerbaca() }}">
+                                                <i class="fa-solid fa-file-zipper mr-1.5"></i>
+                                                {{ $arsip->status === 'kedaluwarsa' ? 'Unduh Arsip (lama)' : 'Unduh Arsip' }}
+                                            </a>
+                                        @endif
+
+                                        <form method="POST" action="{{ route('arsip.buat', $t) }}"
+                                              {{-- Pemisah paragraf ditulis sebagai "\n" biasa, BUKAN entitas
+                                                   HTML &#10;. Di dalam {{ }} Blade meloloskan tanda "&"
+                                                   menjadi "&amp;", sehingga entitasnya justru tampil apa
+                                                   adanya sebagai tulisan di layar. --}}
+                                              data-konfirmasi="{{ $arsip
+                                                  ? 'Buat ulang arsip '.$t->labelPeriode()."?\n\nArsip yang lama akan tetap tersimpan sampai Anda menghapusnya."
+                                                  : 'Buat arsip '.$t->labelPeriode()."?\n\nSeluruh laporan semester ini akan dijadikan satu berkas ZIP berisi PDF. Prosesnya berjalan di latar belakang." }}"
+                                              data-konfirmasi-judul="Arsip Semester"
+                                              data-konfirmasi-gaya="biasa"
+                                              data-konfirmasi-lanjut="Ya, Buat">
+                                            @csrf
+                                            <button class="btn-chip btn-chip-edit">
+                                                <i class="fa-solid fa-box-archive mr-1.5"></i>
+                                                {{ $arsip ? 'Buat Ulang Arsip' : 'Buat Arsip' }}
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endif
+
                                 @unless($t->isTerkunci())
                                 <form method="POST" action="{{ route('tahun-ajaran.destroy', $t) }}" data-konfirmasi="Hapus tahun ajaran ini?">
                                     @csrf @method('DELETE')

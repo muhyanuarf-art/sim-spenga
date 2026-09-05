@@ -490,12 +490,16 @@ $d->tabel(['Proses', 'Perintahnya', 'Tugasnya'], [
     ],
     [
         'Pekerja antrian',
-        '`php artisan queue:work`',
-        'Berjalan **terus-menerus**. Inilah yang benar-benar menghubungi layanan WhatsApp dan mengirim pesannya.',
+        '`php artisan queue:work --queue=arsip,notifikasi,pengingat-guru,default`',
+        'Berjalan **terus-menerus**. Inilah yang benar-benar mengirim pesan WhatsApp dan membuat arsip semester. '
+        .'Daftar antrian WAJIB disebutkan — tanpa itu hanya antrian `default` yang dilayani, dan pekerjaan lain menunggu selamanya.',
     ],
 ], [18, 30, 52]);
 
 $d->p('Pembagian ini disengaja: menghubungi layanan luar bisa memakan beberapa detik, dan pekerjaan itu tidak boleh membuat guru menunggu saat menekan tombol Simpan.');
+
+$d->catatan('Setiap kali aplikasi diperbarui, jalankan `php artisan queue:restart`',
+    'Pekerja antrian adalah proses yang hidup terus. Ia memuat kode **sekali** saat dijalankan, lalu memakai salinan itu untuk semua pekerjaan berikutnya — pembaruan tidak pernah sampai kepadanya sampai ia dimuat ulang. Gejalanya menyesatkan karena tidak ada galat sama sekali: pekerjaannya tetap selesai, hanya dikerjakan oleh versi lama. Perintah di atas menyuruhnya berhenti dengan rapi setelah pekerjaan yang sedang berjalan selesai; Task Scheduler akan menyalakannya kembali.');
 
 $d->h2('H.2 Memasang di server Windows');
 
@@ -529,7 +533,7 @@ $d->langkah([
     'Tab **Settings**: centang **If the task fails, restart every 1 minute**, dan hilangkan centang **Stop the task if it runs longer than**.',
 ]);
 
-$d->kode("@echo off\ncd /d C:\laragon\www\sim-spenga\nC:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe artisan queue:work --queue=notifikasi,pengingat-guru,default --tries=3 --sleep=3");
+$d->kode("@echo off\ncd /d C:\laragon\www\sim-spenga\nC:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe artisan queue:work --queue=arsip,notifikasi,pengingat-guru,default --tries=3 --sleep=3");
 
 $d->catatan('Urutan antrian itu bukan hiasan',
     'Antrian `notifikasi` (pemberitahuan Alfa ke orang tua) disebut lebih dulu daripada `pengingat-guru`, sehingga pesan kepada orang tua selalu didahulukan bila keduanya menumpuk bersamaan.');

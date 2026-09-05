@@ -60,13 +60,40 @@ class ArsipSemesterController extends Controller
             .'Muat ulang halaman ini beberapa menit lagi untuk mengunduhnya.');
     }
 
+    /**
+     * Keadaan terkini satu arsip, dibaca berulang oleh halaman Tahun
+     * Ajaran selama pembuatan berlangsung.
+     *
+     * Sengaja sekecil mungkin: dipanggil tiap dua detik, dan satu-satunya
+     * yang berubah hanyalah angka persen. Mengirim seluruh baris hanya
+     * membebani tanpa menambah apa pun.
+     */
+    public function status(Request $request, ArsipSemester $arsip)
+    {
+        abort_unless($request->user()->isAdmin(), 403);
+
+        return response()->json([
+            'status' => $arsip->status,
+            'progres' => (int) $arsip->progres,
+            'langkah' => $arsip->langkah,
+            'selesai' => $arsip->bisaDiunduh(),
+            'unduh' => $arsip->bisaDiunduh() ? route('arsip.unduh', $arsip) : null,
+            'catatan' => $arsip->status === 'gagal' ? $arsip->catatan : null,
+        ]);
+    }
+
     public function unduh(Request $request, ArsipSemester $arsip): StreamedResponse
     {
         abort_unless($request->user()->isAdmin(), 403, 'Hanya Admin yang dapat mengunduh arsip semester.');
         abort_unless($arsip->bisaDiunduh(), 404, 'Berkas arsip tidak ditemukan.');
 
-        $nama = 'Arsip-'.str_replace(' ', '-', $arsip->tahunAjaran->nama)
-            .'-'.$arsip->tahunAjaran->semester.'.zip';
+        // Nama tahun ajaran berbentuk "2026/2027" — garis miringnya HARUS
+        // dibuang. Nama berkas unduhan yang memuat "/" atau "\" ditolak
+        // mentah-mentah oleh Symfony, dan gejalanya berupa galat 500 yang
+        // sama sekali tidak menyebut soal nama berkas.
+        $nama = 'Arsip-'.preg_replace('/[^A-Za-z0-9]+/', '-', trim(
+            $arsip->tahunAjaran->nama.' '.$arsip->tahunAjaran->semester
+        )).'.zip';
 
         return Storage::disk('local')->download($arsip->path, $nama, [
             // Arsip berisi seluruh laporan sekolah — jangan sampai tersimpan

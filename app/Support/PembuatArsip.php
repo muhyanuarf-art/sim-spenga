@@ -51,10 +51,21 @@ class PembuatArsip
 {
     private const FOLDER = 'arsip';
 
+    /**
+     * true bila peramban tersedia dan dipakai. Menentukan bentuk HTML yang
+     * disiapkan: Chrome menerima halaman utuh beserta CSS-nya, mPDF hanya
+     * menerima isi yang sudah ditelanjangi.
+     */
+    private readonly bool $pakaiChrome;
+
+    /** Diisi saat jalankan(); dipakai laporkan() untuk menulis kemajuan. */
+    private int $arsipId = 0;
+
     public function __construct(
         private readonly TahunAjaran $periode,
         private readonly User $sebagai,
     ) {
+        $this->pakaiChrome = PencetakChrome::tersedia();
     }
 
     /**
@@ -62,6 +73,8 @@ class PembuatArsip
      */
     public function jalankan(ArsipSemester $arsip): ArsipSemester
     {
+        $this->arsipId = $arsip->id;
+
         $kerja = storage_path('app/private/arsip-sementara-'.uniqid());
         @mkdir($kerja, 0755, true);
 
@@ -74,11 +87,21 @@ class PembuatArsip
 
             $path = $this->bungkusJadiZip($kerja);
 
+            // WAJIB disegarkan lebih dulu. laporkan() menulis progres &
+            // langkah LANGSUNG ke database (menghindari model demi
+            // kecepatan), sehingga $arsip di memori sudah basi. Tanpa
+            // refresh, Eloquent membandingkan nilai baru dengan nilai
+            // lamanya yang usang, menyimpulkan "tidak ada yang berubah",
+            // dan langkah terakhir tertinggal di sana selamanya.
+            $arsip->refresh();
+
             $arsip->update([
                 'path' => $path,
                 'ukuran' => Storage::disk('local')->size($path),
                 'jumlah_berkas' => $berkas,
                 'status' => 'siap',
+                'progres' => 100,
+                'langkah' => null,
                 'catatan' => null,
                 'selesai_at' => now(),
             ]);
@@ -106,7 +129,23 @@ class PembuatArsip
         $jumlah = 0;
         $ringkasan = [];
 
-        foreach (DaftarLaporanArsip::semua() as $laporan) {
+        $semua = DaftarLaporanArsip::semua();
+
+        // +1 untuk langkah terakhir (memampatkan jadi ZIP), supaya batang
+        // kemajuan tidak melompat ke 100% padahal berkasnya belum jadi.
+        $totalLangkah = count($semua) + 1;
+        $ke = 0;
+
+        foreach ($semua as $laporan) {
+            // Dilaporkan SEBELUM dikerjakan, bukan sesudah — supaya yang
+            // terbaca Admin adalah "sedang mengerjakan ini", bukan nama
+            // laporan yang sebenarnya sudah selesai beberapa detik lalu.
+            $this->laporkan(
+                (int) round($ke / $totalLangkah * 100),
+                $laporan['judul']
+            );
+            $ke++;
+
             $folder = $kerja.'/'.$laporan['peran'];
             @mkdir($folder, 0755, true);
 
@@ -128,8 +167,35 @@ class PembuatArsip
         }
 
         $this->tulisRingkasan($kerja, $ringkasan, $jumlah);
+        $this->laporkan((int) round($ke / $totalLangkah * 100), 'Memampatkan berkas');
 
         return $jumlah;
+    }
+
+    /**
+     * Catat kemajuan agar terlihat Admin di halaman Tahun Ajaran.
+     *
+     * Ditulis langsung ke database, bukan lewat model, karena pemanggilnya
+     * berada di dalam pekerja antrian — proses terpisah dari peramban
+     * Admin. Database satu-satunya tempat yang bisa dilihat keduanya.
+     *
+     * Kegagalan menulis SENGAJA diabaikan: penanda kemajuan hanyalah
+     * kenyamanan, dan tidak boleh menggagalkan pembuatan arsip yang
+     * sesungguhnya.
+     */
+    private function laporkan(int $persen, string $langkah): void
+    {
+        try {
+            \Illuminate\Support\Facades\DB::table('arsip_semesters')
+                ->where('id', $this->arsipId)
+                ->update([
+                    'progres' => max(0, min(100, $persen)),
+                    'langkah' => Str::limit($langkah, 120),
+                    'updated_at' => now(),
+                ]);
+        } catch (Throwable) {
+            // Diabaikan dengan sengaja — lihat catatan di atas.
+        }
     }
 
     /** @return array<string, string> judul bab => HTML */
@@ -182,6 +248,16 @@ class PembuatArsip
         // daripada menelusuri laporan mana yang menggeser keadaannya.
         Auth::login($this->sebagai);
 
+        // Guard harus BENAR-BENAR dimasuki, bukan sekadar ditempelkan ke
+        // request. Middleware `auth` memeriksa guard-nya, bukan resolver
+        // milik request — tanpa baris ini setiap permintaan internal
+        // dijawab pengalihan ke halaman login.
+        //
+        // Diulang di setiap laporan, bukan sekali di awal: sebagian
+        // halaman menyentuh sesi, dan lebih murah memastikan ulang
+        // daripada menelusuri laporan mana yang menggeser keadaannya.
+        Auth::login($this->sebagai);
+
         $request = Request::create($url, 'GET', $query);
         $request->setUserResolver(fn () => $this->sebagai);
 
@@ -199,7 +275,105 @@ class PembuatArsip
         // supaya pekerjaan berikutnya tidak mewarisi keadaan yang aneh.
         Auth::setUser($this->sebagai);
 
-        return $this->bersihkan($response->getContent());
+        $isi = $response->getContent();
+
+        // Jalur Chrome memakai halaman UTUH beserta <head>-nya, supaya CSS
+        // aplikasi — termasuk aturan @media print yang memunculkan KOP
+        // surat — benar-benar terpakai. Pembersihan hanya dilakukan untuk
+        // jalur cadangan mPDF, yang tidak memahami CSS itu.
+        return $this->pakaiChrome
+            ? $this->siapkanUntukChrome($isi)
+            : $this->bersihkan($isi);
+    }
+
+    /**
+     * Ubah halaman agar bisa dibuka Chrome dari berkas lokal.
+     *
+     * Dua hal yang harus dikerjakan:
+     *
+     * 1. Rujukan aset masih berupa `http://localhost/...` — alamat yang
+     *    tidak berarti apa-apa bagi Chrome yang membuka berkas dari disk.
+     *    Semuanya diarahkan ke berkas sungguhan di folder `public`.
+     *
+     * 2. JavaScript dibuang. Halaman ini tidak akan disentuh siapa pun;
+     *    memuat Alpine dan Livewire hanya memperlambat, dan `x-cloak`
+     *    yang tidak pernah dilepas justru MENYEMBUNYIKAN sebagian isi.
+     */
+    private function siapkanUntukChrome(string $html): string
+    {
+        $publik = str_replace('\\', '/', public_path());
+
+        $html = preg_replace(
+            '#(href|src)="https?://[^/"]+/#i',
+            '$1="file:///'.$publik.'/',
+            $html
+        ) ?? $html;
+
+        $html = $this->sisipkanCss($html, $publik);
+
+        $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html) ?? $html;
+
+        // x-cloak menyembunyikan elemen sampai Alpine melepasnya. Karena
+        // Alpine sudah dibuang, aturannya harus ikut dimatikan — kalau
+        // tidak, seluruh bagian yang memakainya hilang dari cetakan.
+        //
+        // `cetak-saja` dipaksa tampil dengan alasan yang sama seperti
+        // tombol Cetak: di situlah KOP surat berada.
+        $tambahan = '<style>'
+            .'[x-cloak]{display:revert !important}'
+            .'.cetak-saja{display:block !important}'
+            .'aside,header.sticky,.no-print{display:none !important}'
+            .'@page{size:A4;margin:12mm 10mm}'
+            .'</style>';
+
+        return str_ireplace('</head>', $tambahan.'</head>', $html);
+    }
+
+    /**
+     * Salin isi berkas CSS ke dalam halaman, sambil memutlakkan jalur
+     * fonta di dalamnya.
+     *
+     * KENAPA TIDAK CUKUP MENUNJUK BERKASNYA SAJA
+     * ------------------------------------------
+     * Berkas CSS hasil bundel merujuk fontanya dengan jalur dari AKAR
+     * SITUS, misalnya `url(/build/assets/fa-solid-900.woff2)`. Di peramban
+     * biasa itu benar. Tetapi halaman ini dibuka Chrome dari DISK, dan di
+     * sana "akar" berarti akar drive — sehingga jalur tadi diartikan
+     * `file:///C:/build/assets/...`, yang tidak ada.
+     *
+     * Akibatnya halus dan mudah terlewat: tata letak, tabel, dan KOP surat
+     * semuanya tetap benar, tetapi seluruh tulisan jatuh ke fonta bawaan
+     * (Arial/Times) dan setiap ikon Font Awesome berubah menjadi kotak
+     * kosong. Dokumennya "jadi" — hanya tidak sama dengan tombol Cetak.
+     *
+     * Maka isi CSS-nya disalin masuk, dan tiap `url(/...)` diarahkan ke
+     * berkas sungguhan di folder `public`.
+     */
+    private function sisipkanCss(string $html, string $publik): string
+    {
+        return preg_replace_callback(
+            '#<link\b[^>]*\bstylesheet\b[^>]*>#i',
+            function (array $cocok) use ($publik): string {
+                if (! preg_match('#href="file:///([^"]+)"#i', $cocok[0], $h)) {
+                    return $cocok[0];
+                }
+
+                if (! is_file($h[1]) || ($css = file_get_contents($h[1])) === false) {
+                    return $cocok[0];
+                }
+
+                // Hanya jalur dari akar yang diubah. `url(data:...)` dan
+                // alamat penuh dibiarkan apa adanya.
+                $css = preg_replace(
+                    '#url\(\s*([\'"]?)/(?!/)#i',
+                    'url($1file:///'.$publik.'/',
+                    $css
+                ) ?? $css;
+
+                return '<style>'.$css.'</style>';
+            },
+            $html
+        ) ?? $html;
     }
 
     /**
@@ -231,7 +405,97 @@ class PembuatArsip
      * terbaca dan halaman yang terpotong di tempat yang benar — bukan
      * tampilan yang sama persis dengan layar.
      */
+    /**
+     * Tulis satu PDF dari beberapa bab.
+     *
+     * Dua jalur, dan bedanya besar:
+     *
+     *   Chrome — tiap bab dicetak jadi PDF tersendiri lalu digabung.
+     *            Hasilnya IDENTIK dengan tombol Cetak, karena mesin yang
+     *            mengerjakannya memang sama.
+     *   mPDF   — jalur cadangan bila peramban tidak ada di server.
+     *            Jadi, tapi sederhana: tanpa KOP surat dan tanpa gaya.
+     */
     private function tulisPdf(array $bagian, string $judul, string $tujuan): void
+    {
+        if ($this->pakaiChrome && $this->tulisPdfChrome($bagian, $tujuan)) {
+            return;
+        }
+
+        $this->tulisPdfMpdf($bagian, $judul, $tujuan);
+    }
+
+    private function tulisPdfChrome(array $bagian, string $tujuan): bool
+    {
+        $temp = storage_path('app/private/chrome-temp');
+        @mkdir($temp, 0755, true);
+
+        $potongan = [];
+
+        foreach (array_values($bagian) as $i => $html) {
+            $htmlFile = $temp.'/bab-'.uniqid().'-'.$i.'.html';
+            $pdfFile = $temp.'/bab-'.uniqid().'-'.$i.'.pdf';
+
+            file_put_contents($htmlFile, $html);
+
+            if (PencetakChrome::cetak($htmlFile, $pdfFile)) {
+                $potongan[] = $pdfFile;
+            }
+
+            @unlink($htmlFile);
+        }
+
+        if ($potongan === []) {
+            return false;
+        }
+
+        $berhasil = $this->gabungPdf($potongan, $tujuan);
+
+        foreach ($potongan as $p) {
+            @unlink($p);
+        }
+
+        return $berhasil;
+    }
+
+    /**
+     * Gabungkan beberapa PDF menjadi satu.
+     *
+     * Memakai FPDI, yang sudah ikut terpasang bersama mPDF — jadi tidak
+     * ada kebergantungan baru hanya demi penggabungan ini.
+     */
+    private function gabungPdf(array $daftar, string $tujuan): bool
+    {
+        if (count($daftar) === 1) {
+            return copy($daftar[0], $tujuan);
+        }
+
+        try {
+            $pdf = new \setasign\Fpdi\Fpdi;
+
+            foreach ($daftar as $berkas) {
+                $jumlah = $pdf->setSourceFile($berkas);
+
+                for ($h = 1; $h <= $jumlah; $h++) {
+                    $tpl = $pdf->importPage($h);
+                    $ukuran = $pdf->getTemplateSize($tpl);
+
+                    $pdf->AddPage($ukuran['orientation'], [$ukuran['width'], $ukuran['height']]);
+                    $pdf->useTemplate($tpl);
+                }
+            }
+
+            $pdf->Output($tujuan, 'F');
+
+            return is_file($tujuan);
+        } catch (Throwable) {
+            // Penggabungan gagal — lebih baik menyerahkan bab pertama saja
+            // daripada tidak ada berkas sama sekali.
+            return copy($daftar[0], $tujuan);
+        }
+    }
+
+    private function tulisPdfMpdf(array $bagian, string $judul, string $tujuan): void
     {
         $pdf = new Mpdf([
             'tempDir' => storage_path('app/private/mpdf-temp'),
@@ -307,7 +571,12 @@ class PembuatArsip
             .'pada saat arsip dibuat. Bila semester ini kelak dibuka kunci dan datanya diubah, '
             .'arsip ini tidak ikut berubah — buatlah arsip baru.</p>';
 
-        $this->tulisPdf(['Ringkasan' => $html], 'Ringkasan Arsip', $kerja.'/RINGKASAN.pdf');
+        // Sengaja LANGSUNG ke mPDF, tidak lewat tulisPdf(). Lembar ini
+        // bukan salinan halaman aplikasi melainkan HTML yang disusun di
+        // sini, jadi tidak memakai fonta aplikasi — dan pemeriksa mutu di
+        // PencetakChrome justru menilainya gagal karena itu. Menyerahkannya
+        // ke Chrome hanya membuang dua percobaan sebelum jatuh ke mPDF juga.
+        $this->tulisPdfMpdf(['Ringkasan' => $html], 'Ringkasan Arsip', $kerja.'/RINGKASAN.pdf');
     }
 
     private function bungkusJadiZip(string $kerja): string

@@ -8,6 +8,13 @@ import { konfirmasi, pasangPenyadapForm } from './dialog-konfirmasi';
 window.konfirmasi = konfirmasi;
 pasangPenyadapForm();
 
+// Batang kemajuan pembuatan Arsip Semester. Dipakai lewat x-data di
+// halaman Tahun Ajaran, jadi harus sudah ada di window SEBELUM Alpine
+// mengevaluasi x-data — alasan yang sama seperti barisNilai di bawah.
+import { arsipProgres } from './arsip-progres';
+
+window.arsipProgres = arsipProgres;
+
 // Font Awesome (dulu dari cdnjs, sekarang di-bundle & di-self-host oleh Vite)
 import '@fortawesome/fontawesome-free/css/all.min.css';
 

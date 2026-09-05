@@ -154,6 +154,18 @@ class TahunAjaran extends Model
      * diubah, tanpa perlu status kedua yang artinya tumpang tindih dengan
      * `terkunci` (lihat catatan desain di migrasi STEP 1).
      */
+    /**
+     * Arsip terakhir milik periode ini — yang ditampilkan di tombol.
+     *
+     * Arsip lama sengaja tidak dihapus saat yang baru dibuat, jadi
+     * relasi ini mengambil yang paling akhir. Yang lebih lama tetap
+     * bisa diunduh lewat riwayat bila kelak diperlukan.
+     */
+    public function arsipTerbaru(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\ArsipSemester::class, 'tahun_ajaran_id')->latestOfMany();
+    }
+
     public function bukaKembali(\App\Models\User $olehUser): void
     {
         $this->update([

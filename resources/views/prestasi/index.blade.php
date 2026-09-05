@@ -162,7 +162,13 @@
     @endif
 
     {{-- ================= Daftar ================= --}}
-    <div class="card p-5">
+    <div class="card p-5 print-section" id="print-prestasi">
+        {{-- KOP surat: tersembunyi di layar, muncul saat dicetak maupun
+             saat masuk Arsip Semester. Tanpa ini, daftar prestasi yang
+             dicetak untuk akreditasi tidak punya identitas sekolah sama
+             sekali — hanya tabel mengambang tanpa keterangan asalnya. --}}
+        <x-kop-surat />
+
         <div class="overflow-x-auto -mx-5">
             <table class="table-clean w-full">
                 <thead>

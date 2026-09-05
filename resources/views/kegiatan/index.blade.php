@@ -16,6 +16,11 @@
 
 <div class="space-y-6">
 
+    {{-- KOP surat: tersembunyi di layar, muncul saat dicetak maupun saat
+         masuk Arsip Semester — supaya lembar yang tercetak punya identitas
+         sekolah, bukan daftar mengambang tanpa keterangan asalnya. --}}
+    <x-kop-surat />
+
     <div class="alert alert-info">
         <i class="fa-solid fa-circle-info mt-0.5"></i>
         <span class="flex-1">
