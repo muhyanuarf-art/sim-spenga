@@ -8,6 +8,7 @@ use App\Support\RentangPeriode;
 use App\Support\SalinDataPeriode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class TahunAjaranController extends Controller
@@ -218,11 +219,34 @@ class TahunAjaranController extends Controller
             return back()->with('error', 'Periode ini sudah terkunci dan tidak dapat dihapus. Buka kunci terlebih dahulu (khusus Admin) jika benar-benar perlu dihapus.');
         }
 
-        return $this->hapusAtauGagalDenganPesan(
+        // Alamat berkas arsip DICATAT LEBIH DULU, dan baru dihapus setelah
+        // barisnya benar-benar hilang dari database.
+        //
+        // Baris `arsip_semesters` satu-satunya yang masih ikut terhapus
+        // bersama tahun ajarannya (CASCADE) — isinya bukan data sekolah
+        // melainkan salinan laporan yang selalu bisa dibuat ulang. Tetapi
+        // penghapusan itu terjadi di dalam MySQL, sehingga tidak ada
+        // peristiwa Eloquent yang bisa dipakai untuk ikut membuang berkas
+        // ZIP-nya. Tanpa langkah ini, ZIP tadi tertinggal di disk selamanya
+        // tanpa ada baris yang merujuknya.
+        //
+        // Urutannya penting: berkas dihapus BELAKANGAN. Kalau lebih dulu,
+        // penghapusan yang ditolak database akan menyisakan tahun ajaran
+        // yang utuh tetapi arsipnya sudah lenyap — dan berkas yang sudah
+        // dihapus tidak bisa dikembalikan oleh rollback.
+        $berkasArsip = $tahunAjaran->arsip()->pluck('path')->filter()->all();
+
+        $hasil = $this->hapusAtauGagalDenganPesan(
             $tahunAjaran,
             'Tahun ajaran berhasil dihapus.',
-            'Tahun ajaran ini tidak dapat dihapus karena masih memiliki data terkait (jadwal, mapping guru, atau data lain).'
+            'Tahun ajaran ini tidak dapat dihapus karena masih memiliki data terkait.'
         );
+
+        if (! $tahunAjaran->exists) {
+            Storage::disk('local')->delete($berkasArsip);
+        }
+
+        return $hasil;
     }
 
     /**

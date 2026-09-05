@@ -356,7 +356,7 @@
                             </tr>
                             <tr>
                                 <td class="font-semibold whitespace-nowrap"><i class="fa-solid fa-trash mr-1.5"></i> Hapus</td>
-                                <td>Menghapus baris tahun ajaran/semester. HANYA bisa dilakukan kalau semester itu Terbuka (belum dikunci) DAN belum punya data apa pun — kalau masih ada data terkait, sistem akan menolak dengan pesan jelas.</td>
+                                <td>Menghapus baris tahun ajaran/semester. HANYA bisa dilakukan kalau semester itu Terbuka (belum dikunci) DAN benar-benar belum punya data apa pun — cukup satu nilai, satu prestasi, atau satu mata pelajaran yang terkait, penghapusan langsung ditolak dan pesannya menyebut apa saja yang masih memakainya. <strong>Tidak ada data yang bisa hilang lewat tombol ini.</strong> Gunanya hanya membatalkan tahun ajaran yang baru dibuat karena salah ketik; untuk mengakhiri semester yang sudah berjalan, yang benar adalah <strong>Tutup Semester</strong>.</td>
                             </tr>
                         </tbody>
                     </table>

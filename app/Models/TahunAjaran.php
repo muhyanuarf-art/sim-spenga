@@ -166,6 +166,12 @@ class TahunAjaran extends Model
         return $this->hasOne(\App\Models\ArsipSemester::class, 'tahun_ajaran_id')->latestOfMany();
     }
 
+    /** Seluruh arsip milik periode ini, termasuk yang sudah kedaluwarsa. */
+    public function arsip(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\ArsipSemester::class, 'tahun_ajaran_id');
+    }
+
     public function bukaKembali(\App\Models\User $olehUser): void
     {
         $this->update([
