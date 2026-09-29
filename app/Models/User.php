@@ -45,9 +45,48 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * PERAN YANG HAKNYA MENUMPANG PADA PERAN LAIN.
+     *
+     * Wakil Kepala Sekolah dimaksudkan persis sama dengan Kepala Sekolah:
+     * melihat dan mencetak seluruh laporan, tanpa satu pun jalur tulis.
+     *
+     * Persamaan itu ditulis SEKALI di sini, bukan disalin ke puluhan
+     * daftar peran yang tersebar di rute, menu, dan controller. Alasannya
+     * soal cara gagal: menyalinnya ke ~20 daftar berarti satu daftar yang
+     * terlewat menghasilkan 403 di satu halaman saja — galat yang baru
+     * ketahuan kalau ada yang kebetulan membuka halaman itu, dan sulit
+     * ditelusuri karena semua halaman lain baik-baik saja.
+     *
+     * Yang membaca ini adalah peranAkses(). Peran aslinya tetap tersimpan
+     * apa adanya, sehingga sebutannya di layar dan di Kelola Pengguna
+     * tetap "Wakil Kepala Sekolah".
+     */
+    public const PERAN_SETARA = [
+        'wakil_kepala_sekolah' => 'kepala_sekolah',
+    ];
+
+    /**
+     * Peran yang dipakai untuk MEMUTUSKAN HAK AKSES.
+     *
+     * Dipakai seluruh penjagaan: middleware `role:`, penyaring menu, dan
+     * pembatasan daftar kelas di controller. Untuk menampilkan sebutan
+     * atau menyimpan data, pakai `role` seperti biasa.
+     */
+    public function peranAkses(): string
+    {
+        return self::PERAN_SETARA[$this->role] ?? $this->role;
+    }
+
     // ==== Role helpers ====
     public function isAdmin(): bool { return $this->role === 'admin'; }
-    public function isKepalaSekolah(): bool { return $this->role === 'kepala_sekolah'; }
+
+    /** Kepala Sekolah ATAU wakilnya — keduanya setara di mata hak akses. */
+    public function isKepalaSekolah(): bool { return $this->peranAkses() === 'kepala_sekolah'; }
+
+    /** Benar-benar wakil, bukan kepala sekolahnya. Untuk sebutan, bukan hak akses. */
+    public function isWakilKepalaSekolah(): bool { return $this->role === 'wakil_kepala_sekolah'; }
+
     public function isKurikulum(): bool { return $this->role === 'kurikulum'; }
     public function isGuru(): bool { return $this->role === 'guru'; }
     public function isGuruBk(): bool { return $this->role === 'guru_bk'; }
@@ -153,6 +192,7 @@ class User extends Authenticatable
         return match ($this->role) {
             'admin' => 'Administrator',
             'kepala_sekolah' => 'Kepala Sekolah',
+            'wakil_kepala_sekolah' => 'Wakil Kepala Sekolah',
             'kurikulum' => 'Kurikulum',
             'guru_bk' => 'Guru BK',
             'kesiswaan' => 'Kesiswaan',

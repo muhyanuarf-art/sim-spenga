@@ -28,7 +28,7 @@ class WaliKelasController extends Controller
         $kelas = $kelas ?? $this->resolveKelasDefault($user);
         $daftarKelas = $this->resolveDaftarKelasPilihan($user);
 
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+        if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             $kelasId = $request->get('kelas_id', $kelas?->id);
             $kelas = Kelas::findOrFail($kelasId);
         } elseif ($user->role === 'guru_bk') {
@@ -130,7 +130,7 @@ class WaliKelasController extends Controller
         $kelas = $kelas ?? $this->resolveKelasDefault($user);
         $daftarKelas = $this->resolveDaftarKelasPilihan($user);
 
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])) {
+        if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah'])) {
             $kelasId = $request->get('kelas_id', $kelas?->id);
             $kelas = Kelas::findOrFail($kelasId);
         } elseif ($user->role === 'guru_bk') {
@@ -165,7 +165,7 @@ class WaliKelasController extends Controller
         if ($user->role === 'guru_bk') {
             return $user->kelasBk()->first();
         }
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+        if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return Kelas::aktif()->orderBy('nama_kelas')->first();
         }
         return $this->resolveKelasWali($user);
@@ -177,7 +177,7 @@ class WaliKelasController extends Controller
         if ($user->role === 'guru_bk') {
             return $user->kelasBk();
         }
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+        if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             // STEP 5 Bagian 23 — default TAHUN AJARAN AKTIF (halaman ini
             // untuk operasional harian, bukan histori).
             return Kelas::aktif()->orderBy('nama_kelas')->get();

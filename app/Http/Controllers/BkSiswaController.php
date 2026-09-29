@@ -61,7 +61,7 @@ class BkSiswaController extends Controller
             ->map(fn ($siswa) => ['siswa' => $siswa, ...($ringkasanPerSiswa[$siswa->id] ?? [])])
             ->sortByDesc('poin_aktif')->values();
 
-        $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
+        $kelasList = in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah'])
             ? Kelas::aktif()->orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 

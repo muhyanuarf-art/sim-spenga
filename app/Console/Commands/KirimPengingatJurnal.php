@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\KirimPengingatJurnalWhatsapp;
+use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use App\Models\KegiatanSekolah;
 use App\Models\PengaturanNotifikasiGuru;
@@ -75,6 +76,23 @@ class KirimPengingatJurnal extends Command
 
         if ($hari === 'Minggu') {
             $this->line('Hari Minggu — tidak ada jadwal pelajaran.');
+
+            return self::SUCCESS;
+        }
+
+        // HARI LIBUR DIHENTIKAN DI SINI, SEBELUM APA PUN DIHITUNG.
+        //
+        // Jadwal hari Rabu tetap ada meski Rabu itu libur nasional, dan
+        // jurnalnya tentu kosong. Tanpa penjagaan ini setiap guru yang
+        // mengajar hari Rabu ditagih atas sesuatu yang memang tidak
+        // terjadi — dan pada libur semester, ditagih setiap hari.
+        //
+        // Diletakkan sejajar dengan pemeriksaan hari Minggu, bukan di
+        // dalam penyaringan sesi, karena alasannya sama: hari itu memang
+        // tidak ada KBM sama sekali, jadi tidak ada yang perlu dihitung.
+        if ($libur = HariLibur::pada($tanggal)) {
+            $this->line($tanggal->translatedFormat('l, d F Y').' — libur: '.$libur->keterangan.'.');
+            $this->line('  Tidak ada pengingat yang dikirim.');
 
             return self::SUCCESS;
         }

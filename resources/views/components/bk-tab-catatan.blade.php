@@ -16,7 +16,7 @@
     Pembinaan/Pengurangan/Pemanggilan adalah ranah Guru BK & pimpinan.
 --}}
 @php
-    $peran = auth()->user()->role;
+    $peran = auth()->user()->peranAkses();
 
     $semuaTab = [
         [

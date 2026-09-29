@@ -30,7 +30,9 @@ class DashboardController extends Controller
         $user = $request->user();
         $tahunAjaran = KonteksPeriode::pilihan();
 
-        return match ($user->role) {
+        // peranAkses(), bukan `role` — Wakil Kepala Sekolah mendapat
+        // dashboard yang sama dengan Kepala Sekolah. Lihat User::PERAN_SETARA.
+        return match ($user->peranAkses()) {
             'tu' => $this->dashboardTu(),
             'admin', 'kepala_sekolah' => $this->dashboardSekolah($user, $tahunAjaran),
             'kurikulum' => $this->dashboardKurikulum($user, $tahunAjaran),

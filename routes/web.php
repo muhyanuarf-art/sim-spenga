@@ -20,6 +20,7 @@ use App\Http\Controllers\EkstrakurikulerAnggotaController;
 use App\Http\Controllers\EkstrakurikulerController;
 use App\Http\Controllers\GuruBkController;
 use App\Http\Controllers\GuruMengajarController;
+use App\Http\Controllers\HariLiburController;
 use App\Http\Controllers\IkonAplikasiController;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JamPelajaranController;
@@ -474,6 +475,17 @@ Route::middleware('auth')->group(function () {
         Route::post('tahun-ajaran/{tahunAjaran}/buka-kunci', [TahunAjaranController::class, 'bukaKunci'])->name('tahun-ajaran.buka-kunci');
         Route::get('tahun-ajaran-duplikasi/preview', [TahunAjaranController::class, 'previewDuplikasiMapping'])->name('tahun-ajaran.duplikasi.preview');
         Route::post('tahun-ajaran/{tahunAjaran}/duplikasi', [TahunAjaranController::class, 'duplikasiMapping'])->name('tahun-ajaran.duplikasi');
+
+        // ===== KALENDER LIBUR =====
+        // Sengaja TANPA middleware 'periode-aktif'. Libur semester jatuh
+        // di antara dua periode dan sering baru sempat dicatat setelah
+        // semester lama ditutup; kalau ikut terkunci, Admin justru tidak
+        // bisa memperbaiki kalender untuk libur yang sedang berjalan.
+        // Baris di sini tidak mengubah data akademik mana pun — ia hanya
+        // menjawab "tanggal ini libur". Lihat HariLiburController.
+        Route::resource('hari-libur', HariLiburController::class)
+            ->except(['create', 'edit', 'show'])
+            ->parameters(['hari-libur' => 'hariLibur']);
 
         // ===== RIWAYAT KELAS SISWA =====
         // (Revisi permintaan admin) Fitur "Kenaikan Kelas" (proses pindah

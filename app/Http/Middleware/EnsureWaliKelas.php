@@ -12,7 +12,7 @@ class EnsureWaliKelas
     {
         $user = $request->user();
 
-        if ($user && ($user->role === 'admin' || $user->role === 'kurikulum' || $user->role === 'kepala_sekolah' || $user->isWaliKelas())) {
+        if ($user && ($user->role === 'admin' || $user->role === 'kurikulum' || $user->peranAkses() === 'kepala_sekolah' || $user->isWaliKelas())) {
             return $next($request);
         }
 

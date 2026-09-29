@@ -10,6 +10,7 @@
                 <option value="">Semua Role</option>
                 <option value="admin" {{ request('role')=='admin'?'selected':'' }}>Admin</option>
                 <option value="kepala_sekolah" {{ request('role')=='kepala_sekolah'?'selected':'' }}>Kepala Sekolah</option>
+                <option value="wakil_kepala_sekolah" {{ request('role')=='wakil_kepala_sekolah'?'selected':'' }}>Wakil Kepala Sekolah</option>
                 <option value="kurikulum" {{ request('role')=='kurikulum'?'selected':'' }}>Kurikulum</option>
                 <option value="guru" {{ request('role')=='guru'?'selected':'' }}>Guru</option>
                 <option value="guru_bk" {{ request('role')=='guru_bk'?'selected':'' }}>Guru BK</option>
@@ -36,6 +37,7 @@
                 <option value="tu">Tata Usaha</option>
                 <option value="kurikulum">Kurikulum</option>
                 <option value="kepala_sekolah">Kepala Sekolah</option>
+                <option value="wakil_kepala_sekolah">Wakil Kepala Sekolah</option>
                 <option value="admin">Admin</option>
             </select>
             <input type="text" name="no_hp" placeholder="No. HP (opsional)" class="input">
@@ -117,6 +119,7 @@
                                     <option value="tu" {{ $u->role === 'tu' ? 'selected' : '' }}>Tata Usaha</option>
                                     <option value="kurikulum" {{ $u->role === 'kurikulum' ? 'selected' : '' }}>Kurikulum</option>
                                     <option value="kepala_sekolah" {{ $u->role === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
+                                    <option value="wakil_kepala_sekolah" {{ $u->role === 'wakil_kepala_sekolah' ? 'selected' : '' }}>Wakil Kepala Sekolah</option>
                                     <option value="admin" {{ $u->role === 'admin' ? 'selected' : '' }}>Admin</option>
                                 </select>
                                 <input type="text" name="no_hp" value="{{ $u->no_hp }}" placeholder="No. HP (opsional)" class="input">

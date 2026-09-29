@@ -23,7 +23,7 @@ trait BkAccessScope
 {
     protected function bkBisaAksesSiswa(User $user, Siswa $siswa): bool
     {
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+        if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return true;
         }
         if ($user->role === 'guru_bk') {
@@ -38,7 +38,7 @@ trait BkAccessScope
     /** Daftar kelas_id yang boleh diakses user (dipakai untuk filter query listing). Null = boleh semua. */
     protected function bkKelasIdsUntukUser(User $user): ?array
     {
-        if (in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
+        if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             return null; // semua kelas
         }
         if ($user->role === 'guru_bk') {

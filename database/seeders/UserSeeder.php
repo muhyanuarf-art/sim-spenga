@@ -30,6 +30,18 @@ class UserSeeder extends Seeder
             ]
         );
 
+        // Haknya sama persis dengan Kepala Sekolah — lihat
+        // App\Models\User::PERAN_SETARA. Yang berbeda hanya sebutannya.
+        User::updateOrCreate(
+            ['email' => 'wakasek@spenga.sch.id'],
+            [
+                'name' => 'Wakil Kepala Sekolah',
+                'nip' => 'WKS001',
+                'password' => Hash::make('password'),
+                'role' => 'wakil_kepala_sekolah',
+            ]
+        );
+
         User::updateOrCreate(
             ['email' => 'kurikulum@spenga.sch.id'],
             [

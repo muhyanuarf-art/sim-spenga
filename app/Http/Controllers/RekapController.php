@@ -42,10 +42,28 @@ class RekapController extends Controller
         // Peta "nama hari Indonesia" -> daftar tanggal (1..N) yang jatuh pada
         // hari itu di bulan yang dipilih. Dipakai untuk menghitung berapa kali
         // sesi hari Senin (misal) seharusnya terjadi bulan ini.
+        // HARI LIBUR TIDAK IKUT DIHITUNG.
+        //
+        // Peta ini yang menentukan "sesi hari Senin seharusnya terjadi
+        // berapa kali bulan ini". Tanggal libur dikeluarkan dari sini,
+        // sehingga hari itu tidak pernah masuk ke penyebut — bukan
+        // dihitung lalu dimaafkan. Tanpa ini, guru yang jadwalnya jatuh
+        // pada tanggal merah terlihat lebih tidak patuh daripada guru
+        // yang jadwalnya kebetulan tidak.
+        $tanggalLibur = \App\Models\HariLibur::tanggalDalam(
+            \Carbon\Carbon::create($tahun, $bulan, 1)->startOfDay(),
+            \Carbon\Carbon::create($tahun, $bulan, $jumlahHari)->startOfDay()
+        );
+
         $tanggalPerHari = [];
         for ($t = 1; $t <= $jumlahHari; $t++) {
-            $namaHari = \Carbon\Carbon::create($tahun, $bulan, $t)->translatedFormat('l');
-            $tanggalPerHari[$namaHari][] = $t;
+            $hariIni = \Carbon\Carbon::create($tahun, $bulan, $t);
+
+            if (in_array($hariIni->toDateString(), $tanggalLibur, true)) {
+                continue;
+            }
+
+            $tanggalPerHari[$hariIni->translatedFormat('l')][] = $t;
         }
 
         $rekapGuru = collect();

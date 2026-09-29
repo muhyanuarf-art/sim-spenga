@@ -61,6 +61,19 @@ class KosongkanData extends Command
         // uji coba — padahal ini setelan, bukan data sekolah.
         'pengaturan_notifikasi_gurus',
 
+        // IDENTITAS PEMASANGAN DAN SURAT LISENSI — BUKAN DATA SEKOLAH.
+        //
+        // Berisi `instalasi_id`, `surat_lisensi`, dan catatan sapaan
+        // terakhir ke server lisensi. Mengosongkannya membuat aplikasi
+        // dianggap pemasangan yang sama sekali baru: sidik instalasinya
+        // berubah, sehingga pada mode `server` sapaan berikutnya DITOLAK
+        // ffproduction karena sidiknya tidak lagi cocok — dan aplikasi
+        // terkunci tanpa sebab yang kelihatan.
+        //
+        // Sekolah yang sekadar membersihkan data uji coba tidak boleh
+        // kehilangan lisensinya karena itu.
+        'pengaturan_aplikasis',
+
         // --- Akun kepegawaian (guru, BK, kurikulum, kesiswaan, admin) ---
         'users',
 

@@ -40,7 +40,7 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 class Navigasi
 {
     /** Semua role yang ada di aplikasi. */
-    public const SEMUA_ROLE = ['admin', 'kepala_sekolah', 'kurikulum', 'guru', 'guru_bk', 'kesiswaan', 'tu'];
+    public const SEMUA_ROLE = ['admin', 'kepala_sekolah', 'wakil_kepala_sekolah', 'kurikulum', 'guru', 'guru_bk', 'kesiswaan', 'tu'];
 
     /**
      * Definisi menu mentah (belum difilter role).
@@ -430,6 +430,14 @@ class Navigasi
                         'deskripsi' => 'Periode akademik: buat, aktifkan, duplikasi, dan kunci periode.',
                         'roles' => ['kurikulum', 'admin'],
                     ],
+                    [
+                        'label' => 'Kalender Libur',
+                        'icon' => 'fa-calendar-xmark',
+                        'route' => 'hari-libur.index',
+                        'cocok' => ['hari-libur.*'],
+                        'deskripsi' => 'Tanggal tanpa KBM. Pengingat WhatsApp dan rekap kepatuhan melewatinya.',
+                        'roles' => ['kurikulum', 'admin'],
+                    ],
                 ],
             ],
 
@@ -639,7 +647,10 @@ class Navigasi
 
     private static function bolehLihat(array $item, User $user): bool
     {
-        if (! in_array($user->role, $item['roles'] ?? [], true)) {
+        // peranAkses(), bukan `role` mentah — lihat App\Models\User::PERAN_SETARA.
+        // Dengan begitu Wakil Kepala Sekolah melihat menu yang sama dengan
+        // Kepala Sekolah tanpa perlu ditambahkan ke ~19 daftar 'roles' di atas.
+        if (! in_array($user->peranAkses(), $item['roles'] ?? [], true)) {
             return false;
         }
 

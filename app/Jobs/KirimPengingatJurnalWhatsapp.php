@@ -249,6 +249,18 @@ class KirimPengingatJurnalWhatsapp implements ShouldQueue
                 .') sudah lewat sebelum pesan sempat keluar dari antrian.';
         }
 
+        // Libur yang baru dicatat SETELAH barisnya mengantre.
+        //
+        // Perintah pencari sudah menolak membuat baris pada hari libur,
+        // tetapi antrian bisa tertahan berjam-jam — dan dalam jeda itu
+        // Admin bisa saja baru memasukkan liburnya (mis. libur mendadak
+        // yang diumumkan pagi hari). Diperiksa lagi di sini, tepat
+        // sebelum pesan keluar.
+        if ($libur = \App\Models\HariLibur::pada($hari)) {
+            return 'Tidak dikirim: '.$hari->translatedFormat('l, d F Y')
+                .' ternyata libur ('.$libur->keterangan.').';
+        }
+
         if (! $pengaturan->didalamJamKirim()) {
             return 'Tidak dikirim: sudah lewat jam kirim ('
                 .substr((string) $pengaturan->jam_mulai_kirim, 0, 5).'-'

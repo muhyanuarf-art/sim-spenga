@@ -6,7 +6,7 @@
     // Untuk guru mapel, halaman ini adalah "daftar pekerjaan": tiap baris
     // satu lembar daftar nilai (1 kelas × 1 mapel) yang jadi tanggung
     // jawabnya pada periode berjalan.
-    $bolehLihatSemua = in_array(auth()->user()->role, ['admin', 'kurikulum', 'kepala_sekolah']);
+    $bolehLihatSemua = in_array(auth()->user()->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah']);
     $selesai = $lembar->filter(fn ($l) => $l['header']?->isFinal())->count();
 @endphp
 

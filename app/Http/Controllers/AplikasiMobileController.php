@@ -69,7 +69,7 @@ class AplikasiMobileController extends Controller
      * tabel yang sama.
      */
     public const PERAN_DIIZINKAN = [
-        'guru', 'guru_bk', 'kurikulum', 'kesiswaan', 'kepala_sekolah', 'tu',
+        'guru', 'guru_bk', 'kurikulum', 'kesiswaan', 'kepala_sekolah', 'wakil_kepala_sekolah', 'tu',
     ];
 
     private const UMUR_TAUTAN_DETIK = 60;

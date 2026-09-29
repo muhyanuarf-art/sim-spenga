@@ -148,7 +148,7 @@ class BkLaporanBulananController extends Controller
             ->sortByDesc('poin')
             ->values();
 
-        $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'], true)
+        $kelasList = in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah'], true)
             ? Kelas::aktif()->orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 

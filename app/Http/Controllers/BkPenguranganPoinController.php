@@ -45,7 +45,7 @@ class BkPenguranganPoinController extends Controller
 
         $data = $query->paginate(20)->withQueryString();
 
-        $kelasList = in_array($user->role, ['admin', 'kurikulum', 'kepala_sekolah'])
+        $kelasList = in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah'])
             ? Kelas::aktif()->orderBy('nama_kelas')->get()
             : ($user->role === 'guru_bk' ? $user->kelasBk() : collect());
 

@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    private const ROLES = ['admin', 'kepala_sekolah', 'kurikulum', 'guru', 'guru_bk', 'kesiswaan', 'tu'];
+    private const ROLES = ['admin', 'kepala_sekolah', 'wakil_kepala_sekolah', 'kurikulum', 'guru', 'guru_bk', 'kesiswaan', 'tu'];
 
     public function index(Request $request)
     {
@@ -20,7 +20,12 @@ class UserController extends Controller
                   ->orWhere('nip', 'like', "%{$request->search}%");
             });
         }
-        $users = $query->orderBy('name')->paginate(25)->withQueryString();
+        // 15, bukan 25. Dengan 31 akun, 25 per halaman membuat halaman
+        // kedua hanya berisi 6 baris — dan tombol halamannya berada di
+        // bawah daftar yang sangat panjang, sehingga jarang terlihat.
+        // Lima belas membuat daftarnya muat sekali layar di kebanyakan
+        // monitor, dan navigasinya benar-benar terpakai.
+        $users = $query->orderBy('name')->paginate(15)->withQueryString();
         return view('users.index', compact('users'));
     }
 
