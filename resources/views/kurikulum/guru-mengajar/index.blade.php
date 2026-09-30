@@ -2,7 +2,10 @@
 @section('title', 'Pemetaan Guru Mengajar')
 
 @section('content')
-<div class="space-y-6" x-data="{ showForm: false }">
+{{-- Form dibuka kembali bila isiannya ditolak. Tanpa ini, operator yang
+     lupa memilih guru melihat formnya menutup dan mengira seluruh
+     centangan kelasnya hilang — padahal masih tersimpan di dalamnya. --}}
+<div class="space-y-6" x-data="{ showForm: {{ $errors->any() ? 'true' : 'false' }} }">
     @php
         // STEP 6 Bagian 19/20 — tombol tambah/edit/hapus HANYA muncul kalau
         // yang sedang DILIHAT adalah periode AKTIF (karena store()/update()
@@ -70,10 +73,15 @@
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 mb-1">Guru</label>
+                    {{-- Bukan hanya role 'guru': Kurikulum, Kesiswaan, guru BK,
+                         dan Kepala Sekolah pun banyak yang mengampu mapel.
+                         Perannya ikut ditulis supaya tidak tertukar. --}}
                     <select name="guru_id" required class="input">
-                        <option value="">Pilih Guru</option>
-                        @foreach($guruList as $g)
-                            <option value="{{ $g->id }}" @selected(old('guru_id') == $g->id)>{{ $g->name }}</option>
+                        <option value="">Pilih Pengajar</option>
+                        @foreach($pengajarAktif as $g)
+                            <option value="{{ $g->id }}" @selected(old('guru_id') == $g->id)>
+                                {{ $g->name }} — {{ $g->roleLabelSingkat() }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -94,34 +102,49 @@
                         Kelas yang diajar
                         <span class="font-normal text-slate-400">— centang boleh lebih dari satu</span>
                     </label>
-                    <p class="text-xs font-semibold text-brand-600" x-show="terpilih.length > 0" x-cloak>
+                    <p class="text-xs font-semibold text-emerald-600" x-show="terpilih.length > 0" x-cloak>
                         <span x-text="terpilih.length"></span> kelas dipilih
                     </p>
                 </div>
 
                 @forelse($kelasList->groupBy('tingkat') as $tingkat => $kelasTingkat)
                     @php $idTingkat = $kelasTingkat->pluck('id')->map(fn ($i) => (int) $i)->values(); @endphp
-                    <div class="flex items-center gap-3 flex-wrap py-2 {{ ! $loop->first ? 'border-t border-slate-100' : '' }}">
+                    <div class="flex items-center gap-3 py-2 {{ ! $loop->first ? 'border-t border-slate-100' : '' }}">
+                        <span class="shrink-0 w-[72px] text-xs font-bold text-slate-500">Kelas {{ $tingkat }}</span>
+
+                        <div class="flex-1 flex items-center gap-2 flex-wrap">
+                            @foreach($kelasTingkat as $k)
+                                {{-- Kotak centang aslinya disembunyikan (sr-only) tetapi TETAP ADA,
+                                     jadi nilainya ikut terkirim dan pembaca layar tetap mengenalinya.
+                                     Yang terlihat adalah <span> di bawahnya, yang warnanya diatur
+                                     Alpine — bukan peer-checked, karena ikon centang berada DI DALAM
+                                     span itu dan `peer-checked:` hanya menjangkau elemen sebelah,
+                                     bukan keturunannya. --}}
+                                <label class="cursor-pointer select-none">
+                                    <input type="checkbox" name="kelas_id[]" value="{{ $k->id }}"
+                                           x-model.number="terpilih" class="sr-only">
+                                    <span class="inline-flex items-center justify-center gap-1.5 min-w-[56px] h-9 px-3 rounded-lg border text-sm font-semibold transition"
+                                          :class="terpilih.includes({{ $k->id }})
+                                              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                                              : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700'">
+                                        <i class="fa-solid fa-check text-[11px]"
+                                           x-show="terpilih.includes({{ $k->id }})" x-cloak></i>
+                                        {{ $k->nama_kelas }}
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+
                         <button type="button"
-                                class="shrink-0 w-[72px] text-left text-xs font-bold text-slate-500 hover:text-brand-600 transition"
+                                class="shrink-0 h-9 px-3 rounded-lg border text-xs font-bold transition"
+                                :class="@js($idTingkat).every(i => terpilih.includes(i))
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                    : 'border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:text-emerald-700'"
                                 @click="terpilih = @js($idTingkat).every(i => terpilih.includes(i))
                                         ? terpilih.filter(i => ! @js($idTingkat).includes(i))
                                         : [...new Set([...terpilih, ...@js($idTingkat)])]"
-                                title="Pilih atau batalkan seluruh kelas tingkat {{ $tingkat }}">
-                            Kelas {{ $tingkat }}
+                                x-text="@js($idTingkat).every(i => terpilih.includes(i)) ? 'Batalkan semua' : 'Pilih semua'">
                         </button>
-
-                        @foreach($kelasTingkat as $k)
-                            <label class="cursor-pointer select-none">
-                                <input type="checkbox" name="kelas_id[]" value="{{ $k->id }}"
-                                       x-model.number="terpilih" class="sr-only peer">
-                                <span class="inline-flex items-center justify-center min-w-[52px] h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600
-                                             peer-checked:bg-brand-600 peer-checked:border-brand-600 peer-checked:text-white
-                                             hover:border-brand-300 transition">
-                                    {{ $k->nama_kelas }}
-                                </span>
-                            </label>
-                        @endforeach
                     </div>
                 @empty
                     <p class="text-sm text-slate-400 py-2">Belum ada kelas pada tahun ajaran aktif. Tambahkan dulu di menu Data Kelas.</p>
@@ -144,7 +167,7 @@
                 @foreach($kelasList as $k)<option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>@endforeach
             </select>
             <select name="guru_id" class="input max-w-[220px]" onchange="this.form.submit()">
-                <option value="">Semua Guru</option>
+                <option value="">Semua Pengajar</option>
                 @foreach($guruList as $g)<option value="{{ $g->id }}" {{ request('guru_id') == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>@endforeach
             </select>
         </form>
@@ -189,7 +212,9 @@
                                 </select>
                                 <select name="guru_id" required class="input">
                                     @foreach($guruList as $g)
-                                        <option value="{{ $g->id }}" {{ $d->guru_id == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                                        <option value="{{ $g->id }}" {{ $d->guru_id == $g->id ? 'selected' : '' }}>
+                                            {{ $g->name }} — {{ $g->roleLabelSingkat() }}{{ $g->is_active ? '' : ' (nonaktif)' }}
+                                        </option>
                                     @endforeach
                                 </select>
                                 <div class="flex gap-2">

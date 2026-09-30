@@ -32,7 +32,24 @@ class OnboardingChecklistService
      */
     public function status(?string $role = null): array
     {
-        $periodeKerja = TahunAjaran::orderByDesc('id')->first();
+        // PERIODE YANG DIPERIKSA = YANG SEDANG AKTIF.
+        //
+        // Dulu dipakai `orderByDesc('id')->first()` — periode yang PALING
+        // BARU DIBUAT. Maksudnya baik: saat menyiapkan tahun ajaran baru,
+        // periodenya belum diaktifkan, dan checklist tetap perlu memandu.
+        //
+        // Tetapi begitu sekolah membuat semester berikutnya — misalnya
+        // Genap dibuat sementara Ganjil masih berjalan — checklist ikut
+        // pindah ke Genap yang masih kosong. Akibatnya SELURUH langkah
+        // berubah merah lagi: kelas, wali kelas, siswa, mapping guru,
+        // mapping BK. Padahal semuanya sudah lengkap di periode yang
+        // sedang dipakai. Operator melihat pekerjaan yang sudah selesai
+        // dinyatakan belum, dan tidak ada cara membetulkannya.
+        //
+        // Sekarang: yang aktif lebih dulu, dan hanya jatuh ke yang terbaru
+        // bila BELUM ADA yang diaktifkan sama sekali — yaitu keadaan
+        // pemasangan pertama, yang memang jadi alasan aturan lama dibuat.
+        $periodeKerja = TahunAjaran::aktif() ?? TahunAjaran::orderByDesc('id')->first();
 
         $kelasPeriode = $periodeKerja ? Kelas::untukTahunAjaran($periodeKerja) : Kelas::whereRaw('1 = 0');
         $totalKelas = (clone $kelasPeriode)->count();

@@ -47,10 +47,36 @@ class GuruMengajarController extends Controller
         // STEP 5 Bagian 16/23 — hanya kelas TAHUN AJARAN AKTIF (mapping
         // selalu ditulis ke tahun_ajaran_id = aktif(), lihat store()).
         $kelasList = Kelas::aktif()->orderBy('nama_kelas')->get();
-        $guruList = User::where('role', 'guru')->orderBy('name')->get();
+
+        // SELURUH PENGGUNA AKTIF, BUKAN HANYA YANG PERANNYA 'guru'.
+        //
+        // Di sekolah ini banyak yang mengampu mata pelajaran meski perannya
+        // bukan guru: Kurikulum, Kesiswaan, guru BK, bahkan Kepala Sekolah.
+        // Dulu daftar ini disaring `role = 'guru'` saja, sehingga nama
+        // mereka tidak pernah muncul dan pemetaannya terpaksa dikosongkan.
+        //
+        // Yang nonaktif dikeluarkan: guru pensiun tidak boleh lagi dipasang
+        // ke kelas baru.
+        $pengajarAktif = User::where('is_active', true)->orderBy('name')->get();
+
+        // TETAPI baris yang SUDAH ADA tidak boleh kehilangan namanya.
+        //
+        // Kalau seseorang dinonaktifkan setelah terlanjur dipetakan, dan
+        // namanya lenyap dari dropdown, menekan Simpan pada baris itu akan
+        // diam-diam memindahkan mapping ke nama lain yang kebetulan berada
+        // di urutan pertama. Jadi pemilik baris yang sedang ditampilkan
+        // selalu ikut disertakan — TETAPI hanya pada dropdown Edit dan
+        // penyaring, bukan pada form Tambah. Menawarkan nama pensiunan di
+        // form Tambah hanya mengundang pilihan yang nanti ditolak
+        // validasi; di form Edit ia justru harus ada.
+        $guruList = $pengajarAktif
+            ->merge($data->pluck('guru')->filter())
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
         $mapelList = MataPelajaran::periodeAktif()->orderBy('nama_mapel')->get();
 
-        return view('kurikulum.guru-mengajar.index', compact('data', 'kelasList', 'guruList', 'mapelList', 'periodeAktif', 'periodeDilihat', 'tahunAjaranList'));
+        return view('kurikulum.guru-mengajar.index', compact('data', 'kelasList', 'guruList', 'pengajarAktif', 'mapelList', 'periodeAktif', 'periodeDilihat', 'tahunAjaranList'));
     }
 
     public function store(Request $request)
@@ -69,7 +95,13 @@ class GuruMengajarController extends Controller
         // hanya cara mengisinya. Jadi tabel, filter, edit per baris, jadwal
         // pelajaran, dan impor Excel semuanya tetap berjalan apa adanya.
         $validated = $request->validate([
-            'guru_id' => ['required', 'exists:users,id'],
+            // Hanya pengguna AKTIF yang boleh dipasang ke kelas baru —
+            // perannya tidak dibatasi, karena bukan hanya role 'guru' yang
+            // mengampu mata pelajaran di sekolah ini.
+            'guru_id' => [
+                'required',
+                Rule::exists('users', 'id')->where(fn ($q) => $q->where('is_active', true)),
+            ],
             'kelas_id' => ['required', 'array', 'min:1'],
             // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama
             // dengan mapping ini. Ditolak kalau tidak.
@@ -118,7 +150,16 @@ class GuruMengajarController extends Controller
         PeriodeAkademik::pastikanTidakTerkunci($guruMengajar->tahunAjaran);
 
         $validated = $request->validate([
-            'guru_id' => ['required', 'exists:users,id'],
+            // Pengguna aktif, ATAU pemilik baris ini sendiri. Pengecualian
+            // itu perlu supaya baris milik guru yang sudah dinonaktifkan
+            // tetap bisa diperbaiki kelas atau mapelnya tanpa dipaksa
+            // berganti nama orang.
+            'guru_id' => [
+                'required',
+                Rule::exists('users', 'id')->where(
+                    fn ($q) => $q->where('is_active', true)->orWhere('id', $guruMengajar->guru_id)
+                ),
+            ],
             'kelas_id' => [
                 'required',
                 Rule::exists('kelas', 'id')->where(
@@ -160,7 +201,7 @@ class GuruMengajarController extends Controller
             'Mapping Guru Mengajar',
             [
                 'Petunjuk:',
-                '- nip_guru diisi dengan NIP guru yang sudah terdaftar di menu Kelola Pengguna.',
+                '- nip_guru diisi dengan NIP pengajar yang akunnya masih aktif di menu Kelola Pengguna. Tidak harus berperan Guru — Kurikulum, Kesiswaan, Guru BK, dan Kepala Sekolah juga bisa diisikan bila mengampu mata pelajaran.',
                 '- kode_kelas diisi sesuai nama kelas pada menu Data Kelas UNTUK TAHUN AJARAN AKTIF (contoh: 7A). Pastikan kelas tsb sudah dibuat untuk tahun ajaran yang sedang aktif sebelum import.',
                 '- kode_mapel diisi sesuai kode pada menu Mata Pelajaran (contoh: MTK).',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',

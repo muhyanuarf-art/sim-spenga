@@ -38,21 +38,50 @@ class GuruBkController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
         abort_if(! $tahunAjaran, 422, 'Tidak ada tahun ajaran aktif. Aktifkan dahulu di menu Tahun Ajaran.');
 
+        // BANYAK KELAS SEKALIGUS UNTUK SATU GURU BK — sama persis dengan
+        // Pemetaan Guru Mengajar (lihat GuruMengajarController::store).
+        //
+        // Seorang guru BK biasanya membina satu tingkat penuh, jadi dulu
+        // formulir ini harus diisi empat sampai lima kali dengan nama yang
+        // sama diulang terus.
+        //
+        // Yang TERSIMPAN tidak berubah: tetap satu baris per guru + kelas.
         $validated = $request->validate([
             'guru_id' => ['required', 'exists:users,id'],
-            'kelas_id' => [
-                'required',
-                // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama.
+            'kelas_id' => ['required', 'array', 'min:1'],
+            // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama.
+            'kelas_id.*' => [
                 Rule::exists('kelas', 'id')->where(
                     fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($tahunAjaran)->pluck('id'))
                 ),
             ],
-        ]);
-        $validated['tahun_ajaran_id'] = $tahunAjaran->id;
+        ], [], ['kelas_id' => 'kelas']);
 
-        GuruBkKelas::firstOrCreate($validated);
+        $dibuat = 0;
+        $sudahAda = 0;
 
-        return back()->with('success', 'Mapping Guru BK berhasil ditambahkan.');
+        foreach ($validated['kelas_id'] as $kelasId) {
+            // firstOrCreate: mencentang kelas yang mappingnya sudah ada
+            // tidak menggandakan baris, dan operator tetap diberi tahu
+            // berapa yang dilewati supaya tidak mengira centangannya gagal.
+            $baris = GuruBkKelas::firstOrCreate([
+                'guru_id' => $validated['guru_id'],
+                'kelas_id' => $kelasId,
+                'tahun_ajaran_id' => $tahunAjaran->id,
+            ]);
+
+            $baris->wasRecentlyCreated ? $dibuat++ : $sudahAda++;
+        }
+
+        $pesan = $dibuat > 0
+            ? "Mapping Guru BK berhasil ditambahkan untuk {$dibuat} kelas."
+            : 'Tidak ada mapping baru yang ditambahkan.';
+
+        if ($sudahAda > 0) {
+            $pesan .= " {$sudahAda} kelas dilewati karena mappingnya sudah ada.";
+        }
+
+        return back()->with($dibuat > 0 ? 'success' : 'error', $pesan);
     }
 
     public function destroy(GuruBkKelas $guruBk)

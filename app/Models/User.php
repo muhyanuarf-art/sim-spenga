@@ -208,6 +208,24 @@ class User extends Authenticatable
 
     public function roleLabel(): string
     {
+        // Hanya peran 'guru' yang sebutannya bergantung pada data —
+        // apakah ia sedang memegang perwalian. Sisanya sudah pasti.
+        return $this->role === 'guru'
+            ? ($this->isWaliKelas() ? 'Guru / Wali Kelas' : 'Guru Mapel')
+            : $this->roleLabelSingkat();
+    }
+
+    /**
+     * Sebutan peran yang TIDAK menyentuh database.
+     *
+     * roleLabel() memanggil isWaliKelas() untuk peran 'guru', dan itu satu
+     * query per pengguna. Pada daftar panjang — dropdown berisi puluhan
+     * nama — ongkosnya menumpuk tanpa memberi tambahan arti. Dipakai di
+     * tempat yang hanya perlu membedakan guru dari Kurikulum, TU, dan
+     * seterusnya.
+     */
+    public function roleLabelSingkat(): string
+    {
         return match ($this->role) {
             'admin' => 'Administrator',
             'kepala_sekolah' => 'Kepala Sekolah',
@@ -216,7 +234,7 @@ class User extends Authenticatable
             'guru_bk' => 'Guru BK',
             'kesiswaan' => 'Kesiswaan',
             'tu' => 'Tata Usaha',
-            'guru' => $this->isWaliKelas() ? 'Guru / Wali Kelas' : 'Guru Mapel',
+            'guru' => 'Guru',
             default => ucfirst($this->role),
         };
     }

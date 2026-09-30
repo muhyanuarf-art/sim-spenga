@@ -38,9 +38,17 @@ class GuruMengajarImport extends ImportDasar
             return;
         }
 
-        $guru = User::where('nip', $nip)->where('role', 'guru')->first();
+        // Perannya tidak dibatasi — sama seperti daftar pilihan di layar,
+        // karena Kurikulum, Kesiswaan, guru BK, dan Kepala Sekolah pun
+        // banyak yang mengampu mata pelajaran. Yang dibatasi adalah
+        // statusnya: akun nonaktif tidak boleh dipasang ke kelas baru.
+        $guru = User::where('nip', $nip)->where('is_active', true)->first();
         if (! $guru) {
-            $this->hasil->lewati($baris, 'NIP "'.$nip.'" tidak ditemukan sebagai guru di menu Kelola Pengguna.', $penanda);
+            $this->hasil->lewati(
+                $baris,
+                'NIP "'.$nip.'" tidak ditemukan pada akun yang aktif di menu Kelola Pengguna.',
+                $penanda
+            );
 
             return;
         }
