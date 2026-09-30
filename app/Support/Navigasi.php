@@ -92,10 +92,12 @@ class Navigasi
                         'route' => 'kegiatan.absensi.pilih',
                         'cocok' => ['kegiatan.absensi.*'],
                         'deskripsi' => 'Isi kehadiran siswa pada kegiatan di luar jam KBM (lomba, asesmen, classmeeting, pesantren Ramadan).',
-                        'roles' => ['guru', 'admin'],
+                        // guru_bk ikut karena guru BK boleh menjadi wali kelas.
+                        'roles' => ['guru', 'guru_bk', 'admin'],
                         // Hanya wali kelas yang berhak mengisi absensi kegiatan,
-                        // jadi guru mapel biasa tidak perlu melihat menu ini.
-                        'syarat' => $khususWaliKelas,
+                        // jadi guru mapel maupun guru BK yang tidak memegang
+                        // kelas tidak perlu disodori menu yang isinya kosong.
+                        'syarat' => fn (User $u) => $u->isAdmin() || $u->isWaliKelas(),
                     ],
                     [
                         'label' => 'Absensi Ekstrakurikuler',

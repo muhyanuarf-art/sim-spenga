@@ -58,23 +58,56 @@ class GuruMengajarController extends Controller
         $tahunAjaran = TahunAjaran::aktif();
         abort_if(! $tahunAjaran, 422, 'Tidak ada tahun ajaran aktif. Aktifkan dahulu di menu Tahun Ajaran.');
 
+        // BANYAK KELAS SEKALIGUS UNTUK SATU GURU + SATU MATA PELAJARAN.
+        //
+        // Seorang guru IPA yang mengampu 7A sampai 7D dulu harus mengisi
+        // formulir ini empat kali, dengan guru dan mapel yang sama diulang
+        // terus. Sekarang kelasnya dicentang sekaligus.
+        //
+        // Yang TERSIMPAN tidak berubah sama sekali: tetap satu baris per
+        // guru + kelas + mapel, persis seperti sebelumnya. Yang berubah
+        // hanya cara mengisinya. Jadi tabel, filter, edit per baris, jadwal
+        // pelajaran, dan impor Excel semuanya tetap berjalan apa adanya.
         $validated = $request->validate([
             'guru_id' => ['required', 'exists:users,id'],
-            'kelas_id' => [
-                'required',
-                // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama
-                // dengan mapping ini. Ditolak kalau tidak.
+            'kelas_id' => ['required', 'array', 'min:1'],
+            // STEP 5 Bagian 16 — kelas WAJIB dari tahun ajaran yang sama
+            // dengan mapping ini. Ditolak kalau tidak.
+            'kelas_id.*' => [
                 Rule::exists('kelas', 'id')->where(
                     fn ($q) => $q->whereIn('id', Kelas::untukTahunAjaran($tahunAjaran)->pluck('id'))
                 ),
             ],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
-        ]);
-        $validated['tahun_ajaran_id'] = $tahunAjaran->id;
+        ], [], ['kelas_id' => 'kelas']);
 
-        GuruMengajarKelas::firstOrCreate($validated);
+        $dibuat = 0;
+        $sudahAda = 0;
 
-        return back()->with('success', 'Mapping guru mengajar berhasil ditambahkan.');
+        foreach ($validated['kelas_id'] as $kelasId) {
+            // firstOrCreate, bukan create: mencentang kelas yang mappingnya
+            // sudah ada tidak boleh menggandakan barisnya — dan operator
+            // tetap diberi tahu berapa yang dilewati, supaya tidak mengira
+            // centangannya gagal tersimpan.
+            $baris = GuruMengajarKelas::firstOrCreate([
+                'guru_id' => $validated['guru_id'],
+                'kelas_id' => $kelasId,
+                'mata_pelajaran_id' => $validated['mata_pelajaran_id'],
+                'tahun_ajaran_id' => $tahunAjaran->id,
+            ]);
+
+            $baris->wasRecentlyCreated ? $dibuat++ : $sudahAda++;
+        }
+
+        $pesan = $dibuat > 0
+            ? "Mapping berhasil ditambahkan untuk {$dibuat} kelas."
+            : 'Tidak ada mapping baru yang ditambahkan.';
+
+        if ($sudahAda > 0) {
+            $pesan .= " {$sudahAda} kelas dilewati karena mappingnya sudah ada.";
+        }
+
+        return back()->with($dibuat > 0 ? 'success' : 'error', $pesan);
     }
 
     public function update(Request $request, GuruMengajarKelas $guruMengajar)

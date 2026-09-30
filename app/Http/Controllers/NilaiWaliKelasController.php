@@ -212,7 +212,14 @@ class NilaiWaliKelasController extends Controller
     private function daftarKelasPilihan($user)
     {
         if ($user->isGuruBk()) {
-            return $user->kelasBk();
+            // Guru BK boleh juga memegang perwalian (lihat
+            // User::PERAN_BISA_JADI_WALI). Kelas perwaliannya ikut di
+            // samping kelas binaan BK — tanpa ini, guru BK yang menjadi
+            // wali kelas justru tertolak di kelasnya sendiri.
+            return $user->kelasBk()
+                ->merge(array_filter([$user->kelasWali]))
+                ->unique('id')
+                ->values();
         }
 
         if ($user->isAdmin() || $user->isKurikulum() || $user->isKepalaSekolah()) {

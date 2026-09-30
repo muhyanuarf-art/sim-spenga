@@ -175,7 +175,7 @@ class WaliKelasController extends Controller
     private function resolveDaftarKelasPilihan($user)
     {
         if ($user->role === 'guru_bk') {
-            return $user->kelasBk();
+            return $this->kelasUntukGuruBk($user);
         }
         if (in_array($user->peranAkses(), ['admin', 'kurikulum', 'kepala_sekolah', 'kesiswaan'])) {
             // STEP 5 Bagian 23 — default TAHUN AJARAN AKTIF (halaman ini
@@ -186,9 +186,27 @@ class WaliKelasController extends Controller
     }
 
     /** Validasi & tentukan kelas yang dipilih Guru BK, harus salah satu dari kelas mapping-nya. */
+    /**
+     * Kelas yang boleh dibuka seorang guru BK.
+     *
+     * Bukan hanya kelas binaan BK-nya. Guru BK juga boleh diangkat
+     * menjadi wali kelas (lihat User::PERAN_BISA_JADI_WALI), dan kelas
+     * perwaliannya belum tentu termasuk kelas binaan BK-nya. Tanpa
+     * penggabungan ini, guru BK yang menjadi wali kelas justru ditolak
+     * 403 di kelasnya sendiri — cabang `guru_bk` dijalankan lebih dulu,
+     * sehingga pemeriksaan perwalian tidak pernah tercapai.
+     */
+    private function kelasUntukGuruBk($user)
+    {
+        return $user->kelasBk()
+            ->merge(array_filter([$user->kelasWali]))
+            ->unique('id')
+            ->values();
+    }
+
     private function resolveKelasBkDipilih(Request $request, $user, ?Kelas $kelasDefault): Kelas
     {
-        $kelasBkIds = $user->kelasBk()->pluck('id');
+        $kelasBkIds = $this->kelasUntukGuruBk($user)->pluck('id');
         abort_if($kelasBkIds->isEmpty(), 403, 'Anda belum di-mapping ke kelas manapun. Hubungi Kurikulum/Admin.');
 
         $kelasId = $request->get('kelas_id', $kelasDefault?->id ?? $kelasBkIds->first());

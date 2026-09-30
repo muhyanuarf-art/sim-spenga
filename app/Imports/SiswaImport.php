@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Models\AnggotaKelas;
 use App\Models\Kelas;
 use App\Models\RiwayatKelasSiswa;
 use App\Models\Siswa;
@@ -89,7 +90,7 @@ class SiswaImport extends ImportDasar
 
         // Kelas siswa disimpan per SEMESTER di anggota_kelas, bukan lagi
         // kolom di tabel siswas (migrasi 2026_08_29_000001).
-        App\Models\AnggotaKelas::tempatkan($siswa->id, $kelas);
+        AnggotaKelas::tempatkan($siswa->id, $kelas);
 
         $this->catat($siswa);
         $this->catatRiwayatKelas($siswa, $kelas->id, $kelasAsalId);

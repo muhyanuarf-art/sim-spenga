@@ -57,7 +57,11 @@ class KelasImport extends ImportDasar
         $nipWali = $this->teks($data, 'nip_wali_kelas');
 
         if ($nipWali !== '') {
-            $wali = User::where('nip', $nipWali)->where('role', 'guru')->first();
+            // Sama seperti daftar pilihan di layar: guru BK ikut boleh
+            // menjadi wali kelas. Lihat User::PERAN_BISA_JADI_WALI.
+            $wali = User::where('nip', $nipWali)
+                ->whereIn('role', User::PERAN_BISA_JADI_WALI)
+                ->first();
             $waliKelasId = $wali?->id;
 
             if (! $wali) {

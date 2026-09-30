@@ -57,30 +57,82 @@
 
     <div class="card p-5" x-show="showForm" x-cloak x-transition>
         <p class="font-bold text-slate-800 mb-4">Tambah Mapping Guru Mengajar</p>
-        <form method="POST" action="{{ route('kurikulum.guru-mengajar.store') }}" class="grid sm:grid-cols-4 gap-3 items-end">
+        {{-- Kelas dicentang, tidak lagi dipilih satu per satu.
+             Guru yang mengampu 7A sampai 7D dulu harus mengisi formulir ini
+             empat kali dengan guru & mapel yang sama diulang terus.
+             Yang TERSIMPAN tidak berubah: tetap satu baris per guru + kelas
+             + mapel (lihat GuruMengajarController::store). --}}
+        <form method="POST" action="{{ route('kurikulum.guru-mengajar.store') }}"
+              class="space-y-4"
+              x-data="{ terpilih: @js(array_map('intval', (array) old('kelas_id', []))) }">
             @csrf
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Guru</label>
-                <select name="guru_id" required class="input">
-                    <option value="">Pilih Guru</option>
-                    @foreach($guruList as $g)<option value="{{ $g->id }}">{{ $g->name }}</option>@endforeach
-                </select>
+
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Guru</label>
+                    <select name="guru_id" required class="input">
+                        <option value="">Pilih Guru</option>
+                        @foreach($guruList as $g)
+                            <option value="{{ $g->id }}" @selected(old('guru_id') == $g->id)>{{ $g->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Mata Pelajaran</label>
+                    <select name="mata_pelajaran_id" required class="input">
+                        <option value="">Pilih Mapel</option>
+                        @foreach($mapelList as $m)
+                            <option value="{{ $m->id }}" @selected(old('mata_pelajaran_id') == $m->id)>{{ $m->nama_mapel }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
+
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas</label>
-                <select name="kelas_id" required class="input">
-                    <option value="">Pilih Kelas</option>
-                    @foreach($kelasList as $k)<option value="{{ $k->id }}">{{ $k->nama_kelas }}</option>@endforeach
-                </select>
+                <div class="flex items-baseline justify-between flex-wrap gap-2 mb-2">
+                    <label class="block text-xs font-semibold text-slate-500">
+                        Kelas yang diajar
+                        <span class="font-normal text-slate-400">— centang boleh lebih dari satu</span>
+                    </label>
+                    <p class="text-xs font-semibold text-brand-600" x-show="terpilih.length > 0" x-cloak>
+                        <span x-text="terpilih.length"></span> kelas dipilih
+                    </p>
+                </div>
+
+                @forelse($kelasList->groupBy('tingkat') as $tingkat => $kelasTingkat)
+                    @php $idTingkat = $kelasTingkat->pluck('id')->map(fn ($i) => (int) $i)->values(); @endphp
+                    <div class="flex items-center gap-3 flex-wrap py-2 {{ ! $loop->first ? 'border-t border-slate-100' : '' }}">
+                        <button type="button"
+                                class="shrink-0 w-[72px] text-left text-xs font-bold text-slate-500 hover:text-brand-600 transition"
+                                @click="terpilih = @js($idTingkat).every(i => terpilih.includes(i))
+                                        ? terpilih.filter(i => ! @js($idTingkat).includes(i))
+                                        : [...new Set([...terpilih, ...@js($idTingkat)])]"
+                                title="Pilih atau batalkan seluruh kelas tingkat {{ $tingkat }}">
+                            Kelas {{ $tingkat }}
+                        </button>
+
+                        @foreach($kelasTingkat as $k)
+                            <label class="cursor-pointer select-none">
+                                <input type="checkbox" name="kelas_id[]" value="{{ $k->id }}"
+                                       x-model.number="terpilih" class="sr-only peer">
+                                <span class="inline-flex items-center justify-center min-w-[52px] h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-600
+                                             peer-checked:bg-brand-600 peer-checked:border-brand-600 peer-checked:text-white
+                                             hover:border-brand-300 transition">
+                                    {{ $k->nama_kelas }}
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-400 py-2">Belum ada kelas pada tahun ajaran aktif. Tambahkan dulu di menu Data Kelas.</p>
+                @endforelse
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1">Mata Pelajaran</label>
-                <select name="mata_pelajaran_id" required class="input">
-                    <option value="">Pilih Mapel</option>
-                    @foreach($mapelList as $m)<option value="{{ $m->id }}">{{ $m->nama_mapel }}</option>@endforeach
-                </select>
+
+            <div class="flex items-center gap-3">
+                <button type="submit" class="btn-primary h-[38px]" x-bind:disabled="terpilih.length === 0">Simpan</button>
+                <button type="button" class="btn-ghost h-[38px]" x-show="terpilih.length > 0" x-cloak
+                        @click="terpilih = []">Bersihkan pilihan</button>
             </div>
-            <button type="submit" class="btn-primary h-[38px]">Simpan</button>
         </form>
     </div>
 

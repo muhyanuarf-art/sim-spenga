@@ -67,6 +67,25 @@ class User extends Authenticatable
     ];
 
     /**
+     * PERAN YANG BOLEH DIANGKAT MENJADI WALI KELAS.
+     *
+     * Guru BK ikut, karena di banyak sekolah — termasuk sekolah ini —
+     * guru BK juga memegang perwalian kelas. Sebelumnya daftar pilihan
+     * wali kelas disaring `role = 'guru'` saja, sehingga namanya tidak
+     * pernah muncul di menu Data Kelas.
+     *
+     * Ditulis sekali di sini dan dibaca semua yang memerlukannya: daftar
+     * pilihan di Data Kelas, pencarian NIP saat impor Excel, dan
+     * penjagaan Absensi Kegiatan Sekolah. Menambah peran lain kelak
+     * cukup di baris ini.
+     *
+     * Perhatikan: menjadi wali kelas TIDAK ditentukan oleh peran,
+     * melainkan oleh baris di `penugasan_wali_kelas` (lihat kelasWali()).
+     * Daftar ini hanya menentukan siapa yang BOLEH DIPILIH.
+     */
+    public const PERAN_BISA_JADI_WALI = ['guru', 'guru_bk'];
+
+    /**
      * Peran yang dipakai untuk MEMUTUSKAN HAK AKSES.
      *
      * Dipakai seluruh penjagaan: middleware `role:`, penyaring menu, dan

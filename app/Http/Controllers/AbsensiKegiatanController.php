@@ -198,7 +198,9 @@ class AbsensiKegiatanController extends Controller
             return $kelasId ? $semua->where('id', $kelasId)->values() : $semua;
         }
 
-        if ($user->role === 'guru' && $user->kelasWali) {
+        // Yang menentukan bukan perannya, melainkan penugasan perwalian —
+        // guru BK yang memegang kelas juga wali kelas dari kelas itu.
+        if ($user->kelasWali) {
             return collect([$user->kelasWali]);
         }
 
@@ -209,7 +211,9 @@ class AbsensiKegiatanController extends Controller
     {
         $user = $request->user();
 
-        $bolehKelasIni = $user->isAdmin() || ($user->role === 'guru' && $user->kelasWali?->id === $kelas->id);
+        // Perannya tidak diperiksa, cukup penugasan perwaliannya — supaya
+        // guru BK yang memegang kelas tidak tertolak di sini.
+        $bolehKelasIni = $user->isAdmin() || $user->kelasWali?->id === $kelas->id;
         if (! $bolehKelasIni) {
             abort(403, 'Absensi kegiatan hanya dapat diisi oleh Wali Kelas dari kelas tersebut.');
         }

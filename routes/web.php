@@ -342,7 +342,11 @@ Route::middleware('auth')->group(function () {
         Route::put('kegiatan/{kegiatan}', [KegiatanSekolahController::class, 'update'])->name('kegiatan.update');
         Route::delete('kegiatan/{kegiatan}', [KegiatanSekolahController::class, 'destroy'])->name('kegiatan.destroy');
     });
-    Route::middleware('role:guru,admin')->group(function () {
+    // guru_bk ikut: guru BK boleh diangkat menjadi wali kelas, dan
+    // mengisi Absensi Kegiatan adalah tugas wali kelas. Siapa yang
+    // benar-benar boleh membuka kelas mana tetap diperiksa
+    // AbsensiKegiatanController::pastikanBoleh() lewat penugasannya.
+    Route::middleware('role:guru,guru_bk,admin')->group(function () {
         Route::get('kegiatan-absensi', [AbsensiKegiatanController::class, 'pilih'])->name('kegiatan.absensi.pilih');
         Route::get('kegiatan/{kegiatan}/absensi/{kelas}', [AbsensiKegiatanController::class, 'form'])->name('kegiatan.absensi.form');
         Route::post('kegiatan/{kegiatan}/absensi/{kelas}', [AbsensiKegiatanController::class, 'store'])

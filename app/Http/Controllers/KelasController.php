@@ -37,7 +37,11 @@ class KelasController extends Controller
                 ->withCount('siswas')->with('waliKelas')->orderBy('nama_kelas')->paginate(20)
             : Kelas::query()->whereRaw('1 = 0')->paginate(20);
 
-        $guruList = User::where('role', 'guru')->orderBy('name')->get();
+        // Guru BK ikut, karena di sekolah ini guru BK juga memegang
+        // perwalian kelas. Lihat App\Models\User::PERAN_BISA_JADI_WALI.
+        $guruList = User::whereIn('role', User::PERAN_BISA_JADI_WALI)
+            ->orderBy('name')
+            ->get();
 
         // Untuk fitur "Salin Struktur Kelas" (Bagian 14) — daftar tahun
         // ajaran LAIN yang punya kelas, sebagai pilihan sumber salin.
@@ -202,7 +206,7 @@ class KelasController extends Controller
                 'Petunjuk:',
                 '- nama_kelas wajib diisi dan bersifat unik PER TAHUN AJARAN & TINGKAT (contoh: 7A, 8B, 9C boleh dipakai ulang di tahun ajaran berbeda).',
                 '- tingkat diisi salah satu dari: 7, 8, atau 9.',
-                '- nip_wali_kelas bersifat opsional; jika diisi, harus NIP guru yang sudah terdaftar di menu Kelola Pengguna.',
+                '- nip_wali_kelas bersifat opsional; jika diisi, harus NIP guru atau guru BK yang sudah terdaftar di menu Kelola Pengguna.',
                 '- Tahun Ajaran tujuan dipilih di halaman import, bukan di file Excel.',
                 '- Hapus baris contoh ini sebelum mengisi data yang sebenarnya.',
             ]
