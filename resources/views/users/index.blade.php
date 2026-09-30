@@ -61,7 +61,16 @@
                         </td>
                         <td>
                             @if($u->is_active)<span class="badge bg-emerald-50 text-emerald-700">Aktif</span>
-                            @else<span class="badge bg-slate-100 text-slate-500">Nonaktif</span>@endif
+                            @else
+                                {{-- Tanggalnya ikut ditampilkan karena Rekapitulasi
+                                     Kepatuhan memakainya sebagai batas: jurnal setelah
+                                     tanggal ini tidak lagi dituntut darinya. Jadi kalau
+                                     tanggalnya keliru, di sinilah kelihatan. --}}
+                                <span class="badge bg-slate-100 text-slate-500">Nonaktif</span>
+                                @if($u->nonaktif_sejak)
+                                    <span class="block text-[11px] text-slate-400 mt-0.5">sejak {{ $u->nonaktif_sejak->translatedFormat('d M Y') }}</span>
+                                @endif
+                            @endif
                         </td>
                         <td class="td-aksi">
                             <div class="action-buttons">

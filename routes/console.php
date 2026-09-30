@@ -63,3 +63,13 @@ Schedule::command('arsip:bersihkan')
     ->monthlyOn(1, '02:00')
     ->withoutOverlapping()
     ->runInBackground();
+
+/*
+ * Pemberitahuan lonceng yang sudah lewat 90 hari dibuang tiap awal bulan.
+ * Yang dibuang hanya PENANDANYA — kasus siswa dan prestasinya tetap utuh
+ * di menunya masing-masing. Lihat App\Console\Commands\BersihkanPemberitahuan.
+ */
+Schedule::command('pemberitahuan:bersihkan')
+    ->monthlyOn(1, '02:30')
+    ->withoutOverlapping()
+    ->runInBackground();

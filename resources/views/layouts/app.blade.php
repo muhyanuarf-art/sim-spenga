@@ -59,6 +59,10 @@
                      Lihat App\Support\KonteksPeriode. --}}
                 <x-pemilih-periode />
 
+                {{-- Lonceng: laporan yang masuk untuk pengguna ini.
+                     Lihat App\Support\KirimPemberitahuan. --}}
+                <x-lonceng-pemberitahuan />
+
                 {{-- Menu pengguna --}}
                 <div class="relative" x-data="{ buka: false }" @click.outside="buka = false">
                     <button @click="buka = !buka" class="flex items-center gap-2 rounded-xl hover:bg-slate-100 pl-2 pr-1.5 py-1.5 transition">

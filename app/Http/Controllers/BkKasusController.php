@@ -11,6 +11,7 @@ use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Services\PoinSiswaService;
 use App\Support\BkAccessScope;
+use App\Support\KirimPemberitahuan;
 use App\Support\PeriodeAkademik;
 use App\Support\RentangBulan;
 use Illuminate\Http\Request;
@@ -120,7 +121,7 @@ class BkKasusController extends Controller
             $buktiFilePath = $request->file('bukti_file')->store('bk/bukti-pelanggaran');
         }
 
-        KasusSiswa::create([
+        $kasus = KasusSiswa::create([
             'siswa_id' => $validated['siswa_id'],
             'kelas_id' => $siswa->kelasIdSekarang(),
             'jenis_pelanggaran_id' => $jenis->id,
@@ -136,6 +137,11 @@ class BkKasusController extends Controller
             'guru_pelapor_id' => $request->user()->id,
             'status' => 'Baru',
         ]);
+
+        // Guru BK kelas itu, wali kelasnya, dan Kesiswaan diberi tahu.
+        // Sebelum ini, guru mapel mencatat kasus dan tidak ada seorang pun
+        // yang tahu sampai kebetulan membuka menu Kasus.
+        KirimPemberitahuan::kasusSiswa($kasus);
 
         return redirect()->route('bk.siswa.show', $siswa)
             ->with('success', "Kasus untuk {$siswa->nama} berhasil dicatat ({$jenis->poin_default} poin).");

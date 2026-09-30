@@ -23,7 +23,7 @@ class User extends Authenticatable
     public const PASSWORD_DEFAULT = 'password';
 
     protected $fillable = [
-        'name', 'nip', 'email', 'password', 'role', 'no_hp', 'is_active',
+        'name', 'nip', 'email', 'password', 'role', 'no_hp', 'is_active', 'nonaktif_sejak',
     ];
 
     /** Cache instance kelasBk() per-request — lihat method kelasBk() di bawah. */
@@ -42,6 +42,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'nonaktif_sejak' => 'date',
         ];
     }
 

@@ -6,6 +6,7 @@ use App\Models\Kelas;
 use App\Models\PrestasiSiswa;
 use App\Models\Siswa;
 use App\Rules\DalamPeriode;
+use App\Support\KirimPemberitahuan;
 use App\Support\KonteksPeriode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -123,7 +124,12 @@ class PrestasiSiswaController extends Controller
             $data['diverifikasi_oleh'] = $request->user()->id;
         }
 
-        PrestasiSiswa::create($data);
+        $prestasi = PrestasiSiswa::create($data);
+
+        // Kesiswaan diberi tahu HANYA bila catatannya memang menunggu
+        // diperiksa. Yang dicatat Kesiswaan sendiri sudah langsung sah,
+        // jadi tidak ada yang perlu diberi tahu (lihat prestasiMenunggu).
+        KirimPemberitahuan::prestasiMenunggu($prestasi);
 
         return back()->with('success', 'Prestasi '.$siswa->nama.' berhasil dicatat.');
     }
@@ -187,6 +193,10 @@ class PrestasiSiswaController extends Controller
             'diverifikasi_at' => now(),
             'diverifikasi_oleh' => $request->user()->id,
         ]);
+
+        // Wali kelas yang mencatatnya perlu tahu catatannya sudah sah —
+        // sebelum ini ia harus menebak dengan membuka menunya berulang.
+        KirimPemberitahuan::prestasiTerverifikasi($prestasi);
 
         return back()->with('success', 'Prestasi terverifikasi dan siap dipakai untuk laporan.');
     }

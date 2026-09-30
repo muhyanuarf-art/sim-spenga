@@ -59,6 +59,17 @@ class UserController extends Controller
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
+
+        // Tanggal nonaktif dijaga tetap selaras, sama seperti di
+        // toggleAktif() — akun bisa dinonaktifkan dari DUA tempat, dan
+        // kalau hanya satu yang mencatat tanggalnya, Rekapitulasi
+        // Kepatuhan akan benar atau salah tergantung tombol mana yang
+        // dipakai operator. Itu jenis ketidakkonsistenan yang paling
+        // sulit ditelusuri.
+        if ($validated['is_active'] !== (bool) $user->is_active) {
+            $validated['nonaktif_sejak'] = $validated['is_active'] ? null : now()->toDateString();
+        }
+
         if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
@@ -134,6 +145,13 @@ class UserController extends Controller
 
         $user->forceFill([
             'is_active' => $akanAktif,
+            // Tanggal berhentinya dicatat, bukan hanya statusnya.
+            // Rekapitulasi Kepatuhan memakainya untuk menutup jendela
+            // hitung guru yang keluar di tengah semester — tanpa ini ia
+            // tercatat 0 dari 0 seolah tidak pernah punya jam mengajar.
+            // Dikosongkan lagi saat diaktifkan kembali (lihat migrasi
+            // 2026_09_30_000001).
+            'nonaktif_sejak' => $akanAktif ? null : now()->toDateString(),
             // Dikosongkan pada KEDUA arah: saat dinonaktifkan agar cookie
             // lama mati, dan saat diaktifkan lagi agar tidak ada cookie
             // lama yang tiba-tiba hidup kembali.

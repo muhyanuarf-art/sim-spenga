@@ -69,23 +69,54 @@ class RekapController extends Controller
         $rekapGuru = collect();
 
         if ($tahunAjaran) {
-            $guruList = User::where('role', 'guru')->orderBy('name')->get();
-
             $jadwalSemua = JadwalPelajaran::with(['kelas', 'mapel', 'jamPelajaran'])
                 ->where('tahun_ajaran_id', $tahunAjaran->id)
-                ->whereIn('guru_id', $guruList->pluck('id'))
-                ->get()
-                ->groupBy('guru_id');
+                ->get();
 
-            // Semua jurnal bulan ini diambil SEKALI, dikelompokkan per
-            // jadwal_pelajaran_id (= slot jam AWAL sesi), supaya tidak query
-            // berulang per guru/per sesi (hindari N+1).
+            // Semua jurnal bulan ini diambil SEKALI, supaya tidak query
+            // berulang per guru/per sesi (hindari N+1). `guru_id` ikut
+            // diambil karena itulah penentu SIAPA yang benar-benar menulis
+            // jurnal itu — lihat penjelasan panjang di bawah.
             $jurnalBulanIni = JurnalMengajar::whereBetween('tanggal', [$awalBulan, $akhirBulan])
-                ->get(['id', 'jadwal_pelajaran_id', 'tanggal'])
-                ->groupBy('jadwal_pelajaran_id');
+                ->get(['id', 'jadwal_pelajaran_id', 'guru_id', 'tanggal']);
 
-            $rekapGuru = $guruList->map(function ($guru) use ($jadwalSemua, $tanggalPerHari, $jurnalBulanIni, $jumlahHari) {
-                $jadwalGuru = $jadwalSemua->get($guru->id, collect());
+            // DAFTAR PENGAJARNYA TIDAK LAGI DIAMBIL DARI PERAN.
+            //
+            // Dulu `User::where('role', 'guru')`. Dua akibatnya:
+            //
+            //   1. Pengguna berperan Kurikulum, Kesiswaan, atau Guru BK
+            //      yang mengampu mata pelajaran tidak muncul sama sekali —
+            //      jurnalnya tercatat tetapi kepatuhannya tidak terpantau.
+            //   2. Guru yang sudah keluar tetapi masih punya jurnal bulan
+            //      ini bisa hilang bila perannya diubah.
+            //
+            // Sekarang: siapa pun yang PUNYA JADWAL di periode ini, atau
+            // PUNYA JURNAL di bulan ini. Itulah definisi "mengajar".
+            $idPengajar = $jadwalSemua->pluck('guru_id')
+                ->merge($jurnalBulanIni->pluck('guru_id'))
+                ->filter()
+                ->unique();
+
+            $guruList = User::whereIn('id', $idPengajar)->orderBy('name')->get();
+
+            // Siapa pemegang tiap slot jadwal SEKARANG — dipakai untuk
+            // mengenali jurnal yang ditulis pemegang sebelumnya.
+            $pemegangSlot = $jadwalSemua->pluck('guru_id', 'id');
+
+            // Peta: slot => tanggal => id guru yang menulis jurnalnya.
+            $penulisJurnal = [];
+            foreach ($jurnalBulanIni as $j) {
+                $penulisJurnal[$j->jadwal_pelajaran_id][(int) $j->tanggal->format('j')] = $j->guru_id;
+            }
+
+            $jurnalPerGuru = $jurnalBulanIni->groupBy('guru_id');
+            $jadwalPerGuru = $jadwalSemua->groupBy('guru_id');
+
+            $rekapGuru = $guruList->map(function ($guru) use (
+                $jadwalPerGuru, $tanggalPerHari, $jumlahHari, $tahun, $bulan,
+                $penulisJurnal, $jurnalPerGuru, $pemegangSlot
+            ) {
+                $jadwalGuru = $jadwalPerGuru->get($guru->id, collect());
 
                 // Kelompokkan jadi sesi PER HARI (grouping mengasumsikan 1
                 // hari sekaligus, karena jam_ke berulang tiap hari).
@@ -101,22 +132,78 @@ class RekapController extends Controller
                 $totalSeharusnya = 0;
                 $totalTerisi = 0;
 
+                // ==========================================================
+                // SIAPA YANG DIHITUNG UNTUK SEBUAH TANGGAL
+                // ==========================================================
+                // Aturannya: YANG MENULIS JURNALNYA. Bukan yang memegang
+                // jadwalnya hari ini.
+                //
+                // Ini yang membereskan pergantian guru di tengah semester.
+                // Dulu "seharusnya" seluruhnya diambil dari jadwal yang
+                // berlaku sekarang, sehingga saat jadwal Iftikhoor
+                // dialihkan ke guru pengganti:
+                //
+                //   - Iftikhoor jatuh ke 0 dari 0, seolah tidak pernah
+                //     mengajar sepanjang semester;
+                //   - guru pengganti menanggung sebulan penuh, DAN jurnal
+                //     yang Iftikhoor isi awal Oktober ikut terhitung
+                //     sebagai miliknya — karena keduanya menunjuk baris
+                //     jadwal yang sama.
+                //
+                // Sekarang tanggal yang jurnalnya ditulis orang lain
+                // dilewati, dan tanggal setelah seorang guru berhenti
+                // tidak lagi dibebankan kepadanya.
+                $nonaktifSejak = $guru->nonaktif_sejak;
+
                 foreach ($sesiList as $sesi) {
                     $tanggalCocok = $tanggalPerHari[$sesi['hari']] ?? [];
                     $idAwal = $sesi['slots']->first()->id;
 
-                    $tanggalTerisi = ($jurnalBulanIni->get($idAwal) ?? collect())
-                        ->map(fn ($j) => (int) $j->tanggal->format('j'))
-                        ->toArray();
-
                     foreach ($tanggalCocok as $t) {
+                        $penulis = $penulisJurnal[$idAwal][$t] ?? null;
+
+                        // Jurnalnya sudah ditulis orang lain — tanggal itu
+                        // miliknya, bukan milik pemegang jadwal sekarang.
+                        if ($penulis !== null && $penulis !== $guru->id) {
+                            continue;
+                        }
+
+                        // Sudah berhenti sebelum tanggal ini: tidak boleh
+                        // lagi dituntut mengisi jurnal.
+                        if ($penulis === null && $nonaktifSejak
+                            && \Carbon\Carbon::create($tahun, $bulan, $t)->gt($nonaktifSejak)) {
+                            continue;
+                        }
+
                         $totalSeharusnya++;
                         $harian[$t]['seharusnya']++;
-                        if (in_array($t, $tanggalTerisi, true)) {
+
+                        if ($penulis === $guru->id) {
                             $totalTerisi++;
                             $harian[$t]['terisi']++;
                         }
                     }
+                }
+
+                // JURNAL PADA SLOT YANG KINI DIPEGANG ORANG LAIN.
+                //
+                // Guru yang keluar dan jadwalnya sudah dialihkan tidak
+                // punya sesi lagi di perulangan atas, sehingga pekerjaannya
+                // akan hilang sama sekali dari laporan. Padahal jurnalnya
+                // ada, bertanggal, dan atas namanya.
+                //
+                // Baris-baris itu ditambahkan di sini: dihitung sebagai
+                // seharusnya DAN terisi, karena memang dikerjakan.
+                foreach ($jurnalPerGuru->get($guru->id, collect()) as $j) {
+                    if (($pemegangSlot[$j->jadwal_pelajaran_id] ?? null) === $guru->id) {
+                        continue; // sudah dihitung di perulangan atas
+                    }
+
+                    $t = (int) $j->tanggal->format('j');
+                    $totalSeharusnya++;
+                    $totalTerisi++;
+                    $harian[$t]['seharusnya']++;
+                    $harian[$t]['terisi']++;
                 }
 
                 return [

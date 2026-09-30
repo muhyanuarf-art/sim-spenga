@@ -37,6 +37,7 @@ use App\Http\Controllers\NilaiController;
 use App\Http\Controllers\NilaiMonitoringController;
 use App\Http\Controllers\NilaiWaliKelasController;
 use App\Http\Controllers\NotifikasiWhatsappController;
+use App\Http\Controllers\PemberitahuanController;
 use App\Http\Controllers\PengaturanPenilaianController;
 use App\Http\Controllers\ProgramPerbaikanController;
 use App\Http\Controllers\OrangTuaController;
@@ -136,6 +137,16 @@ Route::middleware('auth')->group(function () {
     // dipasangi middleware 'periode-aktif': justru inilah satu-satunya
     // jalan keluar dari mode lihat-saja. Lihat App\Support\KonteksPeriode.
     Route::post('konteks-periode', [KonteksPeriodeController::class, 'ganti'])->name('konteks-periode.ganti');
+
+    // ===== LONCENG PEMBERITAHUAN =====
+    // Tanpa middleware peran: pemberitahuan selalu milik pengguna yang
+    // login, dan kepemilikannya diperiksa di controller. Tanpa
+    // 'periode-aktif' juga — menandai sesuatu sudah dibaca bukan
+    // pencatatan data akademik, jadi tetap boleh saat melihat periode
+    // lampau.
+    Route::post('pemberitahuan/{pemberitahuan}/buka', [PemberitahuanController::class, 'buka'])->name('pemberitahuan.buka');
+    Route::post('pemberitahuan/baca-semua', [PemberitahuanController::class, 'bacaSemua'])->name('pemberitahuan.baca-semua');
+    Route::get('pemberitahuan/jumlah', [PemberitahuanController::class, 'jumlah'])->name('pemberitahuan.jumlah');
 
     // ===== MODUL BK: kasus, pembinaan, poin, pemanggilan ortu =====
     // View-level: Guru (lapor + lihat kasus sendiri), Wali Kelas (lihat kelasnya),
