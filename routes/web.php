@@ -403,8 +403,21 @@ Route::middleware('auth')->group(function () {
         Route::delete('surat/{surat}', [SuratController::class, 'destroy'])->name('surat.destroy')->middleware('periode-aktif');
     });
     // Baca saja — Kesiswaan/Kurikulum/Kepala Sekolah/Guru BK/Admin.
+    // DAFTAR surat tetap tertutup bagi guru: ia memuat seluruh surat
+    // sekolah, dan wali kelas tidak berkepentingan atas kelas lain.
     Route::middleware('role:guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
         Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
+    });
+
+    // MEMBACA SATU SURAT — peran `guru` ikut, TETAPI hanya wali kelas dan
+    // hanya untuk anak kelasnya sendiri.
+    //
+    // Pembatasan itu TIDAK bisa dikerjakan middleware `role:`, karena
+    // peran `guru` mencakup seluruh guru mata pelajaran. Kalau cukup
+    // ditambahkan di sini, setiap guru bisa membaca surat BK siswa mana
+    // pun di sekolah. Jadi pintunya dibuka selebar peran, lalu
+    // dipersempit di SuratController::show() berdasarkan perwaliannya.
+    Route::middleware('role:guru,guru_bk,kurikulum,kepala_sekolah,kesiswaan,admin')->group(function () {
         Route::get('surat/{surat}', [SuratController::class, 'show'])->name('surat.show');
     });
 

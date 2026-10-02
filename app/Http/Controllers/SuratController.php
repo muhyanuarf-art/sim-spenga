@@ -7,6 +7,7 @@ use App\Models\JenisSurat;
 use App\Models\Siswa;
 use App\Models\Surat;
 use App\Models\TahunAjaran;
+use App\Support\KirimPemberitahuan;
 use App\Support\NomorSuratBk;
 use App\Support\SuratMerge;
 use Illuminate\Http\Request;
@@ -184,12 +185,47 @@ class SuratController extends Controller
         ]);
         $surat->siswas()->syncWithoutDetaching([$siswa->id]);
 
+        // Wali kelasnya diberi tahu. SENGAJA hanya dari sini, bukan juga
+        // dari BkPemanggilanController yang ikut membuat surat: di sana
+        // wali kelas sudah menerima pemberitahuan "Pemanggilan orang tua
+        // dicatat" untuk kejadian yang sama. Dua pemberitahuan untuk satu
+        // peristiwa membuat lonceng berisik tanpa menambah kabar.
+        KirimPemberitahuan::suratUntukSiswa($surat);
+
         return redirect()->route('surat.show', $surat)->with('success', "Surat {$surat->nomor_surat} berhasil dibuat.");
     }
 
-    public function show(Surat $surat)
+    /**
+     * Membaca satu surat.
+     *
+     * WALI KELAS BOLEH MEMBACA, TETAPI HANYA UNTUK ANAK KELASNYA.
+     *
+     * Wali kelas wajib tahu apa saja yang menyangkut anak didiknya —
+     * orang tua pun biasanya menghubunginya lebih dulu. Tetapi peran
+     * `guru` di aplikasi ini mencakup SELURUH guru mata pelajaran, jadi
+     * membuka rutenya saja akan membuat setiap guru bisa membaca surat
+     * BK siswa mana pun. Karena itu penyaringnya di sini, berdasarkan
+     * penugasan perwalian, bukan di middleware.
+     *
+     * Hanya MELIHAT: membuat, mengubah, dan menghapus surat tetap
+     * terkunci di grup rute `role:guru_bk,admin`.
+     */
+    public function show(Request $request, Surat $surat)
     {
         $surat->load(['jenisSurat', 'siswa.kelas', 'dibuatOleh']);
+
+        $user = $request->user();
+
+        // Peran selain `guru` sudah disaring middleware rutenya.
+        if ($user->role === 'guru') {
+            $kelasWali = $user->kelasWali;
+
+            abort_if(
+                ! $kelasWali || $surat->siswa?->kelasIdSekarang() !== $kelasWali->id,
+                403,
+                'Surat ini bukan untuk siswa di kelas perwalian Anda.'
+            );
+        }
 
         return view('surat.show', compact('surat'));
     }

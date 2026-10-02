@@ -10,6 +10,7 @@ use App\Models\NilaiSiswa;
 use App\Models\PenilaianKelasMapel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Support\KirimPemberitahuan;
 use App\Support\PeriodeAkademik;
 use App\Support\SkemaPenilaian;
 use Illuminate\Http\Request;
@@ -254,6 +255,10 @@ class NilaiController extends Controller
             'difinalisasi_oleh_id' => $request->user()->id,
             'guru_id' => $header->guru_id ?? $request->user()->id,
         ]);
+
+        // Kurikulum dan wali kelasnya diberi tahu — dengan tautan yang
+        // BERBEDA, karena keperluannya berbeda (lihat nilaiDifinalisasi).
+        KirimPemberitahuan::nilaiDifinalisasi($kelas, $mapel->nama_mapel);
 
         return back()->with('success', 'Daftar nilai difinalisasi. Nilai sudah terkunci dan masuk ke laporan wali kelas.');
     }

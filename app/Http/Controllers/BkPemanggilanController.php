@@ -11,6 +11,7 @@ use App\Models\Siswa;
 use App\Models\Surat;
 use App\Models\TahunAjaran;
 use App\Support\BkAccessScope;
+use App\Support\KirimPemberitahuan;
 use App\Support\NomorSuratBk;
 use App\Support\RentangBulan;
 use App\Support\SuratMerge;
@@ -221,6 +222,11 @@ class BkPemanggilanController extends Controller
                 'petugas_id' => $request->user()->id,
             ]);
         });
+
+        // Wali kelas dan Kesiswaan diberi tahu. Dikirim DI LUAR transaksi
+        // di atas: pemberitahuan yang gagal tidak boleh menggagalkan
+        // pencatatan pemanggilannya.
+        KirimPemberitahuan::pemanggilanOrangTua($pemanggilan);
 
         return redirect()->route('bk.siswa.show', $pemanggilan->siswa_id)
             ->with('success', 'Pemanggilan orang tua berhasil dicatat. Isi hasil pertemuan setelah pertemuan berlangsung.');

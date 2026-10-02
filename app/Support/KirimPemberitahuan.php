@@ -6,6 +6,7 @@ use App\Models\GuruBkKelas;
 use App\Models\Kelas;
 use App\Models\KasusSiswa;
 use App\Models\Pemberitahuan;
+use App\Models\PemanggilanOrangTua;
 use App\Models\PrestasiSiswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
@@ -194,4 +195,113 @@ class KirimPemberitahuan
             route('prestasi.index', [], false),
         );
     }
+
+    /**
+     * Pemanggilan orang tua dicatat guru BK.
+     *
+     * Wali kelasnya WAJIB tahu: orang tua anak kelasnya dipanggil ke
+     * sekolah, dan ia yang akan ditanyai bila orang tua menghubunginya
+     * lebih dulu. Kesiswaan ikut karena memantau menyeluruh.
+     *
+     * Tautannya langsung ke halaman siswa itu, bukan ke daftar — di sana
+     * riwayat kasus, pembinaan, dan pemanggilannya tampil sekaligus.
+     */
+    public static function pemanggilanOrangTua(PemanggilanOrangTua $pemanggilan): int
+    {
+        $pemanggilan->loadMissing('siswa');
+        $siswa = $pemanggilan->siswa;
+
+        return self::kirim(
+            self::waliKelas($siswa?->kelasIdSekarang())
+                ->merge(self::berperan(['kesiswaan'])),
+            'pemanggilan_orangtua',
+            'Pemanggilan orang tua dicatat',
+            ($siswa?->nama ?? 'Siswa').' — '.Str::limit($pemanggilan->alasan, 150),
+            $siswa ? route('bk.siswa.show', $siswa->id, false) : route('bk.pemanggilan.index', [], false),
+        );
+    }
+
+    /**
+     * Guru mata pelajaran memfinalisasi daftar nilai.
+     *
+     * Dua penerima dengan kebutuhan BERBEDA, jadi tautannya pun berbeda:
+     *
+     *   Kurikulum  -> Monitoring Input Nilai, untuk melihat mana yang
+     *                 masih tertinggal dari seluruh sekolah.
+     *   Wali kelas -> Nilai Rapor Kelas, karena nilai itu baru saja
+     *                 masuk ke rapor kelasnya.
+     *
+     * Mengirim satu tautan untuk keduanya akan membuat salah satu
+     * mendarat di halaman yang bukan urusannya.
+     */
+    public static function nilaiDifinalisasi(Kelas $kelas, string $namaMapel): int
+    {
+        $isi = $kelas->nama_kelas.' — '.$namaMapel;
+
+        $jumlah = self::kirim(
+            self::berperan(['kurikulum']),
+            'nilai_final',
+            'Daftar nilai difinalisasi',
+            $isi,
+            route('nilai.monitoring', [], false),
+        );
+
+        $jumlah += self::kirim(
+            self::waliKelas($kelas->id),
+            'nilai_final',
+            'Nilai masuk ke rapor kelas Anda',
+            $isi,
+            route('nilai.rekap-kelas', [], false),
+        );
+
+        return $jumlah;
+    }
+
+    /**
+     * Guru BK menerbitkan surat untuk seorang siswa.
+     *
+     * Wali kelasnya diberi tahu. Orang tua sering menghubungi wali kelas
+     * lebih dulu — dan sebelum ini wali kelas tidak tahu apa-apa.
+     *
+     * Tautannya langsung ke SURATNYA. Sejak wali kelas diizinkan membaca
+     * surat anak kelasnya (lihat SuratController::show), mengantarnya ke
+     * halaman siswa justru menambah satu klik tanpa alasan.
+     */
+    public static function suratUntukSiswa(\App\Models\Surat $surat): int
+    {
+        $surat->loadMissing(['siswa', 'jenisSurat']);
+        $siswa = $surat->siswa;
+
+        if (! $siswa) {
+            return 0;
+        }
+
+        return self::kirim(
+            self::waliKelas($siswa->kelasIdSekarang()),
+            'surat_siswa',
+            'Surat diterbitkan untuk siswa kelas Anda',
+            trim($siswa->nama.' — '.($surat->jenisSurat?->nama_jenis ?? 'Surat')
+                .($surat->nomor_surat ? ' · No. '.$surat->nomor_surat : '')),
+            route('surat.show', $surat->id, false),
+        );
+    }
+
+    /*
+     * TIDAK ADA PEMBERITAHUAN UNTUK DISPOSISI SURAT.
+     *
+     * Sempat dibuat, lalu dicabut lagi setelah ketahuan bahwa fitur
+     * Disposisi SUDAH TIDAK DIPAKAI: pada perombakan alur surat
+     * 26 Agustus 2026 ia dikeluarkan dari spesifikasi, dan
+     * DisposisiSuratController kini tidak punya satu pun rute yang
+     * menunjuk kepadanya (tabel dan controllernya sengaja ditinggal
+     * supaya data lama tidak hilang — lihat catatan di routes/web.php
+     * pada blok SURAT).
+     *
+     * Memasang kait pada kode yang tidak pernah dijalankan hanya
+     * menyesatkan pembaca berikutnya: ia akan mengira fitur itu hidup.
+     *
+     * Kalau kelak surat perlu memberi tahu seseorang, yang masuk akal
+     * adalah memberi tahu WALI KELAS ketika guru BK menerbitkan surat
+     * untuk anak kelasnya — bukan menghidupkan kembali disposisi.
+     */
 }

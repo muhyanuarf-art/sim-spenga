@@ -69,6 +69,16 @@ class Pemberitahuan extends Model
             'warna' => 'bg-sky-50 text-sky-600',
             'label' => 'Prestasi terverifikasi',
         ],
+        'nilai_final' => [
+            'ikon' => 'fa-lock',
+            'warna' => 'bg-violet-50 text-violet-600',
+            'label' => 'Nilai difinalisasi',
+        ],
+        'surat_siswa' => [
+            'ikon' => 'fa-envelope',
+            'warna' => 'bg-indigo-50 text-indigo-600',
+            'label' => 'Surat untuk siswa',
+        ],
     ];
 
     private const GAYA_BAWAAN = [
