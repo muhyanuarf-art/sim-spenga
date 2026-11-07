@@ -6,9 +6,27 @@
 @php
     $user = auth()->user();
     $bolehLihat = fn ($route) => \App\Support\Navigasi::bolehAkses($route, $user);
+
+    /* ADA JADWAL ATAU BELUM — penentu apa yang pantas ditampilkan.
+     *
+     * Tanpa jadwal, tidak ada satu pun sesi mengajar, sehingga panel
+     * harian (kehadiran, kepatuhan, tren, progres per kelas) semuanya
+     * menampilkan nol. Deretan nol itu terbaca sebagai "aplikasi
+     * bermasalah", padahal yang terjadi cuma satu langkah persiapan
+     * belum dikerjakan.
+     *
+     * Diambil dari $checklistOnboarding yang sudah dikirim controller —
+     * tidak ada query tambahan. Bagi peran yang tidak menerima checklist,
+     * dianggap ada jadwal supaya tampilannya tidak berubah sama sekali.
+     */
+    $adaJadwal = ! isset($checklistOnboarding)
+        || (collect($checklistOnboarding['items'])->firstWhere('key', 'jadwal')['selesai'] ?? true);
 @endphp
 
-<div class="space-y-6">
+{{-- Lebar dibatasi. Pada layar 1920px, merentangkan empat kartu selebar
+     layar membuat isinya encer dan mata harus menyapu jauh hanya untuk
+     membaca empat angka. --}}
+<div class="space-y-6 max-w-[1360px]">
 
     @if(!$tahunAjaran)
         <div class="alert alert-warning">
@@ -22,6 +40,15 @@
                 @endif
             </span>
         </div>
+    @endif
+
+    {{-- Selama jadwal belum ada, inilah satu-satunya hal yang perlu
+         dikerjakan — jadi ia yang ditaruh paling atas, bukan di kaki
+         halaman. Hilang sendiri begitu jadwalnya tersusun. --}}
+    @if(! $adaJadwal)
+        @include('dashboard.partials.penghalang-setup', ['checklistOnboarding' => $checklistOnboarding])
+
+        @include('dashboard.partials.onboarding-checklist', ['checklistOnboarding' => $checklistOnboarding])
     @endif
 
     {{-- ===== Ringkasan angka utama ===== --}}
@@ -44,7 +71,25 @@
                      :href="$bolehLihat('rekap.index') ? route('rekap.index') : null" />
     </div>
 
-    {{-- ===== Kondisi hari ini ===== --}}
+    {{-- ===== Papan hari ini & sesi yang tertinggal =====
+         Dua panel ini menjawab pertanyaan yang paling sering dibawa orang
+         ke dashboard: hari ini sudah berjalan sampai mana, dan siapa yang
+         perlu diingatkan. Papan menunjukkan sebarannya, daftar di
+         sebelahnya menunjukkan nama-namanya. --}}
+    <div class="grid lg:grid-cols-3 gap-6 items-start">
+        @include('dashboard.partials.papan-hari-ini')
+
+        <div class="lg:col-span-2">
+            @include('dashboard.partials.belum-dijurnal')
+        </div>
+    </div>
+
+    {{-- ===== Kondisi hari ini =====
+         CATATAN: panel-panel di bawah ini pernah disembunyikan selama
+         jadwal belum tersusun, dengan alasan seluruh isinya nol. Itu
+         keliru — Alfa hari ini dan rekap kehadiran tetap perlu terlihat,
+         dan kartu penghalang di atas sudah cukup menjelaskan kenapa
+         angkanya masih nol. Sekarang selalu tampil. --}}
     <div class="grid lg:grid-cols-3 gap-6">
         <x-panel judul="Kehadiran Siswa Hari Ini" ikon="fa-clipboard-check"
                  deskripsi="Status akhir tiap siswa (diambil dari jam pelajaran terakhir)."
@@ -188,7 +233,11 @@
         </div>
     @endif
 
-    @if($checklistOnboarding)
+    {{-- Saat jadwal belum ada, checklist ini sudah tampil DI ATAS bersama
+         kartu penghalang — di situlah tempatnya, karena saat itu ia satu-
+         satunya hal yang bisa ditindaklanjuti. Di sini hanya untuk keadaan
+         normal, sebagai catatan kaki. --}}
+    @if($checklistOnboarding && $adaJadwal)
         @include('dashboard.partials.onboarding-checklist', ['checklistOnboarding' => $checklistOnboarding])
     @endif
 

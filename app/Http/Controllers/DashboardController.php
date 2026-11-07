@@ -97,11 +97,93 @@ class DashboardController extends Controller
 
         $siswaAlfaHariIni = AbsensiSiswa::alfaDariRecordsPerSiswa($absensiHariIniRaw);
 
-        $jurnalHariIni = JurnalMengajar::whereDate('tanggal', now()->toDateString())->count();
-        $jadwalHariIni = $tahunAjaran
-            ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)->where('hari', $this->hariIndonesia())->count()
-            : 0;
+        /* =================================================================
+           SESI MENGAJAR HARI INI
+           =================================================================
+           Dasar dari tiga panel sekaligus: Papan Hari Ini, Belum Dijurnal,
+           dan angka "Jurnal Hari Ini".
+
+           PERBAIKAN HITUNGAN. Sebelumnya persentasenya membandingkan dua
+           satuan yang berbeda: pembilangnya jumlah JURNAL (1 jurnal = 1
+           sesi, bisa mencakup beberapa jam berurutan), penyebutnya jumlah
+           BARIS JADWAL (1 baris = 1 jam). Guru yang mengajar 2 jam
+           berurutan lalu menulis jurnalnya dengan benar tetap terbaca 50%.
+
+           Halaman Rekapitulasi Kepatuhan sudah lama menghitung per sesi —
+           dashboard-lah yang selama ini tidak sejalan. Sekarang keduanya
+           memakai satuan yang sama, jadi angka di dua halaman itu tidak
+           lagi saling bertentangan.
+           ----------------------------------------------------------------- */
+        $jadwalHariIniRaw = $tahunAjaran
+            ? JadwalPelajaran::where('tahun_ajaran_id', $tahunAjaran->id)
+                ->where('hari', $this->hariIndonesia())
+                ->with(['kelas', 'mapel', 'guru', 'jamPelajaran'])
+                ->get()
+            : collect();
+
+        /* Dikelompokkan PER KELAS dulu, baru disusun jadi sesi.
+           SesiMengajarGrouper mengurutkan masukannya berdasarkan jam_ke
+           saja. Itu benar untuk jadwal satu guru (pemakaian aslinya), tapi
+           untuk jadwal seluruh sekolah baris antarkelas akan berselang-
+           seling di jam yang sama, sehingga tidak ada satu pun jam
+           berurutan yang terdeteksi. */
+        $sesiHariIni = SesiMengajarGrouper::tandaiSudahDiisi(
+            $jadwalHariIniRaw->groupBy('kelas_id')
+                ->flatMap(fn ($perKelas) => SesiMengajarGrouper::kelompokkan($perKelas))
+                ->values(),
+            $jadwalHariIniRaw
+        );
+
+        $jadwalHariIni = $sesiHariIni->count();
+        $jurnalHariIni = $sesiHariIni->where('sudah_diisi', true)->count();
         $persenJurnal = $jadwalHariIni > 0 ? (int) round($jurnalHariIni / $jadwalHariIni * 100) : 0;
+
+        /* PAPAN HARI INI — satu kotak untuk satu jam pelajaran, disusun
+           kelas ke bawah dan jam ke samping. Bentuk inilah yang membuat
+           "kelas 8B tidak pernah terjurnal" terlihat sebagai satu baris
+           kosong, bukan sebagai satu angka persen yang agak rendah. */
+        $jamTerjauh = (int) $jadwalHariIniRaw->max(fn ($j) => $j->jamPelajaran?->jam_ke);
+
+        $keadaanJam = [];
+        foreach ($sesiHariIni as $sesi) {
+            foreach ($sesi['slots'] as $slot) {
+                $keadaanJam[$slot->kelas_id][$slot->jamPelajaran->jam_ke] = $sesi['sudah_diisi'];
+            }
+        }
+
+        $papanHariIni = $jadwalHariIniRaw
+            ->groupBy('kelas_id')
+            ->map(fn ($baris, $kelasId) => [
+                'kelas' => $baris->first()->kelas?->nama_kelas ?? '—',
+                'jam' => collect(range(1, max($jamTerjauh, 1)))
+                    ->map(fn ($jamKe) => $keadaanJam[$kelasId][$jamKe] ?? null)
+                    ->all(),
+            ])
+            ->sortBy('kelas')
+            ->values();
+
+        /* BELUM DIJURNAL — hanya sesi yang jamnya SUDAH LEWAT. Sesi yang
+           baru akan berlangsung nanti siang bukan kelalaian, dan menagih
+           guru atas sesuatu yang belum terjadi adalah cara tercepat
+           membuat daftar ini diabaikan. */
+        $sekarang = now()->format('H:i:s');
+        $belumSelesai = $sesiHariIni->where('sudah_diisi', false);
+
+        $belumDijurnal = $belumSelesai
+            ->filter(fn ($s) => $s['jam_akhir']?->jam_selesai < $sekarang)
+            ->sortBy(fn ($s) => $s['jam_akhir']?->jam_selesai)
+            ->take(8)
+            ->map(fn ($s) => [
+                'jam_ke' => $s['jam_awal']?->jam_ke,
+                'kelas' => $s['kelas']?->nama_kelas ?? '—',
+                'mapel' => $s['mapel']?->nama_mapel ?? '—',
+                'guru' => $s['slots']->first()?->guru?->name ?? 'Belum ada pengajar',
+                'selesai' => substr((string) $s['jam_akhir']?->jam_selesai, 0, 5),
+            ])
+            ->values();
+
+        $sesiBelumLewatJam = $belumSelesai->count() - $belumSelesai
+            ->filter(fn ($s) => $s['jam_akhir']?->jam_selesai < $sekarang)->count();
 
         // 1 query GROUP BY untuk semua kelas (bukan 1 query per kelas).
         $terisiPerKelas = AbsensiSiswa::whereDate('tanggal', now()->toDateString())
@@ -186,6 +268,7 @@ class DashboardController extends Controller
             'totalGuru', 'totalGuruAktif', 'totalGuruTidakAktif',
             'totalKelas', 'totalKelasTidakAktif',
             'rekapHariIni', 'siswaAlfaHariIni', 'jurnalHariIni', 'jadwalHariIni', 'persenJurnal',
+            'papanHariIni', 'belumDijurnal', 'sesiBelumLewatJam', 'jamTerjauh',
             'rekapPerKelas', 'kelasBelumDiabsen', 'statistikMingguan', 'aktivitasTerbaru',
             'tahunAjaran', 'checklistOnboarding'
         ));

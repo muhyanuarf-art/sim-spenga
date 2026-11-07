@@ -1,20 +1,42 @@
+{{--
+    SISWA ALFA HARI INI.
+
+    Props, data, dan isi tabelnya sama persis seperti sebelumnya — yang
+    berubah hanya bungkusnya.
+
+    Dulu kepala kartu ini berupa spanduk gradasi merah-ke-oranye setinggi
+    64px. Di dashboard yang seluruh kartunya putih bergaris rambut, satu
+    spanduk menyala membuat panel ini berteriak paling keras — padahal
+    pada hari yang baik isinya justru "tidak ada siswa Alfa". Perhatian
+    terbesar diberikan kepada kartu yang paling sering kosong.
+
+    Sekarang bentuknya sama dengan kartu lain, dan yang menandai keadaan
+    adalah ANGKANYA: nol tampil hijau tenang, selebihnya merah. Jadi
+    warnanya mengikuti keadaan hari itu, bukan menyala terus-menerus.
+--}}
 @props(['data', 'title' => 'Siswa Alfa Hari Ini', 'subtitle' => null, 'showKelas' => true])
 
-<div class="relative overflow-hidden rounded-2xl border border-rose-100 shadow-soft">
-    <div class="bg-gradient-to-r from-rose-500 via-rose-500 to-orange-400 px-5 py-4 flex items-center justify-between gap-3">
-        <div class="min-w-0">
-            <p class="font-bold text-white flex items-center gap-2">
-                <span class="text-lg"><i class="fa-solid fa-flag"></i></span> {{ $title }}
-            </p>
-            <p class="text-xs text-rose-50/90 mt-0.5">
-                {{ $subtitle ?? 'Absensi Kelas — status dari guru mapel dengan jam paling akhir hari ini' }}
-            </p>
+@php
+    $jumlahAlfa = $data->count();
+@endphp
+
+<div class="card">
+    <div class="card-head">
+        <div class="min-w-0 flex items-start gap-3">
+            <span class="aksen-batang" aria-hidden="true"></span>
+            <div class="min-w-0">
+                <p class="section-title tanpa-aksen">{{ $title }}</p>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    {{ $subtitle ?? 'Absensi Kelas — status dari guru mapel dengan jam paling akhir hari ini' }}
+                </p>
+            </div>
         </div>
-        <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-lg font-extrabold text-white shrink-0">
-            {{ $data->count() }}
-        </div>
+        <span class="badge shrink-0 {{ $jumlahAlfa > 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' }}">
+            {{ $jumlahAlfa }} siswa
+        </span>
     </div>
-    <div class="bg-white overflow-x-auto">
+
+    <div class="overflow-x-auto">
         <table class="table-clean w-full">
             <thead>
                 <tr>

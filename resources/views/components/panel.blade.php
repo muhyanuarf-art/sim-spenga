@@ -12,15 +12,25 @@
 
 <div {{ $attributes->merge(['class' => 'card']) }}>
     @if($judul)
-        <div class="flex items-start justify-between gap-3 flex-wrap px-5 py-4 border-b border-slate-100">
+        {{-- Kepala kartu kini memakai class ".card-head" di app.css, bukan
+             deretan utility di sini. Jaraknya jadi satu-satunya yang
+             berlaku: semua kartu berjudul di seluruh aplikasi berganti
+             bersama-sama kalau suatu saat diubah lagi. --}}
+        <div class="card-head">
             <div class="min-w-0 flex items-start gap-3">
+                {{-- Ikon ATAU batang oranye, tidak pernah keduanya. Dua
+                     penanda untuk satu judul yang sama hanya membuat
+                     pembacanya bertanya apa bedanya. Kartu yang sudah
+                     memilih ikon sudah punya penandanya sendiri. --}}
                 @if($ikon)
                     <div class="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
                         <i class="fa-solid {{ $ikon }}"></i>
                     </div>
+                @else
+                    <span class="aksen-batang" aria-hidden="true"></span>
                 @endif
                 <div class="min-w-0">
-                    <p class="section-title">{{ $judul }}</p>
+                    <p class="section-title tanpa-aksen">{{ $judul }}</p>
                     @if($deskripsi)<p class="text-xs text-slate-400 mt-0.5">{{ $deskripsi }}</p>@endif
                 </div>
             </div>

@@ -21,9 +21,19 @@ body { -webkit-font-smoothing: antialiased; }
 .nav-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .15); }
 .nav-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .28); }
 
+/* Label grup menu ("Penilaian", "Pemantauan", …).
+   Dulu HURUF BESAR SEMUA dengan jarak huruf lebar — bentuk yang menarik
+   perhatian, padahal label ini justru bukan yang dicari: yang dicari nama
+   menunya. Sekarang ditulis biasa dan diteruskan oleh garis rambut sampai
+   tepi, jadi ia memisahkan kelompok tanpa ikut bersaing dibaca. */
 .nav-section {
-    font-size: .68rem; text-transform: uppercase; letter-spacing: .09em;
-    color: #6f86c9; font-weight: 800; padding: 0 .85rem .4rem;
+    display: flex; align-items: center; gap: .6rem;
+    font-size: .72rem; text-transform: none; letter-spacing: 0;
+    color: #8ea4dd; font-weight: 700; padding: 0 .85rem .5rem;
+}
+.nav-section::after {
+    content: ''; flex: 1 1 auto; height: 1px;
+    background: rgba(255, 255, 255, .10);
 }
 .nav-link {
     display: flex; align-items: center; gap: .75rem; width: 100%;
@@ -61,14 +71,86 @@ body { -webkit-font-smoothing: antialiased; }
 /* =========================================================================
    KOMPONEN UMUM
    ========================================================================= */
+/* Kartu — satu bentuk untuk seluruh aplikasi.
+
+   Sebelumnya tiap kartu membawa bayangan cukup tebal. Di halaman yang
+   isinya satu-dua kartu itu terlihat rapi; di halaman yang isinya dua
+   belas, dua belas bayangan itu menumpuk jadi kabut kelabu dan tidak ada
+   satu pun kartu yang terlihat lebih penting dari yang lain.
+
+   Sekarang pemisahnya garis, bukan bayangan. Bayangan disisakan setipis
+   mungkin — cukup untuk mengangkat kartu dari latar, tidak cukup untuk
+   menarik perhatian. */
 .card {
-    background: #fff; border: 1px solid #e6eaf2; border-radius: 1rem;
-    box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 16px -8px rgba(16, 24, 40, .1);
+    background: #fff; border: 1px solid #e4e9f2; border-radius: .875rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .035);
 }
 .card-hover { transition: box-shadow .18s, transform .18s, border-color .18s; }
-.card-hover:hover { box-shadow: 0 8px 28px -12px rgba(16, 24, 40, .28); border-color: #c9d8f8; transform: translateY(-1px); }
+.card-hover:hover { box-shadow: 0 6px 20px -10px rgba(16, 24, 40, .22); border-color: #c9d8f8; transform: translateY(-1px); }
 
-.section-title { font-weight: 700; color: #1e293b; letter-spacing: -.01em; }
+/* Kepala kartu: judul di kiri, tautan/tombol di kanan, dipisah garis
+   rambut. Dipakai oleh <x-panel>, jadi ikut berlaku di semua halaman yang
+   memakainya. */
+.card-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: .75rem; flex-wrap: wrap;
+    padding: .95rem 1.25rem; border-bottom: 1px solid #eef1f6;
+}
+
+/* Catatan kaki kartu — satu kalimat penjelas di dasar kartu, dengan latar
+   yang sedikit lebih gelap supaya terbaca sebagai keterangan, bukan data. */
+.catatan-kartu {
+    padding: .7rem 1.25rem; border-top: 1px solid #eef1f6;
+    background: #f8fafc; font-size: .8125rem; color: #64748b;
+    border-radius: 0 0 .875rem .875rem;
+}
+
+/* Judul bagian di dalam kartu, dengan batang oranye pendek di depannya.
+   Batang itu penanda hierarki: tulisan setebal ini muncul juga di tempat
+   lain, dan tanpa penanda, "judul bagian" dan "baris data yang ditebalkan"
+   terlihat sama persis. */
+.section-title {
+    display: inline-flex; align-items: center; gap: .55rem;
+    font-weight: 700; color: #1e293b; letter-spacing: -.01em;
+}
+.section-title::before {
+    content: ''; flex: none;
+    width: .1875rem; height: .95rem; border-radius: 999px;
+    background: #f99a35;
+}
+/* Judul yang penandanya sudah disediakan di luar — lihat <x-panel>, yang
+   memasang batangnya sendiri setinggi judul + keterangan supaya keduanya
+   rata kiri. Tanpa ini batangnya muncul dua kali. */
+.section-title.tanpa-aksen::before { display: none; }
+
+.aksen-batang {
+    flex: none; width: .1875rem; align-self: stretch;
+    min-height: 1.1rem; border-radius: 999px; background: #f99a35;
+}
+
+/* =========================================================================
+   JUDUL HALAMAN
+
+   Blok yang sama di setiap halaman (lihat layouts/app.blade.php): nama
+   halaman, satu kalimat penjelas, tombol aksi di kanan.
+
+   Garis rambut di bawahnya memberi tiap halaman pangkal yang sama —
+   sebelumnya judul hanya melayang di atas isi, sehingga setiap halaman
+   mulai di ketinggian yang berbeda-beda. Potongan oranye di ujung kirinya
+   satu-satunya hiasan di halaman, dan ia muncul di tempat yang sama setiap
+   kali: itulah yang membuat semua halaman terbaca sebagai satu aplikasi.
+   ========================================================================= */
+.judul-halaman {
+    position: relative;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e4e9f2;
+}
+.judul-halaman::after {
+    content: '';
+    position: absolute; left: 0; bottom: -1px;
+    width: 2.75rem; height: 2px; border-radius: 2px;
+    background: #f5820f;
+}
 
 /* Tombol */
 .btn-primary, .btn-outline, .btn-danger, .btn-ghost {
@@ -99,10 +181,10 @@ body { -webkit-font-smoothing: antialiased; }
 .table-clean { width: 100%; border-collapse: collapse; }
 .table-clean th {
     text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em;
-    color: #7c8aa1; font-weight: 700; padding: .65rem .9rem;
-    background: #f8fafc; border-bottom: 1px solid #e6eaf2; white-space: nowrap;
+    color: #7c8aa1; font-weight: 700; padding: .7rem .9rem;
+    background: #f8fafc; border-bottom: 1px solid #e4e9f2; white-space: nowrap;
 }
-.table-clean td { padding: .7rem .9rem; border-bottom: 1px solid #f1f5f9; font-size: .875rem; vertical-align: middle; }
+.table-clean td { padding: .75rem .9rem; border-bottom: 1px solid #f1f5f9; font-size: .875rem; vertical-align: middle; }
 .table-clean tbody tr:hover > td { background: #f9fbff; }
 .table-clean tbody tr:last-child td { border-bottom: 0; }
 
@@ -283,6 +365,15 @@ body { -webkit-font-smoothing: antialiased; }
     .cetak-saja [class*="rounded"] {
         border-radius: 0 !important;
     }
+
+    /* Batang oranye penanda judul bagian tidak ikut tercetak. Di layar ia
+       penanda hierarki; di atas kertas surat resmi ia cuma noda warna.
+       Sudut membulat catatan kaki kartu juga disegikan — ia memakai
+       border-radius dari CSS, bukan class "rounded", jadi tidak tersapu
+       aturan wildcard di atas. */
+    .section-title::before { display: none !important; }
+    .judul-halaman::after { display: none !important; }
+    .catatan-kartu { border-radius: 0 !important; background: transparent !important; }
 }
 .cetak-saja { display: none; }
 
@@ -311,8 +402,8 @@ body { -webkit-font-smoothing: antialiased; }
 @media (hover: none) {
     .card-hover { transition: none; }
     .card-hover:hover {
-        box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 16px -8px rgba(16, 24, 40, .1);
-        border-color: #e6eaf2;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, .035);
+        border-color: #e4e9f2;
         transform: none;
     }
     .btn-primary:hover { box-shadow: 0 2px 8px -2px rgba(28, 104, 242, .5); }
@@ -325,7 +416,7 @@ body { -webkit-font-smoothing: antialiased; }
    nyaris tak terlihat. Di perangkat sentuh dipakai bayangan tipis saja. */
 @media (hover: none) {
     .card {
-        box-shadow: 0 1px 2px rgba(16, 24, 40, .06);
+        box-shadow: none;
     }
 
     /* Tabel lebar punya penggulir sendiri. Tanpa ini, gulir vertikal yang
@@ -349,6 +440,10 @@ body { -webkit-font-smoothing: antialiased; }
 .nav-sublink-active {
     position: relative;
 }
+/* Penanda menu aktif. Warnanya oranye, bukan putih seperti dulu — di atas
+   latar biru tua, putih bertemu dengan tulisan putih di sebelahnya dan
+   nyaris tidak terbaca sebagai penanda. Oranye satu-satunya warna hangat di
+   seluruh sidebar, jadi mata menemukannya tanpa perlu mencari. */
 .nav-active::before,
 .nav-sublink-active::before {
     content: '';
@@ -356,11 +451,10 @@ body { -webkit-font-smoothing: antialiased; }
     left: -.35rem;
     top: 50%;
     transform: translateY(-50%);
-    width: .18rem;
-    height: 55%;
+    width: .1875rem;
+    height: 58%;
     border-radius: 999px;
-    background: #fff;
-    opacity: .9;
+    background: #f99a35;
 }
 
 .nav-link:focus-visible,

@@ -32,7 +32,7 @@
             <div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 text-sm">{{ session('success') }}</div>
         @endif
 
-        <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="card p-6">
             <p class="text-sm text-slate-400">Data Anak</p>
             <p class="text-xl font-extrabold text-slate-800">{{ $siswa->nama }}</p>
             <div class="flex flex-wrap gap-4 mt-2 text-sm text-slate-500">
@@ -41,9 +41,9 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="card p-6">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <p class="font-bold text-slate-800">Rekap Kehadiran</p>
+                <p class="section-title">Rekap Kehadiran</p>
                 <form method="GET" class="flex gap-2">
                     <select name="bulan" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm" onchange="this.form.submit()">
                         @foreach(range(1,12) as $b)
@@ -103,8 +103,8 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm p-6">
-            <p class="font-bold text-slate-800 mb-4">Riwayat Kelas</p>
+        <div class="card p-6">
+            <p class="section-title mb-4">Riwayat Kelas</p>
             @forelse($riwayatKelas as $i => $r)
                 <div class="flex gap-3 pb-3 {{ !$loop->last ? 'border-l-2 border-brand-100 ml-3' : 'ml-3' }} relative">
                     <div class="absolute -left-[0.95rem] top-0 w-6 h-6 rounded-full bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center">
@@ -130,9 +130,9 @@
         {{-- PRESTASI. Sengaja diletakkan SEBELUM bagian kedisiplinan:
              kalau ada yang membanggakan, itu yang pertama dilihat orang
              tua saat membuka halaman ini. --}}
-        <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="card p-6">
             <div class="flex items-center justify-between mb-4">
-                <p class="font-bold text-slate-800">Prestasi</p>
+                <p class="section-title">Prestasi</p>
                 @if($prestasi->count() > 0)
                     <span class="text-sm text-slate-500">
                         Total: <strong class="text-slate-800">{{ $prestasi->count() }}</strong>
@@ -170,9 +170,9 @@
             @endforelse
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm p-6">
+        <div class="card p-6">
             <div class="flex items-center justify-between mb-4">
-                <p class="font-bold text-slate-800">Kedisiplinan (BK)</p>
+                <p class="section-title">Kedisiplinan (BK)</p>
                 <span class="text-sm text-slate-500">Poin pelanggaran aktif: <strong class="text-slate-800">{{ $poinBersih }}</strong></span>
             </div>
 

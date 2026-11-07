@@ -27,7 +27,7 @@
 
     <div class="flex-1 flex flex-col min-w-0">
         {{-- ===== Top bar ===== --}}
-        <header class="h-16 bg-white lg:bg-white/95 lg:backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-3">
+        <header class="h-16 bg-white lg:bg-white/90 lg:backdrop-blur border-b border-slate-200/80 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 gap-3">
             <div class="flex items-center gap-3 min-w-0">
                 <button @click="sidebarOpen = !sidebarOpen"
                         class="lg:hidden w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-600 shrink-0">
@@ -99,6 +99,15 @@
         </header>
 
         <main class="flex-1 p-4 lg:p-8">
+        {{-- Pembatas lebar isi.
+
+             Di monitor 24 inci ke atas, isi halaman sebelumnya merentang
+             sampai tepi kanan layar: baris tabel jadi selebar satu meter,
+             dan mata kehilangan jejak barisnya sendiri di tengah
+             perjalanan. Dibatasi lalu ditengahkan — di layar biasa tidak
+             ada bedanya sama sekali, karena batasnya memang belum
+             tercapai. --}}
+        <div class="mx-auto w-full max-w-[1500px]">
             {{-- Spanduk mode lihat-saja: muncul di SETIAP halaman begitu
                  pengguna menengok periode lampau atau periode berjalannya
                  sudah ditutup. Diletakkan di layout (bukan per halaman)
@@ -117,9 +126,9 @@
                  @section('title') + deskripsi dari registry Navigasi.
                  Halaman boleh menambah tombol aksi lewat @section('aksi'). ===== --}}
             @sectionMissing('tanpa-judul')
-                <div class="flex items-start justify-between gap-4 flex-wrap mb-5 no-print">
+                <div class="judul-halaman flex items-end justify-between gap-4 flex-wrap mb-6 no-print">
                     <div class="min-w-0">
-                        <h1 class="text-xl lg:text-2xl font-extrabold text-slate-800 tracking-tight">@yield('title', 'Dashboard')</h1>
+                        <h1 class="text-xl lg:text-[1.65rem] font-extrabold text-slate-800 tracking-tight leading-tight">@yield('title', 'Dashboard')</h1>
                         @hasSection('deskripsi')
                             <p class="text-sm text-slate-500 mt-1">@yield('deskripsi')</p>
                         @elseif($halaman && $halaman['deskripsi'])
@@ -164,6 +173,7 @@
             @endif
 
             @yield('content')
+        </div>
         </main>
 
         <footer class="px-4 lg:px-8 py-4 text-center text-xs text-slate-400 no-print">

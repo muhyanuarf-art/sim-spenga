@@ -9,7 +9,7 @@
 <body class="font-sans bg-slate-50 min-h-screen flex items-center justify-center p-4">
 
     <div class="w-full max-w-md">
-        <div class="bg-white rounded-2xl shadow-sm p-8">
+        <div class="card p-8">
             <h2 class="text-lg font-bold text-slate-800 mb-1">Ganti Password</h2>
             <p class="text-sm text-slate-400 mb-6">Disarankan mengganti password default demi keamanan akun.</p>
 

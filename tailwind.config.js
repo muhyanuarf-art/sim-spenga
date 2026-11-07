@@ -46,6 +46,29 @@ export default {
                     400: '#59acff', 500: '#3388fd', 600: '#1c68f2', 700: '#1553de',
                     800: '#1844b3', 900: '#193c8c',
                 },
+
+                /*
+                 * AKSEN — oranye pendamping biru.
+                 *
+                 * Keluarga warna BARU, bukan pengganti. Tidak satu pun nilai
+                 * "brand" di atas berubah, jadi semua tombol, tautan, dan
+                 * status yang sudah ada tetap persis seperti semula.
+                 *
+                 * Tugasnya hanya satu: menandai. Garis pendek di bawah judul
+                 * halaman, penanda menu yang sedang dibuka, titik pada
+                 * pemilih periode. Biru tetap memegang semua yang bisa
+                 * diklik — oranye tidak pernah dipakai untuk tombol.
+                 *
+                 * Nadanya sengaja oranye-amber (#f5820f), bukan oranye
+                 * kemerahan. Oranye yang terlalu merah akan tertukar dengan
+                 * tombol Hapus (#e0392f) — justru di tempat yang paling tidak
+                 * boleh salah baca.
+                 */
+                aksen: {
+                    50: '#fff7ec', 100: '#ffecd1', 200: '#fed5a0', 300: '#fcb864',
+                    400: '#f99a35', 500: '#f5820f', 600: '#e06f08', 700: '#b9550c',
+                    800: '#934411', 900: '#783911',
+                },
             },
             boxShadow: { soft: '0 2px 10px 0 rgba(20, 30, 60, 0.06)' },
         },
